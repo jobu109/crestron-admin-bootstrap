@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-11
+
+### Added
+- Signed `CrestronBootstrap.exe` distribution for techs who shouldn't have to
+  touch PowerShell. Menu-driven wrapper around the module.
+- Self-signed code-signing certificate (`CN=jobu109 Code Signing`); public
+  `.cer` ships in `signing/` for end-user trust installation.
+- Bootstrapper architecture: PS 5.1-compiled .exe detects PowerShell 7 and
+  the module, offers to install them, and hands off to a `pwsh`-hosted menu.
+- `INSTALL-CERT.md` — one-time per-machine trust-install instructions for the
+  signing certificate.
+- `wrapper\Build-Exe.ps1` enhanced to:
+  - Embed the launcher script into the bootstrapper at build time
+  - Apply a temporary Defender exclusion during build (requires elevation)
+  - Sign the resulting .exe with the configured code-signing cert
+  - Verify the signature
+
 ## [0.1.0] - 2026-05-11
 
 ### Added
@@ -29,5 +46,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.2.0
 [0.1.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.1.0

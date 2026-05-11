@@ -21,6 +21,12 @@ dist/
 *.exe
 !wrapper/*.exe.config
 
+# Keep public signing certificate (.cer) in repo so techs can install it.
+# .pfx (private key) must never be committed.
+!signing/
+signing/*.pfx
+signing/*.p12
+
 # PowerShell module artifacts
 *.zip
 *.nupkg

@@ -61,9 +61,11 @@ Clone the repo, copy `src\CrestronAdminBootstrap\` into your PowerShell modules 
 
 ### .exe distribution (for techs)
 
-A pre-built `CrestronBootstrap.exe` is attached to each GitHub release. It's a menu-driven wrapper around the same module — no PowerShell knowledge required. Drop the .exe in a folder, drop a `subnets.txt` next to it, double-click.
+A pre-built **signed** `CrestronBootstrap.exe` is attached to each GitHub release. It's a menu-driven wrapper around the same module — no PowerShell knowledge required. Drop the .exe in a folder, drop a `subnets.txt` next to it, double-click.
 
-> **AV heads-up.** PS2EXE-built binaries are commonly flagged by Defender and other AV. If you hit a false positive, either whitelist the .exe or use the module install path instead.
+**One-time setup per machine:** install the signing certificate (`jobu109-codesigning.cer`, also on the release) into Trusted Publishers so Windows trusts the signature. See [INSTALL-CERT.md](INSTALL-CERT.md) for instructions.
+
+Note that the .exe still requires PowerShell 7 + the module on the target machine — it'll detect missing pieces and offer to install them the first time you run it.
 
 ## Usage
 
