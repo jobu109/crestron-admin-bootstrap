@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-11
+
+### Added
+- Launcher now prompts the tech for CIDRs at scan time instead of requiring a
+  pre-existing `subnets.txt`. The first CIDR prompt pre-fills `172.22.0.0/24`
+  as the default — press Enter to accept.
+- New menu option `[E] Edit subnets list` for updating saved CIDRs without
+  opening a text editor.
+- Launcher normalizes `-WorkingDirectory` to an absolute path before resolving
+  any working files, so relative paths passed by the bootstrapper or tests
+  don't double-resolve.
+
 ## [0.2.0] - 2026-05-11
 
 ### Added
@@ -46,6 +58,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.3.0
 [0.2.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.2.0
 [0.1.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.1.0
