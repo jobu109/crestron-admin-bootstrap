@@ -1,0 +1,38 @@
+# CSV outputs from scanner/provisioner runs
+crestron-bootup.csv
+crestron-provisioned.csv
+crestron-verified.csv
+*.csv
+
+# Local subnet lists (don't leak internal IPs)
+subnets.txt
+test-subnets.txt
+!examples/subnets.example.txt
+
+# Sample HTML pulled during signature debugging
+bootup-sample.html
+createuser.html
+page-*.html
+*.html
+!docs/**/*.html
+
+# Build artifacts from wrapper/Build-Exe.ps1
+dist/
+*.exe
+!wrapper/*.exe.config
+
+# PowerShell module artifacts
+*.zip
+*.nupkg
+
+# Editor / OS junk
+.vs/
+.vscode/
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+
+# PowerShell session history
+PowerShell_transcript.*

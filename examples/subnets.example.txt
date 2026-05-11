@@ -1,0 +1,15 @@
+# One CIDR per line. Lines starting with # and blank lines are ignored.
+# Inline comments after a value are also ignored.
+
+# Single /24
+10.10.1.0/24
+
+# Multiple /24s in one floor
+10.10.21.0/24
+10.10.22.0/24
+
+# Larger range — careful, /22 is 1022 hosts and /16 is 65k+
+# 192.168.0.0/22
+
+# Trailing comment example
+172.22.0.0/24    # AV lab subnet
