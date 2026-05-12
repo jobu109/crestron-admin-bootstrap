@@ -3,19 +3,21 @@
     Builds and signs CrestronBootstrap.exe.
 
 .DESCRIPTION
-    PS2EXE only targets Windows PowerShell 5.1, but the module needs PS 7.
-    To bridge that, this build process:
-      1. Reads wrapper\CrestronBootstrap.Launcher.ps1 (the PS 7 menu UI).
-      2. Base64-encodes it and injects it into a copy of
-         wrapper\CrestronBootstrap.Bootstrapper.ps1 (the PS 5.1 stub) as a
-         placeholder replacement.
-      3. Compiles the merged bootstrapper into dist\CrestronBootstrap.exe via
-         ps2exe.
+    PS2EXE only targets Windows PowerShell 5.1, but the module needs PS 7. To
+    bridge that, this build process:
+      1. Reads wrapper\CrestronBootstrap.Launcher.ps1 (text menu)
+         and wrapper\CrestronBootstrap.Gui.ps1 (WPF GUI, if present).
+      2. Base64-encodes each and injects them into a copy of
+         wrapper\CrestronBootstrap.Bootstrapper.ps1 (the PS 5.1 stub).
+      3. Compiles the merged bootstrapper into dist\CrestronBootstrap.exe.
       4. Signs the .exe with the configured code-signing cert.
 
-    Temporarily adds dist\ to Microsoft Defender exclusions during build,
-    because PS2EXE output is heuristically flagged. The exclusion is removed
-    when the build completes (or fails). Requires elevation.
+    The GUI file is optional. If wrapper\CrestronBootstrap.Gui.ps1 does not
+    exist, the GUI placeholder is left as the marker string and the resulting
+    .exe will fall back to the text menu regardless of command-line args.
+
+    Temporarily adds dist\ to Microsoft Defender exclusions during build.
+    Requires elevation for that step.
 
 .PARAMETER OutputDir
     Directory to write the .exe to. Default: dist\ at the repo root.
@@ -47,6 +49,7 @@ $ErrorActionPreference = 'Stop'
 $ScriptRoot       = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot         = Split-Path -Parent $ScriptRoot
 $LauncherPath     = Join-Path $ScriptRoot 'CrestronBootstrap.Launcher.ps1'
+$GuiPath          = Join-Path $ScriptRoot 'CrestronBootstrap.Gui.ps1'
 $BootstrapperPath = Join-Path $ScriptRoot 'CrestronBootstrap.Bootstrapper.ps1'
 $Manifest         = Join-Path $RepoRoot 'src\CrestronAdminBootstrap\CrestronAdminBootstrap.psd1'
 $IconPath         = Join-Path $ScriptRoot 'app.ico'
@@ -57,6 +60,7 @@ $ExePath = Join-Path $OutputDir 'CrestronBootstrap.exe'
 foreach ($p in @($LauncherPath, $BootstrapperPath, $Manifest)) {
     if (-not (Test-Path $p)) { throw "Required file not found: $p" }
 }
+$guiExists = Test-Path $GuiPath
 
 if (-not $Version) {
     $manifestData = Import-PowerShellDataFile -Path $Manifest
@@ -77,6 +81,7 @@ if (-not $SkipSigning) {
 
 Write-Host '==> Build settings' -ForegroundColor Cyan
 Write-Host "    Launcher     : $LauncherPath"
+Write-Host "    GUI          : $(if ($guiExists) { $GuiPath } else { '(missing; .exe will use text menu only)' })"
 Write-Host "    Bootstrapper : $BootstrapperPath"
 Write-Host "    Output       : $ExePath"
 Write-Host "    Version      : $Version"
@@ -86,15 +91,20 @@ if ($cert) {
     Write-Host '    Cert         : (signing skipped)'
 }
 
-# Embed the launcher into a copy of the bootstrapper
-Write-Host '==> Embedding launcher' -ForegroundColor Cyan
-$launcherBytes  = [IO.File]::ReadAllBytes($LauncherPath)
-$launcherB64    = [Convert]::ToBase64String($launcherBytes)
-$bootstrapText  = Get-Content -Path $BootstrapperPath -Raw
+# Embed scripts into a copy of the bootstrapper
+Write-Host '==> Embedding scripts' -ForegroundColor Cyan
+$launcherB64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($LauncherPath))
+$guiB64      = if ($guiExists) { [Convert]::ToBase64String([IO.File]::ReadAllBytes($GuiPath)) } else { '' }
+
+$bootstrapText = Get-Content -Path $BootstrapperPath -Raw
 if ($bootstrapText -notmatch '__LAUNCHER_BASE64_PLACEHOLDER__') {
     throw "Bootstrapper is missing __LAUNCHER_BASE64_PLACEHOLDER__ marker."
 }
-$mergedText     = $bootstrapText.Replace('__LAUNCHER_BASE64_PLACEHOLDER__', $launcherB64)
+if ($bootstrapText -notmatch '__GUI_BASE64_PLACEHOLDER__') {
+    throw "Bootstrapper is missing __GUI_BASE64_PLACEHOLDER__ marker."
+}
+$mergedText = $bootstrapText.Replace('__LAUNCHER_BASE64_PLACEHOLDER__', $launcherB64)
+$mergedText = $mergedText.Replace('__GUI_BASE64_PLACEHOLDER__',      $guiB64)
 
 $tempBuildDir = Join-Path $env:TEMP "cabs-build-$([Guid]::NewGuid())"
 New-Item -ItemType Directory -Path $tempBuildDir -Force | Out-Null
@@ -120,7 +130,6 @@ if (Get-Command Add-MpPreference -ErrorAction SilentlyContinue) {
 }
 
 try {
-    # Ensure ps2exe is available
     if (-not (Get-Module -ListAvailable ps2exe)) {
         Write-Host '==> Installing ps2exe module' -ForegroundColor Cyan
         Install-Module ps2exe -Scope CurrentUser -Force -AllowClobber
@@ -159,7 +168,6 @@ try {
     $size = [math]::Round((Get-Item $ExePath).Length / 1KB, 1)
     Write-Host "==> Built $ExePath ($size KB)" -ForegroundColor Green
 
-    # Sign
     if ($cert) {
         Write-Host '==> Signing' -ForegroundColor Cyan
         $sigResult = Set-AuthenticodeSignature `

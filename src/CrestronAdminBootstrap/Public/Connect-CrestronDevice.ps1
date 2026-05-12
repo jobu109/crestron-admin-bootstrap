@@ -65,12 +65,38 @@ function Connect-CrestronDevice {
     $loginBody = "login=$([uri]::EscapeDataString($user))&passwd=$([uri]::EscapeDataString($pass))"
     $token     = $null
 
+# --- Step 2: POST /userlogin.html and capture response headers -----------
+    # Match the browser-issued login as closely as possible:
+    #  - Only URL-encode characters that *must* be escaped in form data
+    #    (% & = + and control chars). Some firmware variants do a literal
+    #    string compare on the password instead of URL-decoding it.
+    #  - Send X-Requested-With: XMLHttpRequest so the device treats the POST
+    #    as an AJAX login (matches what the web UI does).
+    function _MinimalFormEncode ([string]$s) {
+        $sb = [System.Text.StringBuilder]::new()
+        foreach ($ch in $s.ToCharArray()) {
+            $code = [int]$ch
+            if ($code -le 0x20 -or $code -eq 0x25 -or $code -eq 0x26 -or $code -eq 0x2B -or $code -eq 0x3D -or $code -ge 0x7F) {
+                [void]$sb.AppendFormat('%{0:X2}', $code)
+            } else {
+                [void]$sb.Append($ch)
+            }
+        }
+        $sb.ToString()
+    }
+
+    $hdrFile   = Join-Path ([IO.Path]::GetTempPath()) "cabs-hdr-$([Guid]::NewGuid()).txt"
+    $loginBody = "login=$(_MinimalFormEncode $user)&passwd=$(_MinimalFormEncode $pass)"
+    $token     = $null
+
     try {
         & curl.exe -k -s -b $jar -c $jar -D $hdrFile --max-time $TimeoutSec `
             -X POST `
-            -H "Content-Type: application/x-www-form-urlencoded" `
+            -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" `
+            -H "X-Requested-With: XMLHttpRequest" `
             -H "Referer: https://$IP/userlogin.html" `
             -H "Origin: https://$IP" `
+            -H "Accept: */*" `
             --data $loginBody `
             -o NUL `
             "https://$IP/userlogin.html" | Out-Null
@@ -88,18 +114,46 @@ function Connect-CrestronDevice {
             throw "Login to $IP failed with HTTP $statusCode. Check credentials."
         }
 
+        # The XSRF token may or may not appear in the login response headers
+        # depending on firmware variant. Newer firmware (e.g. TS-1070 v3.x)
+        # returns CREST-XSRF-TOKEN; older firmware returns only session cookies
+        # and exposes the token elsewhere. Treat "session cookies present" as
+        # the real success signal, and try to extract the token if found.
         $tokenMatch = Select-String -Path $hdrFile -Pattern '^\s*CREST-XSRF-TOKEN\s*:\s*(.+)$' -CaseSensitive:$false |
                       Select-Object -First 1
-        if (-not $tokenMatch) {
-            throw "Login succeeded (HTTP $statusCode) but no CREST-XSRF-TOKEN header was returned by $IP."
+        if ($tokenMatch) {
+            $token = $tokenMatch.Matches.Groups[1].Value.Trim()
+        } else {
+            $token = $null
         }
-        $token = $tokenMatch.Matches.Groups[1].Value.Trim()
 
+        # Real auth check: did the device set our session cookies?
         $expectedCookies = @('userstr','userid','iv','tag','AuthByPasswd')
         $jarText = Get-Content $jar -Raw
-        $missing = @($expectedCookies | Where-Object { $jarText -notmatch [regex]::Escape($_) })
-        if ($missing.Count -gt 0) {
-            Write-Warning "Login succeeded but expected cookie(s) missing from jar: $($missing -join ', ')"
+        $present = @($expectedCookies | Where-Object { $jarText -match [regex]::Escape($_) })
+        if ($present.Count -lt 3) {
+            # Fewer than 3 of the 5 cookies — assume credentials were rejected.
+            # (Bad-login responses set 0 cookies; partial responses suggest a
+            # different problem but should still fail.)
+            throw "Authentication rejected by $IP — likely wrong credentials. (HTTP $statusCode, only $($present.Count)/5 session cookies set.)"
+        }
+
+        if (-not $token) {
+            # No token in header — try to find it on the post-login landing page,
+            # which on older firmware embeds it in a meta tag or sets it as a cookie.
+            $probe = Join-Path ([IO.Path]::GetTempPath()) "cabs-probe-$([Guid]::NewGuid()).html"
+            try {
+                & curl.exe -k -s -b $jar -c $jar --max-time $TimeoutSec `
+                    -o $probe `
+                    "https://$IP/" 2>$null | Out-Null
+                if (Test-Path $probe) {
+                    $html = Get-Content $probe -Raw -ErrorAction SilentlyContinue
+                    if ($html -match 'CREST-XSRF-TOKEN["'']?\s*[:=]\s*["'']?([^"''<>\s]+)') {
+                        $token = $Matches[1]
+                    }
+                }
+            } catch { }
+            finally { Remove-Item $probe -Force -ErrorAction SilentlyContinue }
         }
     } finally {
         Remove-Item $hdrFile -Force -ErrorAction SilentlyContinue

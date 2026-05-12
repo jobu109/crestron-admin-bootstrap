@@ -33,11 +33,12 @@ function Invoke-CrestronApi {
     if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
         throw "curl.exe not found on PATH."
     }
-    foreach ($k in 'IP','CookieJarPath','XsrfToken') {
+    foreach ($k in 'IP','CookieJarPath') {
         if (-not $Session.$k) {
             throw "Session is missing required property '$k'. Reconnect with Connect-CrestronDevice."
         }
     }
+    # XsrfToken may be null on older firmware; we'll skip the header in that case.
 
     $ip   = $Session.IP
     $url  = "https://$ip$Path"
@@ -59,7 +60,9 @@ function Invoke-CrestronApi {
         )
 
         if ($Method -eq 'POST') {
-            $args += @('-H', "X-CREST-XSRF-TOKEN: $xsrf")
+            if ($xsrf) {
+                $args += @('-H', "X-CREST-XSRF-TOKEN: $xsrf")
+            }
             if ($null -ne $Body) {
                 $json     = $Body | ConvertTo-Json -Depth 12 -Compress
                 $bodyFile = New-TemporaryFile

@@ -6,6 +6,76 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-12
+
+### Added
+- WPF GUI (`wrapper\CrestronBootstrap.Gui.ps1`). The .exe now launches a
+  single-window graphical interface with six tabs: Full Workflow, Scan,
+  Provision, Blanket Settings, Per-Device, and Verify. The pre-existing text
+  menu remains available via `CrestronBootstrap.exe --text`.
+- `Restart-CrestronDevice` cmdlet. POSTs `{"Device":{"DeviceOperations":{"Reboot":true}}}`
+  to `/Device/DeviceOperations`. Reboot buttons surface this on the Provision,
+  Blanket Settings, and Per-Device tabs.
+- `Set-CrestronHostname` cmdlet. POSTs `Device.NetworkAdapters.HostName` and
+  validates per RFC 1123 hostname rules.
+- `Set-CrestronNetwork` cmdlet. Sets DHCP/Static, static IP/subnet/gateway,
+  primary and secondary DNS, and can disable the WiFi adapter in the same
+  POST. Validates static-mode fields before sending. Reports
+  `ConnectionLost=$true` when an IP change is expected to drop the session.
+- `Get-CrestronDeviceState` cmdlet. Returns a flattened state object
+  (hostname, EthernetLan IPv4 config, DNS, WiFi state, HasWifi). Used by the
+  Per-Device tab to pre-fill the editable grid and by the WiFi-off safety check.
+- `Connect-CrestronDevice` now probes `/Device/DeviceInfo` post-login and
+  records `DeviceFamily`, `Model`, `Hostname`, and `Firmware` on the session.
+- "Add Devices..." dialog on Per-Device and Blanket Settings tabs. Sources:
+  CIDR scan, paste-an-IP-list, or load from the workspace's
+  `crestron-provisioned.csv`. Discovered IPs are probed with ICMP plus a
+  CresNext `GET /` cookie check, then auth-tested against cached credentials.
+- Reboot wait now shows a 4-minute countdown timer, a live per-device
+  online-status grid, and exits early when all rebooted devices respond to
+  `GET /`. Replaces the earlier fixed 180-second sleep in Full Workflow.
+- Global exception handler in the GUI. Unhandled errors in event handlers
+  surface as a message box instead of silently killing the dispatcher.
+
+### Changed
+- Per-device auto-update payload shape is selected from `Session.DeviceFamily`:
+  TouchPanel uses `Device.AutoUpdateMaster.IsEnabled`; other families use the
+  richer `Device.FeatureConfig.Avf.AvfAutoUpdate` schedule shape.
+- `Connect-CrestronDevice` no longer hard-requires `CREST-XSRF-TOKEN` in the
+  login response. Older firmware (observed on multiple 4-Series devices)
+  authenticates by setting the five session cookies (`userstr`, `userid`,
+  `iv`, `tag`, `AuthByPasswd`) without issuing the token in the response
+  header. The cmdlet now treats >=3-of-5 cookies as a successful login and
+  follows up with a `GET /` to look for the token in a meta tag.
+- `Invoke-CrestronApi` tolerates a null XSRF token. The
+  `X-CREST-XSRF-TOKEN` header is now optional and only sent when the session
+  actually has a token.
+- Login POST mirrors the browser more closely: adds
+  `X-Requested-With: XMLHttpRequest`, `Accept: */*`, and uses minimal form
+  encoding so passwords containing `!` or other shell-safe characters are
+  sent literally rather than percent-encoded.
+- `Set-CrestronSettings` parses `Actions[].Results[].StatusId` per-section
+  and treats anything outside `{0=OK, 1=OK-reboot-required}` as a failure.
+  Previously a "HTTP 200 + unsupported property" body was reported as Success.
+- The result object adds a `SectionResults` array
+  (Path/StatusId/StatusInfo/Ok) for fine-grained diagnostics.
+- The Per-Device apply now rejects WiFi-off when the device has no WiFi
+  adapter (e.g. DM-NVX-360C), based on a new `HasWifi` field returned by
+  `Get-CrestronDeviceState`.
+- The bootstrapper now defaults to launching the GUI. Pass `--text` to fall
+  back to the text menu launcher.
+- Build pipeline (`wrapper\Build-Exe.ps1`) embeds both `Launcher.ps1` and
+  `Gui.ps1` as base64 inside a single signed .exe.
+
+### Known limitations
+- Per-device IP changes are fire-and-forget. A row reporting `Success=True`
+  means the device acknowledged the change before its current TCP connection
+  dropped, not that it came back on the new address. The Verify tab (or a
+  manual rescan) is still the right way to confirm.
+- The full workflow's blanket-settings step uses the existing tab's
+  confirmation dialog rather than running silently. This is intentional and
+  predictable but the tech will see one extra OK click during the run.
+
 ## [0.4.0] - 2026-05-11
 
 ### Added
@@ -106,7 +176,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.5.0
 [0.4.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.4.0
 [0.3.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.3.0
 [0.2.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.2.0

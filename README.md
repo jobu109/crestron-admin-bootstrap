@@ -6,17 +6,30 @@ Bulk-provision the initial admin account on Crestron 4-Series devices stuck on t
 # One-line install (PowerShell 7, no admin)
 iex (irm https://raw.githubusercontent.com/jobu109/crestron-admin-bootstrap/main/install.ps1)
 
-# Discover, provision, verify
+# GUI (recommended)
+CrestronBootstrap.exe
+
+# Text menu (older interface, scriptable)
+CrestronBootstrap.exe --text
+
+# Or call the module cmdlets directly from PowerShell 7
 Find-CrestronBootup -CidrFile .\subnets.txt
 Set-CrestronAdmin   -InputCsv .\crestron-bootup.csv
 Test-CrestronAdmin  -InputCsv .\crestron-provisioned.csv
 
-# Apply blanket post-provisioning config (NTP / XiO Cloud / Auto-Update)
+# Apply blanket settings to one device
 $cred    = Get-Credential
 $session = Connect-CrestronDevice -IP 10.10.20.21 -Credential $cred
 Set-CrestronSettings -Session $session `
     -Ntp   @{ TimeZone='010'; NtpServer='time.google.com' } `
     -Cloud $true
+
+# Per-device hostname / network / reboot
+Set-CrestronHostname -Session $session -Hostname 'CR-101-TS1070'
+Set-CrestronNetwork  -Session $session -IPMode Static `
+    -NewIP 10.10.20.21 -SubnetMask 255.255.255.0 -Gateway 10.10.20.1 `
+    -PrimaryDns 8.8.8.8
+Restart-CrestronDevice -Session $session
 Disconnect-CrestronDevice -Session $session
 ```
 
@@ -25,8 +38,29 @@ Disconnect-CrestronDevice -Session $session
 - **`Find-CrestronBootup`** — scans CIDRs in parallel, returns devices whose `/createUser.html` matches the 4-Series first-boot signatures. Read-only.
 - **`Set-CrestronAdmin`** — prompts for one admin username/password, asks for a YES confirmation, then `POST`s `/Device/Authentication` on every device in parallel.
 - **`Test-CrestronAdmin`** — rescans previously-provisioned IPs and confirms `/createUser.html` no longer matches the bootup signatures.
-- **`Connect-CrestronDevice`** / **`Disconnect-CrestronDevice`** — explicit login that returns a session object (cookies + `CREST-XSRF-TOKEN`) for subsequent authenticated calls.
-- **`Set-CrestronSettings`** — applies blanket post-provisioning settings (NTP/timezone, XiO Cloud toggle, auto-update schedule) in a single combined POST to `/Device`. The launcher's `[5]` menu option drives this in bulk across a provisioning CSV.
+- **`Connect-CrestronDevice`** / **`Disconnect-CrestronDevice`** — explicit login. Probes `/Device/DeviceInfo` to record `DeviceFamily`, `Model`, `Hostname`, and `Firmware` on the session. Tolerates older firmware that doesn't return `CREST-XSRF-TOKEN` in the login response.
+- **`Set-CrestronSettings`** — applies blanket post-provisioning settings (NTP/timezone, XiO Cloud toggle, auto-update schedule) in a single combined POST to `/Device`. Picks the right auto-update payload shape per family (TouchPanel vs ControlSystem).
+- **`Get-CrestronDeviceState`** — returns the current network state (hostname, EthernetLan IPv4 config, DNS, WiFi adapter presence and state) for the connected device.
+- **`Set-CrestronHostname`** — changes the device hostname. Validates per RFC 1123.
+- **`Set-CrestronNetwork`** — switches between DHCP and Static, sets IP/subnet/gateway/DNS, optionally disables the WiFi adapter. Fire-and-forget when IP changes — the session is invalid after the device commits.
+- **`Restart-CrestronDevice`** — reboots the device via `/Device/DeviceOperations`. Session is invalid after this call.
+
+## GUI
+
+The .exe defaults to a single-window WPF interface with six tabs:
+
+- **Full Workflow** — runs Scan → Provision → Blanket Settings → Per-Device → Reboot → Verify in sequence, with the only required pauses being a credential prompt, a settings choice, and per-device editing. Shows a live device-status grid during the 4-minute reboot wait and exits early when all rebooted devices respond.
+- **Scan** — CIDR list editor on the left, live results grid on the right with a per-row checkbox and select-all toggle. Auto-saves `crestron-bootup.csv`.
+- **Provision** — auto-loads from the Scan tab (or `crestron-bootup.csv`), runs `Set-CrestronAdmin` against selected rows in parallel, updates each row's status live. Auto-saves `crestron-provisioned.csv`.
+- **Blanket Settings** — NTP/timezone, XiO Cloud, and auto-update toggles applied across selected devices in parallel. Auto-saves `crestron-settings.csv`.
+- **Per-Device** — editable grid for hostname, IP mode (Keep/DHCP/Static), IP/subnet/gateway/DNS, and WiFi-off. Validates per row. Auto-saves `crestron-perdevice.csv`.
+- **Verify** — runs `Test-CrestronAdmin` against selected devices, confirms `/createUser.html` no longer matches the bootup signatures. Auto-saves `crestron-verified.csv`.
+
+Per-Device and Blanket Settings tabs have an "Add Devices..." button that opens a dialog for adding devices by CIDR scan, IP list, or the workspace's provisioning CSV. Discovered devices are auth-tested against cached credentials and surface "Auth FAILED" upfront rather than at apply time.
+
+Reboot buttons sit on Provision, Blanket Settings, and Per-Device tabs and always confirm before sending the reboot signal. CresNext settings changes require a reboot to take effect, so the typical flow is apply → reboot → verify.
+
+Pass `--text` to launch the original text menu instead of the GUI.
 
 ## Requirements
 

@@ -9,16 +9,19 @@
       1. Confirms PowerShell 7 is installed (offers winget install if not)
       2. Confirms the CrestronAdminBootstrap module is installed
          (offers to run the install one-liner if not)
-      3. Extracts an embedded launcher script to a temp file and spawns
-         pwsh.exe to run it
-    The launcher script content is injected at build time by Build-Exe.ps1
-    via a placeholder.
+      3. Picks UI mode:
+         - default: WPF GUI (Gui.ps1)
+         - '--text' command-line arg: text menu (Launcher.ps1)
+      4. Extracts the selected script (embedded as base64) to a temp file and
+         spawns pwsh.exe to run it.
+    Both script contents are injected at build time by Build-Exe.ps1.
 #>
 
 $ErrorActionPreference = 'Stop'
 
-# {{LAUNCHER_BASE64}} — replaced at build time by Build-Exe.ps1
+# {{LAUNCHER_BASE64}} and {{GUI_BASE64}} are replaced at build time.
 $LauncherBase64 = '__LAUNCHER_BASE64_PLACEHOLDER__'
+$GuiBase64      = '__GUI_BASE64_PLACEHOLDER__'
 
 function Write-Step ($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 function Write-Ok   ($msg) { Write-Host "    $msg" -ForegroundColor Green }
@@ -27,6 +30,12 @@ function Pause-Exit ($code = 0) {
     Write-Host ""
     Read-Host "Press Enter to close"
     exit $code
+}
+
+# ---- UI mode selection -------------------------------------------------------
+$mode = 'gui'
+if ($args -contains '--text' -or $args -contains '-text' -or $args -contains '/text') {
+    $mode = 'text'
 }
 
 # ---- 1. Locate pwsh (PS 7) ---------------------------------------------------
@@ -83,8 +92,6 @@ Write-Ok "Found: $pwshExe"
 # ---- 2. Module installed? ----------------------------------------------------
 Write-Step 'Checking CrestronAdminBootstrap module'
 
-# Ask pwsh whether the module is available — has to be queried under PS 7,
-# because that's the module path that matters.
 $modCheck = & $pwshExe -NoProfile -Command "[bool](Get-Module -ListAvailable CrestronAdminBootstrap)" 2>$null
 if ($modCheck -ne 'True') {
     Write-Warn 'Module is not installed for PowerShell 7.'
@@ -105,36 +112,57 @@ if ($modCheck -ne 'True') {
     Write-Ok 'Module is installed.'
 }
 
-# ---- 3. Extract launcher and run it under pwsh -------------------------------
-Write-Step 'Launching menu'
+# ---- 3. Extract selected script and hand off to pwsh -------------------------
+$selectedB64  = if ($mode -eq 'gui') { $GuiBase64 } else { $LauncherBase64 }
+$selectedName = if ($mode -eq 'gui') { 'Gui.ps1' }  else { 'Launcher.ps1' }
+Write-Step "Launching $($mode.ToUpper()) ($selectedName)"
+
+# Build-time placeholders look like __XXX_BASE64_PLACEHOLDER__. After Build-Exe
+# runs, real base64 values sit in the $LauncherBase64 and $GuiBase64 variables
+# above. An "empty" payload means the script wasn't embedded — easy to detect
+# because base64 strings are always longer than a few characters.
+function Test-EmbeddedPayload ($b64) {
+    return -not ([string]::IsNullOrWhiteSpace($b64) -or $b64.Length -lt 16 -or $b64 -like '__*_PLACEHOLDER__')
+}
+
+if (-not (Test-EmbeddedPayload $selectedB64)) {
+    Write-Warn "No embedded $selectedName payload found. This .exe was built without the $mode script."
+    if ($mode -eq 'gui' -and (Test-EmbeddedPayload $LauncherBase64)) {
+        Write-Warn 'Falling back to text menu.'
+        $selectedB64  = $LauncherBase64
+        $selectedName = 'Launcher.ps1'
+        $mode = 'text'
+    } else {
+        Pause-Exit 1
+    }
+}
+
+# Resolve directory the user invoked the .exe from
+$exeDir = $null
+try {
+    $exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    if ($exePath) { $exeDir = Split-Path -Parent $exePath }
+} catch { }
+if ([string]::IsNullOrWhiteSpace($exeDir)) {
+    $exeDir = (Get-Location).Path
+}
 
 $tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP "cabs-launcher-$([Guid]::NewGuid())") -Force
-$launcherPath = Join-Path $tmp 'Launcher.ps1'
+$scriptPath = Join-Path $tmp $selectedName
+
 try {
-    [IO.File]::WriteAllBytes($launcherPath, [Convert]::FromBase64String($LauncherBase64))
+    [IO.File]::WriteAllBytes($scriptPath, [Convert]::FromBase64String($selectedB64))
 
-# Resolve the directory the user is running the .exe from. PS2EXE built
-    # executables don't expose MyInvocation.MyCommand.Path, so prefer the
-    # .NET process path; fall back to Get-Location.
-    $exeDir = $null
-    try {
-        $exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-        if ($exePath) { $exeDir = Split-Path -Parent $exePath }
-    } catch { }
-    if ([string]::IsNullOrWhiteSpace($exeDir)) {
-        $exeDir = (Get-Location).Path
-    }
-
-    # Hand off to pwsh in the SAME console window. The PS2EXE host has a
-    # console handle that can't be manipulated (Clear-Host fails), so we
-    # exit our process and let pwsh take over the window cleanly.
-    # Using cmd /c keeps the window attached for the user.
     $pwshArgs = @(
         '-NoProfile',
         '-ExecutionPolicy', 'Bypass',
-        '-File', $launcherPath,
+        '-File', $scriptPath,
         '-WorkingDirectory', $exeDir
     )
+
+    # NoNewWindow keeps everything in the same console for the text menu.
+    # The GUI doesn't actually need the console — WPF opens its own window — but
+    # we still spawn pwsh attached so any error output reaches the console.
     $proc = Start-Process -FilePath $pwshExe -ArgumentList $pwshArgs -Wait -NoNewWindow -PassThru
     exit $proc.ExitCode
 } finally {
