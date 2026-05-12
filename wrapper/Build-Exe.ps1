@@ -149,9 +149,9 @@ try {
         Product      = 'CrestronAdminBootstrap'
         Copyright    = '(c) 2026 Michael Floyd, MIT License'
         Version      = "$Version.0"
-        NoConsole    = $false
-        NoOutput     = $false
-        NoError      = $false
+        NoConsole    = $true
+        NoOutput     = $true
+        NoError      = $true
         RequireAdmin = $false
     }
     if (-not $NoIcon -and (Test-Path $IconPath)) {

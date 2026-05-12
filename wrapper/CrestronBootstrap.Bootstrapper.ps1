@@ -160,10 +160,15 @@ try {
         '-WorkingDirectory', $exeDir
     )
 
-    # NoNewWindow keeps everything in the same console for the text menu.
-    # The GUI doesn't actually need the console — WPF opens its own window — but
-    # we still spawn pwsh attached so any error output reaches the console.
-    $proc = Start-Process -FilePath $pwshExe -ArgumentList $pwshArgs -Wait -NoNewWindow -PassThru
+    # GUI mode: hide pwsh's console (only the WPF window is visible).
+    # Text mode: launch pwsh with a normal window so the user can see the menu.
+    if ($mode -eq 'gui') {
+        $proc = Start-Process -FilePath $pwshExe -ArgumentList $pwshArgs `
+                              -Wait -WindowStyle Hidden -PassThru
+    } else {
+        $proc = Start-Process -FilePath $pwshExe -ArgumentList $pwshArgs `
+                              -Wait -PassThru
+    }
     exit $proc.ExitCode
 } finally {
     Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
