@@ -42,3 +42,8 @@ Thumbs.db
 
 # PowerShell session history
 PowerShell_transcript.*
+# Manual debug artifacts (curl cookie jars, payload files)
+payload.json
+session.txt
+login-headers.txt
+*.cookies

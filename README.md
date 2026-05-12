@@ -6,19 +6,27 @@ Bulk-provision the initial admin account on Crestron 4-Series devices stuck on t
 # One-line install (PowerShell 7, no admin)
 iex (irm https://raw.githubusercontent.com/jobu109/crestron-admin-bootstrap/main/install.ps1)
 
-# Use it
+# Discover, provision, verify
 Find-CrestronBootup -CidrFile .\subnets.txt
 Set-CrestronAdmin   -InputCsv .\crestron-bootup.csv
 Test-CrestronAdmin  -InputCsv .\crestron-provisioned.csv
+
+# Apply blanket post-provisioning config (NTP / XiO Cloud / Auto-Update)
+$cred    = Get-Credential
+$session = Connect-CrestronDevice -IP 10.10.20.21 -Credential $cred
+Set-CrestronSettings -Session $session `
+    -Ntp   @{ TimeZone='010'; NtpServer='time.google.com' } `
+    -Cloud $true
+Disconnect-CrestronDevice -Session $session
 ```
 
 ---
 
-## What it does
-
 - **`Find-CrestronBootup`** — scans CIDRs in parallel, returns devices whose `/createUser.html` matches the 4-Series first-boot signatures. Read-only.
 - **`Set-CrestronAdmin`** — prompts for one admin username/password, asks for a YES confirmation, then `POST`s `/Device/Authentication` on every device in parallel.
 - **`Test-CrestronAdmin`** — rescans previously-provisioned IPs and confirms `/createUser.html` no longer matches the bootup signatures.
+- **`Connect-CrestronDevice`** / **`Disconnect-CrestronDevice`** — explicit login that returns a session object (cookies + `CREST-XSRF-TOKEN`) for subsequent authenticated calls.
+- **`Set-CrestronSettings`** — applies blanket post-provisioning settings (NTP/timezone, XiO Cloud toggle, auto-update schedule) in a single combined POST to `/Device`. The launcher's `[5]` menu option drives this in bulk across a provisioning CSV.
 
 ## Requirements
 

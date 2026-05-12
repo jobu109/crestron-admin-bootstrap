@@ -6,6 +6,54 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-11
+
+### Added
+- `Connect-CrestronDevice` — authenticates against a Crestron 4-Series device
+  and returns a session object (cookies + XSRF token) usable by other
+  authenticated cmdlets. Follows the documented CWS auth flow: GET / for
+  TRACKID, POST `/userlogin.html` with credentials, capture
+  `CREST-XSRF-TOKEN` response header.
+- `Disconnect-CrestronDevice` — cleans up the on-disk cookie jar for a session.
+- `Set-CrestronSettings` — applies blanket post-provisioning configuration.
+  Supports any combination of:
+    - `-Ntp` (server + 3-digit Crestron timezone code, enabled flag)
+    - `-Cloud` (XiO Cloud on/off)
+    - `-AutoUpdate` (Avf auto-update schedule + manifest URL)
+  Combines selected sections into a single CresNext partial-object POST to
+  `/Device` to minimize round-trips.
+- Private `Invoke-CrestronApi` helper for authenticated CresNext calls (cookie
+  jar persistence + XSRF token injection + status/body parsing).
+- Private `Get-CrestronTimeZones` returning a curated 30-entry table of common
+  US/EU/AU/AS Crestron timezone codes for use in the launcher picker.
+- Launcher option `[5] Configure settings on provisioned devices` — reads
+  `crestron-provisioned.csv`, prompts for credentials and per-section config,
+  shows a summary, requires YES confirmation, applies in parallel, writes
+  `crestron-settings.csv`.
+
+### Changed
+- `Connect-CrestronDevice` now probes `/Device/DeviceInfo` post-login and
+  records `DeviceFamily`, `Model`, `Hostname`, and `Firmware` on the session
+  object. Used to select the correct payload shape per device family.
+- `Set-CrestronSettings` auto-routes the auto-update payload by family:
+  TouchPanel uses the simple `Device.AutoUpdateMaster.IsEnabled` shape;
+  other families use the richer `Device.FeatureConfig.Avf.AvfAutoUpdate`
+  shape with schedule/manifest fields.
+- `Set-CrestronSettings` now parses the CresNext response body and inspects
+  `Actions[].Results[].StatusId` for each section. `StatusId 0` = OK,
+  `StatusId 1` = OK (reboot required), anything else is reported as a
+  failure. Previously a "HTTP 200 + unsupported property" body was reported
+  as Success — no longer.
+- The result object adds a `SectionResults` array (Path/StatusId/StatusInfo/Ok)
+  for fine-grained per-section diagnostics.
+
+### Known limitations
+- TouchPanel devices accept only the on/off auto-update toggle; the launcher
+  warns when ManifestUrl/schedule fields are supplied for a TouchPanel and
+  silently ignores them.
+- `AuthByPasswd` cookie rotates per request. Curl handles this automatically
+  on the same cookie jar; bypassing curl requires manual cookie merging.
+
 ## [0.3.0] - 2026-05-11
 
 ### Added
@@ -58,7 +106,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.4.0
 [0.3.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.3.0
 [0.2.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.2.0
 [0.1.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.1.0
