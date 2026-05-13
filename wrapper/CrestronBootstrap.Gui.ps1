@@ -487,8 +487,7 @@ $Script:AppState = [pscustomobject]@{
                         <DataGrid.Columns>
                             <DataGridTextColumn      Header="IP"          Binding="{Binding IP}"          Width="120" IsReadOnly="True" />
                             <DataGridTextColumn      Header="Model"       Binding="{Binding Model}"       Width="90"  IsReadOnly="True" />
-                            <DataGridTextColumn      Header="Hostname"    Binding="{Binding CurrentHostname}" Width="170" IsReadOnly="True" />
-                            <DataGridTextColumn      Header="NewHostname" Binding="{Binding NewHostname, UpdateSourceTrigger=PropertyChanged}" Width="170" />
+                            <DataGridTextColumn      Header="Hostname"    Binding="{Binding NewHostname, UpdateSourceTrigger=PropertyChanged}" Width="170" />
                             <DataGridComboBoxColumn  Header="IPMode"      SelectedValueBinding="{Binding IPMode, UpdateSourceTrigger=PropertyChanged}" Width="80">
                                 <DataGridComboBoxColumn.ItemsSource>
                                     <x:Array Type="sys:String" xmlns:sys="clr-namespace:System;assembly=mscorlib">
@@ -498,8 +497,7 @@ $Script:AppState = [pscustomobject]@{
                                     </x:Array>
                                 </DataGridComboBoxColumn.ItemsSource>
                             </DataGridComboBoxColumn>
-                            <DataGridTextColumn      Header="Current Mode" Binding="{Binding CurrentDeviceMode}" Width="110" IsReadOnly="True" />
-                            <DataGridComboBoxColumn  Header="Mode"         SelectedValueBinding="{Binding DeviceMode, UpdateSourceTrigger=PropertyChanged}" Width="115">
+                                <DataGridComboBoxColumn  Header="TX/RX Mode"   SelectedValueBinding="{Binding DeviceMode, UpdateSourceTrigger=PropertyChanged}" Width="115">
                                 <DataGridComboBoxColumn.ItemsSource>
                                     <x:Array Type="sys:String" xmlns:sys="clr-namespace:System;assembly=mscorlib">
                                         <sys:String>Keep</sys:String>
@@ -1824,6 +1822,10 @@ function Start-BlanketApply {
             $row = $Script:BlanketState.RowsByIP[$item.IP]
             if (-not $row) { continue }
 
+            if (-not ($row.PSObject.Properties.Name -contains 'NeedsReboot')) {
+                $row | Add-Member -NotePropertyName NeedsReboot -NotePropertyValue $false -Force
+            }
+
             $row.Status = $item.Status
 
             if (-not $item.__progress) {
@@ -1923,19 +1925,49 @@ $Script:UI.PerDeviceGrid.ItemsSource = $Script:PerDeviceState.Rows
 
 function Update-PerDeviceSummary {
     $count = $Script:PerDeviceState.Rows.Count
+
     $edited = ($Script:PerDeviceState.Rows | Where-Object {
-        $_.NewHostname -or
-        $_.IPMode -ne 'Keep' -or
-        $_.DeviceMode -ne 'Keep' -or
-        $_.DisableWifi -or
-        $_.NewIpId -or
-        $_.NewControlSystemAddr
+        $hostnameChanged = -not [string]::IsNullOrWhiteSpace($_.NewHostname) -and
+                           "$($_.NewHostname)" -ne "$($_.CurrentHostname)"
+
+        $ipModeChanged = $false
+        if ($_.IPMode -in 'DHCP','Static') {
+            $currentIpMode = if ([bool]$_.CurrentDhcp) {
+                'DHCP'
+            } else {
+                'Static'
+            }
+
+            $ipModeChanged = $_.IPMode -ne $currentIpMode
+        }
+
+        $deviceModeChanged = $false
+        if ($_.DeviceMode -in 'Transmitter','Receiver') {
+            $deviceModeChanged = "$($_.DeviceMode)" -ne "$($_.CurrentDeviceMode)"
+        }
+
+        $ipTableChanged = ($_.NewIpId -and "$($_.NewIpId)" -ne "$($_.CurrentIpId)") -or
+                          ($_.NewControlSystemAddr -and "$($_.NewControlSystemAddr)" -ne "$($_.CurrentControlSystemAddr)")
+
+        $networkValueChanged = ($_.NewIP -and "$($_.NewIP)" -ne "$($_.CurrentIP)") -or
+                               ($_.SubnetMask -and "$($_.SubnetMask)" -ne "$($_.CurrentSubnet)") -or
+                               ($_.Gateway -and "$($_.Gateway)" -ne "$($_.CurrentGateway)") -or
+                               ($_.PrimaryDns -and "$($_.PrimaryDns)" -ne "$($_.CurrentDns1)") -or
+                               ($_.SecondaryDns -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
+
+        $hostnameChanged -or
+        $ipModeChanged -or
+        $deviceModeChanged -or
+        $ipTableChanged -or
+        $networkValueChanged -or
+        $_.DisableWifi
     }).Count
+
     $ok = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
     $fail = ($Script:PerDeviceState.Rows | Where-Object { $_.Status -and $_.Status -notin 'OK','Pending','Working' }).Count
     $reboot = ($Script:PerDeviceState.Rows | Where-Object NeedsReboot).Count
 
-    $Script:UI.PerDeviceSummaryText.Text = "Loaded $count device(s). With changes: $edited. OK: $ok. Failed: $fail. Reboot needed: $reboot."
+    $Script:UI.PerDeviceSummaryText.Text = "Loaded $count device(s). With changes: $edited. OK: $ok. Failed: $fail. Reboot selected: $reboot."
 
     if ($Script:UI.PerDeviceRebootButton) {
         $Script:UI.PerDeviceRebootButton.IsEnabled = ($reboot -gt 0)
@@ -1981,6 +2013,11 @@ function Load-PerDeviceFromProvision {
             CurrentDhcp              = $null
             CurrentWifi              = $null
             HasWifi                  = $true
+            CurrentIP                = ''
+            CurrentSubnet            = ''
+            CurrentGateway           = ''
+            CurrentDns1              = ''
+            CurrentDns2              = ''
             CurrentIpId              = ''
             CurrentControlSystemAddr = ''
             CurrentRoomId            = ''
@@ -2005,6 +2042,7 @@ function Load-PerDeviceFromProvision {
             NeedsReboot              = $false
             Timestamp                = ''
         }
+
         $Script:PerDeviceState.Rows.Add($row)
         $Script:PerDeviceState.RowsByIP[$s.IP] = $row
     }
@@ -2179,6 +2217,11 @@ function Start-PerDeviceFetch {
             }
 
             foreach ($prop in @(
+                'CurrentIP',
+                'CurrentSubnet',
+                'CurrentGateway',
+                'CurrentDns1',
+                'CurrentDns2',
                 'CurrentDeviceMode',
                 'SupportsModeChange',
                 'DeviceMode',
@@ -2186,6 +2229,11 @@ function Start-PerDeviceFetch {
             )) {
                 if (-not ($row.PSObject.Properties.Name -contains $prop)) {
                     $defaultValue = switch ($prop) {
+                        'CurrentIP'          { '' }
+                        'CurrentSubnet'      { '' }
+                        'CurrentGateway'     { '' }
+                        'CurrentDns1'        { '' }
+                        'CurrentDns2'        { '' }
                         'CurrentDeviceMode'  { '' }
                         'SupportsModeChange' { $false }
                         'DeviceMode'         { 'Keep' }
@@ -2198,44 +2246,42 @@ function Start-PerDeviceFetch {
 
             if ($item.Model) {
                 $row.Model                    = $item.Model
-                $row.CurrentHostname          = $item.CurrentHostname
+                $row.CurrentHostname          = "$($item.CurrentHostname)"
                 $row.CurrentDhcp              = $item.CurrentDhcp
                 $row.CurrentWifi              = $item.CurrentWifi
                 $row.HasWifi                  = [bool]$item.HasWifi
+                $row.CurrentIP                = "$($item.CurrentIP)"
+                $row.CurrentSubnet            = "$($item.CurrentSubnet)"
+                $row.CurrentGateway           = "$($item.CurrentGateway)"
+                $row.CurrentDns1              = "$($item.CurrentDns1)"
+                $row.CurrentDns2              = "$($item.CurrentDns2)"
                 $row.CurrentIpId              = "$($item.CurrentIpId)"
                 $row.CurrentControlSystemAddr = "$($item.CurrentControlSystemAddr)"
                 $row.CurrentRoomId            = "$($item.CurrentRoomId)"
                 $row.CurrentDeviceMode        = "$($item.CurrentDeviceMode)"
                 $row.SupportsModeChange       = [bool]$item.SupportsModeChange
 
-                # Pre-fill editable network/IP-table boxes with current values
-                if (-not $row.NewIpId) {
-                    $row.NewIpId = "$($item.CurrentIpId)"
+                $row.NewHostname = "$($item.CurrentHostname)"
+
+                $row.IPMode = if ([bool]$item.CurrentDhcp) {
+                    'DHCP'
+                } else {
+                    'Static'
                 }
 
-                if (-not $row.NewControlSystemAddr) {
-                    $row.NewControlSystemAddr = "$($item.CurrentControlSystemAddr)"
+                $row.DeviceMode = if ([bool]$item.SupportsModeChange -and -not [string]::IsNullOrWhiteSpace("$($item.CurrentDeviceMode)")) {
+                    "$($item.CurrentDeviceMode)"
+                } else {
+                    'Keep'
                 }
 
-                if (-not $row.NewIP) {
-                    $row.NewIP = "$($item.CurrentIP)"
-                }
-
-                if (-not $row.SubnetMask) {
-                    $row.SubnetMask = "$($item.CurrentSubnet)"
-                }
-
-                if (-not $row.Gateway) {
-                    $row.Gateway = "$($item.CurrentGateway)"
-                }
-
-                if (-not $row.PrimaryDns) {
-                    $row.PrimaryDns = "$($item.CurrentDns1)"
-                }
-
-                if (-not $row.SecondaryDns) {
-                    $row.SecondaryDns = "$($item.CurrentDns2)"
-                }
+                $row.NewIpId              = "$($item.CurrentIpId)"
+                $row.NewControlSystemAddr = "$($item.CurrentControlSystemAddr)"
+                $row.NewIP                = "$($item.CurrentIP)"
+                $row.SubnetMask           = "$($item.CurrentSubnet)"
+                $row.Gateway              = "$($item.CurrentGateway)"
+                $row.PrimaryDns           = "$($item.CurrentDns1)"
+                $row.SecondaryDns         = "$($item.CurrentDns2)"
 
                 if (-not $row.Status) {
                     $row.Status = ''
@@ -2305,12 +2351,40 @@ function Start-PerDeviceApply {
     # Only treat IPID/CS-IP as a "change" if the new value differs from current
     # (otherwise every fetched row would trigger a pointless rewrite).
     $rowsToApply = @($Script:PerDeviceState.Rows | Where-Object {
-        $_.NewHostname -or
-        $_.IPMode -ne 'Keep' -or
-        $_.DeviceMode -ne 'Keep' -or
-        $_.DisableWifi -or
-        $_.NewIpId -or
-        $_.NewControlSystemAddr
+        $hostnameChanged = -not [string]::IsNullOrWhiteSpace($_.NewHostname) -and
+                        "$($_.NewHostname)" -ne "$($_.CurrentHostname)"
+
+        $ipModeChanged = $false
+        if ($_.IPMode -in 'DHCP','Static') {
+            $currentIpMode = if ([bool]$_.CurrentDhcp) {
+                'DHCP'
+            } else {
+                'Static'
+            }
+
+            $ipModeChanged = $_.IPMode -ne $currentIpMode
+        }
+
+        $deviceModeChanged = $false
+        if ($_.DeviceMode -in 'Transmitter','Receiver') {
+            $deviceModeChanged = $_.DeviceMode -ne $_.CurrentDeviceMode
+        }
+
+        $ipTableChanged = ($_.NewIpId -and "$($_.NewIpId)" -ne "$($_.CurrentIpId)") -or
+                        ($_.NewControlSystemAddr -and "$($_.NewControlSystemAddr)" -ne "$($_.CurrentControlSystemAddr)")
+
+        $networkValueChanged = ($_.NewIP -and "$($_.NewIP)" -ne "$($_.CurrentIP)") -or
+                            ($_.SubnetMask -and "$($_.SubnetMask)" -ne "$($_.CurrentSubnet)") -or
+                            ($_.Gateway -and "$($_.Gateway)" -ne "$($_.CurrentGateway)") -or
+                            ($_.PrimaryDns -and "$($_.PrimaryDns)" -ne "$($_.CurrentDns1)") -or
+                            ($_.SecondaryDns -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
+
+        $hostnameChanged -or
+        $ipModeChanged -or
+        $deviceModeChanged -or
+        $ipTableChanged -or
+        $networkValueChanged -or
+        $_.DisableWifi
     })
 
     if ($rowsToApply.Count -eq 0) {
@@ -2379,15 +2453,22 @@ function Start-PerDeviceApply {
         @{
             IP                       = $_.IP
             NewHostname              = $_.NewHostname
+            CurrentHostname          = $_.CurrentHostname
             IPMode                   = $_.IPMode
+            CurrentDhcp              = $_.CurrentDhcp
             DeviceMode               = $_.DeviceMode
             SupportsModeChange       = [bool]$_.SupportsModeChange
             CurrentDeviceMode        = $_.CurrentDeviceMode
             NewIP                    = $_.NewIP
+            CurrentIP                = $_.CurrentIP
             SubnetMask               = $_.SubnetMask
+            CurrentSubnet            = $_.CurrentSubnet
             Gateway                  = $_.Gateway
+            CurrentGateway           = $_.CurrentGateway
             PrimaryDns               = $_.PrimaryDns
+            CurrentDns1              = $_.CurrentDns1
             SecondaryDns             = $_.SecondaryDns
+            CurrentDns2              = $_.CurrentDns2
             DisableWifi              = [bool]$_.DisableWifi
             NewIpId                  = $_.NewIpId
             NewControlSystemAddr     = $_.NewControlSystemAddr
@@ -2448,7 +2529,7 @@ function Start-PerDeviceApply {
                     $needsReboot = $false
 
                     try {
-                        if ($row.NewHostname) {
+                            if ($row.NewHostname -and "$($row.NewHostname)" -ne "$($row.CurrentHostname)") {
                             $r1 = Set-CrestronHostname -Session $sess -Hostname $row.NewHostname
                             $stepResults += "Hostname=$(if($r1.Success){'OK'}else{$r1.Status})"
 
@@ -2494,7 +2575,21 @@ function Start-PerDeviceApply {
                             }
                         }
 
-                        if ($row.IPMode -in 'DHCP','Static') {
+                        $currentIpMode = if ([bool]$row.CurrentDhcp) {
+                            'DHCP'
+                        } else {
+                            'Static'
+                        }
+
+                        $ipModeChanged = ($row.IPMode -in 'DHCP','Static') -and
+                                         ($row.IPMode -ne $currentIpMode)
+
+                        $networkValueChanged = ($row.NewIP -and "$($row.NewIP)" -ne "$($row.CurrentIP)") -or
+                                               ($row.SubnetMask -and "$($row.SubnetMask)" -ne "$($row.CurrentSubnet)") -or
+                                               ($row.Gateway -and "$($row.Gateway)" -ne "$($row.CurrentGateway)") -or
+                                               ($row.PrimaryDns -and "$($row.PrimaryDns)" -ne "$($row.CurrentDns1)") -or
+                                               ($row.SecondaryDns -and "$($row.SecondaryDns)" -ne "$($row.CurrentDns2)")
+                        if ($ipModeChanged -or $networkValueChanged -or $row.DisableWifi) {
                             $netArgs = @{
                                 Session = $sess
                                 IPMode  = $row.IPMode
@@ -3369,11 +3464,19 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 CurrentDhcp              = $null
                 CurrentWifi              = $null
                 HasWifi                  = $true
+                CurrentIP                = ''
+                CurrentSubnet            = ''
+                CurrentGateway           = ''
+                CurrentDns1              = ''
+                CurrentDns2              = ''
                 CurrentIpId              = ''
                 CurrentControlSystemAddr = ''
                 CurrentRoomId            = ''
+                CurrentDeviceMode        = ''
+                SupportsModeChange       = $false
                 NewHostname              = ''
                 IPMode                   = 'Keep'
+                DeviceMode               = 'Keep'
                 NewIP                    = ''
                 SubnetMask               = ''
                 Gateway                  = ''
@@ -3385,6 +3488,7 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 NewRoomId                = ''
                 Status                   = ''
                 Detail                   = ''
+                NeedsReboot              = $false
                 Timestamp                = ''
             }
         }
@@ -3425,12 +3529,13 @@ $Script:UI.BlanketReloadButton.Add_Click({
         -RowFactory {
             param($ip)
             [pscustomobject]@{
-                Selected  = $true
-                IP        = $ip
-                Status    = ''
-                Sections  = ''
-                Detail    = ''
-                Timestamp = ''
+                Selected    = $true
+                IP          = $ip
+                Status      = ''
+                Sections    = ''
+                Detail      = ''
+                NeedsReboot = $false
+                Timestamp   = ''
             }
         }
     Update-BlanketSummary
