@@ -6,7 +6,45 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.5.0] - 2026-05-12
+## [0.6.0] - 2026-05-12
+
+### Added
+- `Set-CrestronIpTable` cmdlet. Writes a single-entry Control-System IP
+  table to the device via `Device.IpTableV2`. Validates IPID (1..FE hex)
+  and Control System address (IPv4 or hostname). Strips leading zeros from
+  IPID before serializing (e.g. "03" → "3") to match the device's internal
+  key normalization.
+- `Get-CrestronDeviceState` now also reads the device's current IP table:
+  `CurrentIpId`, `CurrentControlSystemAddr`, `CurrentRoomId`,
+  `CurrentEncryptConnection`. Best-effort: tries `/Device/IpTableV2` first,
+  falls back to legacy `/Device/IpTable` on older firmware. Reports the IPID
+  from `EntriesCurrentKeyList` even when the Entries dict is empty.
+- Per-Device tab now has two new editable columns: **IPID** and **CS IP**.
+  Validates per row (IPID must be 1-2 hex digits in 1..FE; CS IP must parse
+  as IPv4 or hostname). Apply Changes calls `Set-CrestronIpTable` for any
+  row with either field populated.
+
+### Changed
+- All `Set-Crestron*` cmdlets now treat additional CresNext "no-op" status
+  codes as success rather than failure: `StatusId=5` ("value is same as
+  previous") and `StatusId=-4` (also "same as previous") now report
+  `Ok=True`. This matches Crestron's actual semantics — the device is
+  acknowledging a property that didn't need changing, not rejecting the
+  request.
+
+### Known limitations
+- **Room ID field is not exposed in this release.** Testing against DM-NVX
+  firmware v2.0.0 showed the API silently discards the Room ID field
+  whether we send it as `Description`, `RoomId`, or `Name`. The web UI's
+  "Room ID" column appears to use a different mechanism (possibly XiO
+  Cloud sync) that isn't directly writable via the CresNext API on this
+  firmware. We'll revisit when we have a working firmware variant to test
+  against.
+- IP table replace is technically "merge with EntriesCurrentKeyList
+  authoritative". Other entries in the device's table are removed if not
+  in the new key list. v0.6.0 always writes a single-entry list.
+
+## [0.5.1] - 2026-05-12
 
 ### Added
 - WPF GUI (`wrapper\CrestronBootstrap.Gui.ps1`). The .exe now launches a
@@ -176,8 +214,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.5.0
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.6.0
+[0.5.1]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.5.1
 [0.4.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.4.0
 [0.3.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.3.0
 [0.2.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.2.0

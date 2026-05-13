@@ -144,7 +144,7 @@ function Set-CrestronNetwork {
             foreach ($r in @($action.Results)) {
                 $rPath = "$($r.Path)$(if ($r.Property) { '.' + $r.Property } else { '' })"
                 $sid   = [int]$r.StatusId
-                $rOk   = $sid -in 0,1
+                $rOk   = $sid -in 0,1,5,-4
                 if (-not $rOk) { $overallSuccess = $false }
                 $sectionResults += [pscustomobject]@{
                     Path       = $rPath

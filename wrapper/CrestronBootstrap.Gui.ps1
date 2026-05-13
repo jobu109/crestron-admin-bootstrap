@@ -444,6 +444,8 @@ $Script:AppState = [pscustomobject]@{
                             <DataGridTextColumn      Header="DNS1"        Binding="{Binding PrimaryDns, UpdateSourceTrigger=PropertyChanged}" Width="100" />
                             <DataGridTextColumn      Header="DNS2"        Binding="{Binding SecondaryDns, UpdateSourceTrigger=PropertyChanged}" Width="100" />
                             <DataGridCheckBoxColumn  Header="WiFi Off"    Binding="{Binding DisableWifi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="60" />
+                            <DataGridTextColumn      Header="IPID"        Binding="{Binding NewIpId, UpdateSourceTrigger=PropertyChanged}"              Width="60" />
+                            <DataGridTextColumn      Header="CS IP"       Binding="{Binding NewControlSystemAddr, UpdateSourceTrigger=PropertyChanged}" Width="130" />
                             <DataGridTextColumn      Header="Status"      Binding="{Binding Status}"     Width="80"  IsReadOnly="True" />
                             <DataGridTextColumn      Header="Detail"      Binding="{Binding Detail}"     Width="*"   IsReadOnly="True" />
                         </DataGrid.Columns>
@@ -1755,23 +1757,29 @@ function Load-PerDeviceFromProvision {
 
     foreach ($s in $source) {
         $row = [pscustomobject]@{
-            IP              = $s.IP
-            Model           = ''
-            CurrentHostname = ''
-            CurrentDhcp     = $null
-            CurrentWifi     = $null
-            HasWifi         = $true   # assume true until DeviceInfo proves otherwise
-            NewHostname     = ''
-            IPMode          = 'Keep'
-            NewIP           = ''
-            SubnetMask      = ''
-            Gateway         = ''
-            PrimaryDns      = ''
-            SecondaryDns    = ''
-            DisableWifi     = $false
-            Status          = ''
-            Detail          = ''
-            Timestamp       = ''
+            IP                      = $s.IP
+            Model                   = ''
+            CurrentHostname         = ''
+            CurrentDhcp             = $null
+            CurrentWifi             = $null
+            HasWifi                 = $true
+            CurrentIpId             = ''
+            CurrentControlSystemAddr = ''
+            CurrentRoomId           = ''
+            NewHostname             = ''
+            IPMode                  = 'Keep'
+            NewIP                   = ''
+            SubnetMask              = ''
+            Gateway                 = ''
+            PrimaryDns              = ''
+            SecondaryDns            = ''
+            DisableWifi             = $false
+            NewIpId                 = ''
+            NewControlSystemAddr    = ''
+            NewRoomId               = ''
+            Status                  = ''
+            Detail                  = ''
+            Timestamp               = ''
         }
         $Script:PerDeviceState.Rows.Add($row)
         $Script:PerDeviceState.RowsByIP[$s.IP] = $row
@@ -1857,13 +1865,16 @@ function Start-PerDeviceFetch {
                     try {
                         $state = Get-CrestronDeviceState -Session $sess
                             $q.Enqueue([pscustomobject]@{
-                            IP              = $ip
-                            Model           = $sess.Model
-                            CurrentHostname = $state.Hostname
-                            CurrentDhcp     = $state.EthernetLanDhcp
-                            CurrentWifi     = $state.WifiEnabled
-                            HasWifi         = $state.HasWifi
-                            Detail          = "OK"
+                            IP                       = $ip
+                            Model                    = $sess.Model
+                            CurrentHostname          = $state.Hostname
+                            CurrentDhcp              = $state.EthernetLanDhcp
+                            CurrentWifi              = $state.WifiEnabled
+                            HasWifi                  = $state.HasWifi
+                            CurrentIpId              = $state.CurrentIpId
+                            CurrentControlSystemAddr = $state.CurrentControlSystemAddr
+                            CurrentRoomId            = $state.CurrentRoomId
+                            Detail                   = "OK"
                         })
                     } finally { Disconnect-CrestronDevice -Session $sess }
                 } catch {
@@ -1896,11 +1907,14 @@ function Start-PerDeviceFetch {
             $row = $Script:PerDeviceState.RowsByIP[$item.IP]
             if (-not $row) { continue }
             if ($item.Model) {
-                $row.Model           = $item.Model
-                $row.CurrentHostname = $item.CurrentHostname
-                $row.CurrentDhcp     = $item.CurrentDhcp
-                $row.CurrentWifi     = $item.CurrentWifi
-                $row.HasWifi         = [bool]$item.HasWifi
+                $row.Model                    = $item.Model
+                $row.CurrentHostname          = $item.CurrentHostname
+                $row.CurrentDhcp              = $item.CurrentDhcp
+                $row.CurrentWifi              = $item.CurrentWifi
+                $row.HasWifi                  = [bool]$item.HasWifi
+                $row.CurrentIpId              = "$($item.CurrentIpId)"
+                $row.CurrentControlSystemAddr = "$($item.CurrentControlSystemAddr)"
+                $row.CurrentRoomId            = "$($item.CurrentRoomId)"
                 if (-not $row.Status) { $row.Status = '' }
             }
             $row.Detail = $item.Detail
@@ -1935,6 +1949,19 @@ function Test-PerDeviceRow ($row) {
     if ($row.DisableWifi -and -not $row.HasWifi) {
         return "This device has no WiFi adapter (uncheck 'WiFi Off')"
     }
+    # IP-table validation: if any of the three IP-table fields are set, require all three
+    $ipAny = $row.NewIpId -or $row.NewControlSystemAddr
+    if ($ipAny) {
+        if (-not $row.NewIpId)            { return "IPID is required when setting Control System fields" }
+        if ($row.NewIpId -notmatch '^[0-9A-Fa-f]{1,2}$') { return "IPID '$($row.NewIpId)' must be 1-2 hex digits (1..FE)" }
+        $ipIdInt = [Convert]::ToInt32($row.NewIpId, 16)
+        if ($ipIdInt -lt 1 -or $ipIdInt -gt 254) { return "IPID '$($row.NewIpId)' is out of range (1..FE)" }
+        if (-not $row.NewControlSystemAddr) { return "Control System IP is required when setting Control System fields" }
+        $addr = $row.NewControlSystemAddr
+        $isIpv4 = $addr -match '^(\d{1,3}\.){3}\d{1,3}$'
+        $isHost = $addr -match '^[A-Za-z0-9]([A-Za-z0-9\-\.]{0,253}[A-Za-z0-9])?$'
+        if (-not ($isIpv4 -or $isHost)) { return "Control System IP '$addr' is not a valid IPv4 or hostname" }
+    }
     return $null
 }
 
@@ -1943,7 +1970,8 @@ function Start-PerDeviceApply {
 
     # Find rows with any change
     $rowsToApply = @($Script:PerDeviceState.Rows | Where-Object {
-        $_.NewHostname -or $_.IPMode -ne 'Keep' -or $_.DisableWifi
+        $_.NewHostname -or $_.IPMode -ne 'Keep' -or $_.DisableWifi -or
+        $_.NewIpId -or $_.NewControlSystemAddr
     })
     if ($rowsToApply.Count -eq 0) {
         [System.Windows.MessageBox]::Show("No rows have any pending changes.", "Nothing to apply", 'OK', 'Warning') | Out-Null
@@ -1996,15 +2024,17 @@ function Start-PerDeviceApply {
     # Serialize rows as plain hashtables so they cross the runspace boundary
     $rowData = $rowsToApply | ForEach-Object {
         @{
-            IP           = $_.IP
-            NewHostname  = $_.NewHostname
-            IPMode       = $_.IPMode
-            NewIP        = $_.NewIP
-            SubnetMask   = $_.SubnetMask
-            Gateway      = $_.Gateway
-            PrimaryDns   = $_.PrimaryDns
-            SecondaryDns = $_.SecondaryDns
-            DisableWifi  = [bool]$_.DisableWifi
+            IP                   = $_.IP
+            NewHostname          = $_.NewHostname
+            IPMode               = $_.IPMode
+            NewIP                = $_.NewIP
+            SubnetMask           = $_.SubnetMask
+            Gateway              = $_.Gateway
+            PrimaryDns           = $_.PrimaryDns
+            SecondaryDns         = $_.SecondaryDns
+            DisableWifi          = [bool]$_.DisableWifi
+            NewIpId              = $_.NewIpId
+            NewControlSystemAddr = $_.NewControlSystemAddr
         }
     }
 
@@ -2052,6 +2082,19 @@ function Start-PerDeviceApply {
                             $r1 = Set-CrestronHostname -Session $sess -Hostname $row.NewHostname
                             $stepResults += "Hostname=$(if($r1.Success){'OK'}else{$r1.Status})"
                             if (-not $r1.Success) { $allOk = $false }
+                        }
+                        if ($row.NewIpId -or $row.NewControlSystemAddr) {
+                            try {
+                                $r3 = Set-CrestronIpTable -Session $sess `
+                                    -IpId $row.NewIpId `
+                                    -ControlSystemAddress $row.NewControlSystemAddr `
+                                    -EncryptConnection $false
+                                $stepResults += "IpTable=$(if($r3.Success){'OK'}else{$r3.Status})"
+                                if (-not $r3.Success) { $allOk = $false }
+                            } catch {
+                                $stepResults += "IpTable=ERR: $($_.Exception.Message)"
+                                $allOk = $false
+                            }
                         }
                         if ($row.IPMode -in 'DHCP','Static') {
                             $netArgs = @{ Session = $sess; IPMode = $row.IPMode }
@@ -2831,23 +2874,29 @@ $Script:UI.PerDeviceAddButton.Add_Click({
         -RowFactory {
             param($ip)
             [pscustomobject]@{
-                IP              = $ip
-                Model           = ''
-                CurrentHostname = ''
-                CurrentDhcp     = $null
-                CurrentWifi     = $null
-                HasWifi         = $true
-                NewHostname     = ''
-                IPMode          = 'Keep'
-                NewIP           = ''
-                SubnetMask      = ''
-                Gateway         = ''
-                PrimaryDns      = ''
-                SecondaryDns    = ''
-                DisableWifi     = $false
-                Status          = ''
-                Detail          = ''
-                Timestamp       = ''
+                IP                       = $ip
+                Model                    = ''
+                CurrentHostname          = ''
+                CurrentDhcp              = $null
+                CurrentWifi              = $null
+                HasWifi                  = $true
+                CurrentIpId              = ''
+                CurrentControlSystemAddr = ''
+                CurrentRoomId            = ''
+                NewHostname              = ''
+                IPMode                   = 'Keep'
+                NewIP                    = ''
+                SubnetMask               = ''
+                Gateway                  = ''
+                PrimaryDns               = ''
+                SecondaryDns             = ''
+                DisableWifi              = $false
+                NewIpId                  = ''
+                NewControlSystemAddr     = ''
+                NewRoomId                = ''
+                Status                   = ''
+                Detail                   = ''
+                Timestamp                = ''
             }
         }
     Update-PerDeviceSummary

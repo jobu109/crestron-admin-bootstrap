@@ -48,6 +48,26 @@ function Get-CrestronDeviceState {
         throw "GET /Device/NetworkAdapters on $($Session.IP) returned no parseable JSON."
     }
 
+    # Also fetch IpTableV2 (Control System binding). Best-effort: some firmware
+    # exposes only the older IpTable object; failures here don't break the call.
+    $ipTableJson = $null
+    try {
+        $ipApi = Invoke-CrestronApi -Session $Session -Path '/Device/IpTableV2' `
+                                    -Method GET -TimeoutSec $TimeoutSec
+        if ($ipApi.Success -and $ipApi.BodyJson) {
+            $ipTableJson = $ipApi.BodyJson.Device.IpTableV2
+        }
+    } catch { }
+    if (-not $ipTableJson) {
+        try {
+            $ipApi = Invoke-CrestronApi -Session $Session -Path '/Device/IpTable' `
+                                        -Method GET -TimeoutSec $TimeoutSec
+            if ($ipApi.Success -and $ipApi.BodyJson) {
+                $ipTableJson = $ipApi.BodyJson.Device.IpTable
+            }
+        } catch { }
+    }
+
     $na   = $api.BodyJson.Device.NetworkAdapters
     $eth  = $na.Adapters.EthernetLan
     $wifi = $na.Adapters.Wifi
@@ -84,21 +104,48 @@ function Get-CrestronDeviceState {
     # on them produces an "unsupported property" failure.
     $hasWifi = [bool]$wifi
 
+    # Extract first IP-table entry (if any) for the Per-Device tab pre-fill.
+    $currentIpId   = $null
+    $currentCsAddr = $null
+    $currentRoomId = $null
+    $currentEncrypt = $false
+    if ($ipTableJson) {
+        $currentEncrypt = [bool]$ipTableJson.EncryptConnection
+        $keys = @($ipTableJson.EntriesCurrentKeyList)
+        if ($keys.Count -gt 0) {
+            # Report the first key even if entry detail isn't populated
+            $firstKey = "$($keys[0])"
+            $currentIpId = $firstKey
+            if ($ipTableJson.Entries) {
+                $e = $ipTableJson.Entries.$firstKey
+                if ($e) {
+                    if ($e.IpId)    { $currentIpId   = "$($e.IpId)" }
+                    if ($e.Address) { $currentCsAddr = $e.Address }
+                    $currentRoomId = if ($e.Description) { $e.Description } elseif ($e.Name) { $e.Name } else { '' }
+                }
+            }
+        }
+    }
+
     [pscustomobject]@{
-        IP                  = $Session.IP
-        Hostname            = $na.HostName
-        DomainName          = $eth.DomainName
-        EthernetLanEnabled  = [bool]$eth.IsAdapterEnabled
-        EthernetLanDhcp     = [bool]$eth.IPv4.IsDhcpEnabled
-        EthernetLanIP       = $ethCurrentIp
-        EthernetLanStaticIP = $ethStaticIp
-        EthernetLanSubnet   = $ethStaticMask
-        EthernetLanGateway  = $eth.IPv4.StaticDefaultGateway
-        DnsServers          = $dnsServers
-        HasWifi             = $hasWifi
-        WifiEnabled         = [bool]$wifi.IsAdapterEnabled
-        WifiIP              = $wifiCurrentIp
-        RawJson             = $api.BodyJson
-        FetchedAt           = (Get-Date).ToString('s')
+        IP                       = $Session.IP
+        Hostname                 = $na.HostName
+        DomainName               = $eth.DomainName
+        EthernetLanEnabled       = [bool]$eth.IsAdapterEnabled
+        EthernetLanDhcp          = [bool]$eth.IPv4.IsDhcpEnabled
+        EthernetLanIP            = $ethCurrentIp
+        EthernetLanStaticIP      = $ethStaticIp
+        EthernetLanSubnet        = $ethStaticMask
+        EthernetLanGateway       = $eth.IPv4.StaticDefaultGateway
+        DnsServers               = $dnsServers
+        HasWifi                  = $hasWifi
+        WifiEnabled              = [bool]$wifi.IsAdapterEnabled
+        WifiIP                   = $wifiCurrentIp
+        CurrentIpId              = $currentIpId
+        CurrentControlSystemAddr = $currentCsAddr
+        CurrentRoomId            = $currentRoomId
+        CurrentEncryptConnection = $currentEncrypt
+        RawJson                  = $api.BodyJson
+        FetchedAt                = (Get-Date).ToString('s')
     }
 }
