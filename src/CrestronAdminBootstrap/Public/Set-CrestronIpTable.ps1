@@ -26,11 +26,6 @@ function Set-CrestronIpTable {
         IPv4 address or hostname of the master control system (e.g.
         "10.10.20.1" or "cp4-rack1").
 
-    .PARAMETER RoomId
-        Optional room/description string used for grouping in XiO Cloud and
-        for tech reference. Maps to the Description field in the IpTableV2
-        entry.
-
     .PARAMETER EncryptConnection
         Whether the CIP link to the control system is encrypted. Defaults to
         $false to match how most installs are commissioned. Set $true only
@@ -41,12 +36,12 @@ function Set-CrestronIpTable {
 
     .OUTPUTS
         PSCustomObject: IP, Status, Success, IpId, ControlSystemAddress,
-        RoomId, SectionResults, Response, Timestamp.
+        SectionResults, Response, Timestamp.
 
     .EXAMPLE
         $session = Connect-CrestronDevice -IP 172.22.0.50 -Credential $cred
         Set-CrestronIpTable -Session $session `
-            -IpId 5 -ControlSystemAddress 10.10.20.1 -RoomId 'Conf-Room-101'
+            -IpId 5 -ControlSystemAddress 10.10.20.1
     #>
     [CmdletBinding()]
     param(
@@ -88,15 +83,13 @@ function Set-CrestronIpTable {
 
     # Build the single-entry payload. Note: on DM-NVX firmware v2.0.0 the device
     # discards Type, Port, ConnectionType, Description and only persists IpId,
-    # Address, ProgramInstanceId. Sending the full SDK shape anyway is safe on
-    # firmware that does accept it.
+    # Address. Sending the full SDK shape anyway is safe on  # firmware that does accept it.
     $entry = @{
-        IpId              = $ipIdNormalized
-        Address           = $addr
-        Type              = 'Peer'
-        Port              = 50
-        ConnectionType    = 'Gateway'
-        ProgramInstanceId = 'DeviceSlot1'
+        IpId           = $ipIdNormalized
+        Address        = $addr
+        Type           = 'Peer'
+        Port           = 50
+        ConnectionType = 'Gateway'
     }
 
     $entries = @{}
