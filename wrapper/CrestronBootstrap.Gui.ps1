@@ -64,6 +64,7 @@ $Script:AppState = [pscustomobject]@{
 [xml]$xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         Title="Crestron Admin Bootstrap"
         Width="1100" Height="750"
         MinWidth="900" MinHeight="600"
@@ -490,28 +491,53 @@ $Script:AppState = [pscustomobject]@{
                             <DataGridTextColumn      Header="Hostname"    Binding="{Binding NewHostname, UpdateSourceTrigger=PropertyChanged}" Width="170" />
                             <DataGridComboBoxColumn  Header="IPMode"      SelectedValueBinding="{Binding IPMode, UpdateSourceTrigger=PropertyChanged}" Width="80">
                                 <DataGridComboBoxColumn.ItemsSource>
-                                    <x:Array Type="sys:String" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+                                    <x:Array Type="sys:String">
                                         <sys:String>Keep</sys:String>
                                         <sys:String>DHCP</sys:String>
                                         <sys:String>Static</sys:String>
                                     </x:Array>
                                 </DataGridComboBoxColumn.ItemsSource>
                             </DataGridComboBoxColumn>
-                                <DataGridComboBoxColumn  Header="TX/RX Mode"   SelectedValueBinding="{Binding DeviceMode, UpdateSourceTrigger=PropertyChanged}" Width="115">
-                                <DataGridComboBoxColumn.ItemsSource>
-                                    <x:Array Type="sys:String" xmlns:sys="clr-namespace:System;assembly=mscorlib">
-                                        <sys:String>Keep</sys:String>
-                                        <sys:String>Transmitter</sys:String>
-                                        <sys:String>Receiver</sys:String>
-                                    </x:Array>
-                                </DataGridComboBoxColumn.ItemsSource>
-                            </DataGridComboBoxColumn>
+                            <DataGridTemplateColumn Header="TX/RX Mode" Width="115">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DeviceMode}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding DeviceMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                IsEnabled="{Binding SupportsModeChange}">
+                                            <ComboBox.Items>
+                                                <sys:String>Keep</sys:String>
+                                                <sys:String>Transmitter</sys:String>
+                                                <sys:String>Receiver</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn      Header="NewIP"       Binding="{Binding NewIP, UpdateSourceTrigger=PropertyChanged}"      Width="120" />
                             <DataGridTextColumn      Header="SubnetMask"  Binding="{Binding SubnetMask, UpdateSourceTrigger=PropertyChanged}" Width="120" />
                             <DataGridTextColumn      Header="Gateway"     Binding="{Binding Gateway, UpdateSourceTrigger=PropertyChanged}"    Width="120" />
                             <DataGridTextColumn      Header="DNS1"        Binding="{Binding PrimaryDns, UpdateSourceTrigger=PropertyChanged}" Width="100" />
                             <DataGridTextColumn      Header="DNS2"        Binding="{Binding SecondaryDns, UpdateSourceTrigger=PropertyChanged}" Width="100" />
-                            <DataGridCheckBoxColumn  Header="WiFi Off"    Binding="{Binding DisableWifi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="60" />
+                            <DataGridTemplateColumn Header="WiFi Off" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding DisableWifi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                IsEnabled="{Binding HasWifi}"
+                                                HorizontalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding DisableWifi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                IsEnabled="{Binding HasWifi}"
+                                                HorizontalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn      Header="IPID"        Binding="{Binding NewIpId, UpdateSourceTrigger=PropertyChanged}"              Width="60" />
                             <DataGridTextColumn      Header="CS IP"       Binding="{Binding NewControlSystemAddr, UpdateSourceTrigger=PropertyChanged}" Width="130" />
                             <DataGridCheckBoxColumn  Header="Reboot?"     Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
@@ -637,6 +663,7 @@ function Show-CredentialDialog {
     [xml]$dxaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         Title="Crestron Admin Credentials"
         Width="360" Height="200"
         WindowStartupLocation="CenterOwner"
@@ -2273,6 +2300,14 @@ function Start-PerDeviceFetch {
                     "$($item.CurrentDeviceMode)"
                 } else {
                     'Keep'
+                }
+
+                if (-not [bool]$item.SupportsModeChange) {
+                    $row.DeviceMode = 'Keep'
+                }
+
+                if (-not [bool]$item.HasWifi) {
+                    $row.DisableWifi = $false
                 }
 
                 $row.NewIpId              = "$($item.CurrentIpId)"
