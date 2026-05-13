@@ -317,7 +317,11 @@ $Script:AppState = [pscustomobject]@{
                                 <DataGridTextColumn     Header="IP"            Binding="{Binding IP}"                  Width="140" IsReadOnly="True" />
                                 <DataGridTextColumn     Header="Model"         Binding="{Binding Model}"               Width="120" IsReadOnly="True" />
                                 <DataGridTextColumn     Header="Current Mode"  Binding="{Binding CurrentDeviceMode}"   Width="110" IsReadOnly="True" />
-                                <DataGridCheckBoxColumn Header="Mode?"         Binding="{Binding SupportsModeChange}"  Width="70"  IsReadOnly="True" />
+                                <DataGridCheckBoxColumn Header="NTP?"          Binding="{Binding SupportsNtp}"         Width="55"  IsReadOnly="True" />
+                                <DataGridCheckBoxColumn Header="Cloud?"        Binding="{Binding SupportsCloud}"       Width="65"  IsReadOnly="True" />
+                                <DataGridCheckBoxColumn Header="Fusion?"       Binding="{Binding SupportsFusion}"      Width="65"  IsReadOnly="True" />
+                                <DataGridCheckBoxColumn Header="Auto?"         Binding="{Binding SupportsAutoUpdate}"  Width="60"  IsReadOnly="True" />
+                                <DataGridCheckBoxColumn Header="TX/RX Mode?"         Binding="{Binding SupportsModeChange}"  Width="70"  IsReadOnly="True" />
                                 <DataGridCheckBoxColumn Header="Fetched?"      Binding="{Binding CapabilitiesFetched}" Width="75"  IsReadOnly="True" />
                                 <DataGridTextColumn     Header="Status"        Binding="{Binding Status}"              Width="90"  IsReadOnly="True" />
                                 <DataGridCheckBoxColumn Header="Reboot?"       Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
@@ -1559,10 +1563,17 @@ function Load-BlanketFromProvision {
         $row = [pscustomobject]@{
             Selected            = $true
             IP                  = $s.IP
-            Model               = ''
-            CurrentDeviceMode   = ''
-            SupportsModeChange  = $false
-            CapabilitiesFetched = $false
+            Model                = ''
+            CurrentDeviceMode    = ''
+            SupportsModeChange   = $false
+            SupportsNtp          = $false
+            SupportsCloud        = $false
+            SupportsFusion       = $false
+            SupportsAutoUpdate   = $false
+            SupportsIpTable      = $false
+            SupportsNetwork      = $false
+            SupportsWifi         = $false
+            CapabilitiesFetched  = $false
             Status              = ''
             Sections            = ''
             Detail              = ''
@@ -1580,9 +1591,14 @@ function Load-BlanketFromProvision {
 
 function Save-BlanketCsv {
     if ($Script:BlanketState.Rows.Count -eq 0) { return }
+
     $Script:BlanketState.Rows |
         Where-Object Status -ne '' |
-        Select-Object IP, Status, Sections, Detail, NeedsReboot, Timestamp |
+        Select-Object IP, Model, CurrentDeviceMode,
+                      SupportsNtp, SupportsCloud, SupportsFusion, SupportsAutoUpdate,
+                      SupportsIpTable, SupportsNetwork, SupportsWifi, SupportsModeChange,
+                      CapabilitiesFetched,
+                      Status, Sections, Detail, NeedsReboot, Timestamp |
         Export-Csv -NoTypeInformation -Path $Script:AppState.SettingsCsv
 }
 
@@ -1683,14 +1699,21 @@ function Start-BlanketCapabilityFetch {
                     $sess = Connect-CrestronDevice -IP $ip -Credential $cred
 
                     try {
-                        $state = Get-CrestronDeviceState -Session $sess
+                        $caps = Get-CrestronDeviceCapabilities -Session $sess
 
                         $q.Enqueue([pscustomobject]@{
                             __result            = $true
                             IP                  = $ip
-                            Model               = $sess.Model
-                            CurrentDeviceMode   = $state.CurrentDeviceMode
-                            SupportsModeChange  = [bool]$state.SupportsModeChange
+                            Model               = $caps.Model
+                            CurrentDeviceMode   = $caps.CurrentDeviceMode
+                            SupportsModeChange  = [bool]$caps.SupportsModeChange
+                            SupportsNtp         = [bool]$caps.SupportsNtp
+                            SupportsCloud       = [bool]$caps.SupportsCloud
+                            SupportsFusion      = [bool]$caps.SupportsFusion
+                            SupportsAutoUpdate  = [bool]$caps.SupportsAutoUpdate
+                            SupportsIpTable     = [bool]$caps.SupportsIpTable
+                            SupportsNetwork     = [bool]$caps.SupportsNetwork
+                            SupportsWifi        = [bool]$caps.SupportsWifi
                             CapabilitiesFetched = $true
                             Status              = 'OK'
                             Detail              = 'Capabilities fetched'
@@ -1708,6 +1731,13 @@ function Start-BlanketCapabilityFetch {
                         Model               = ''
                         CurrentDeviceMode   = ''
                         SupportsModeChange  = $false
+                        SupportsNtp         = $false
+                        SupportsCloud       = $false
+                        SupportsFusion      = $false
+                        SupportsAutoUpdate  = $false
+                        SupportsIpTable     = $false
+                        SupportsNetwork     = $false
+                        SupportsWifi        = $false
                         CapabilitiesFetched = $false
                         Status              = 'Error'
                         Detail              = "ERROR: $($_.Exception.Message)"
@@ -1751,6 +1781,13 @@ function Start-BlanketCapabilityFetch {
                 'Model',
                 'CurrentDeviceMode',
                 'SupportsModeChange',
+                'SupportsNtp',
+                'SupportsCloud',
+                'SupportsFusion',
+                'SupportsAutoUpdate',
+                'SupportsIpTable',
+                'SupportsNetwork',
+                'SupportsWifi',
                 'CapabilitiesFetched',
                 'NeedsReboot'
             )) {
@@ -1759,6 +1796,13 @@ function Start-BlanketCapabilityFetch {
                         'Model'               { '' }
                         'CurrentDeviceMode'   { '' }
                         'SupportsModeChange'  { $false }
+                        'SupportsNtp'         { $false }
+                        'SupportsCloud'       { $false }
+                        'SupportsFusion'      { $false }
+                        'SupportsAutoUpdate'  { $false }
+                        'SupportsIpTable'     { $false }
+                        'SupportsNetwork'     { $false }
+                        'SupportsWifi'        { $false }
                         'CapabilitiesFetched' { $false }
                         'NeedsReboot'         { $false }
                     }
@@ -1773,6 +1817,13 @@ function Start-BlanketCapabilityFetch {
                 $row.Model               = "$($item.Model)"
                 $row.CurrentDeviceMode   = "$($item.CurrentDeviceMode)"
                 $row.SupportsModeChange  = [bool]$item.SupportsModeChange
+                $row.SupportsNtp         = [bool]$item.SupportsNtp
+                $row.SupportsCloud       = [bool]$item.SupportsCloud
+                $row.SupportsFusion      = [bool]$item.SupportsFusion
+                $row.SupportsAutoUpdate  = [bool]$item.SupportsAutoUpdate
+                $row.SupportsIpTable     = [bool]$item.SupportsIpTable
+                $row.SupportsNetwork     = [bool]$item.SupportsNetwork
+                $row.SupportsWifi        = [bool]$item.SupportsWifi
                 $row.CapabilitiesFetched = [bool]$item.CapabilitiesFetched
                 $row.Detail              = $item.Detail
                 $row.Timestamp           = $item.Timestamp
@@ -1825,9 +1876,15 @@ function Start-BlanketApply {
             [System.Windows.MessageBox]::Show("Pick a time zone.", "Missing value", 'OK', 'Warning') | Out-Null
             return
         }
+
         $server = $Script:UI.NtpServerBox.Text.Trim()
         if (-not $server) { $server = 'time.google.com' }
-        $ntp = @{ TimeZone = $tzItem.Code; NtpServer = $server; NtpEnabled = $true }
+
+        $ntp = @{
+            TimeZone   = $tzItem.Code
+            NtpServer  = $server
+            NtpEnabled = $true
+        }
     }
 
     $cloud = $null
@@ -1842,7 +1899,9 @@ function Start-BlanketApply {
 
     $autoUpdate = $null
     if ($applyAuto) {
-        $autoUpdate = @{ Enabled = [bool]$Script:UI.AutoUpdateOnRadio.IsChecked }
+        $autoUpdate = @{
+            Enabled = [bool]$Script:UI.AutoUpdateOnRadio.IsChecked
+        }
     }
 
     $deviceMode = $null
@@ -1856,30 +1915,38 @@ function Start-BlanketApply {
 
     # Credentials
     $cred = Get-CachedCredential
-    if (-not $cred) { Update-Status 'Apply cancelled (no credentials).'; return }
+    if (-not $cred) {
+        Update-Status 'Apply cancelled (no credentials).'
+        return
+    }
 
     # Summary + confirm
     $bits = @()
     if ($applyNtp)    { $bits += "NTP=$($ntp.NtpServer)/$($ntp.TimeZone)" }
-    if ($applyCloud)  { $bits += "Cloud=$(if ($cloud) {'ON'} else {'OFF'})" }
-    if ($applyFusion) { $bits += "Fusion=$(if ($fusion) {'ON'} else {'OFF'})" }
-    if ($applyAuto)   { $bits += "AutoUpdate=$(if ($autoUpdate.Enabled) {'ON'} else {'OFF'})" }
+    if ($applyCloud)  { $bits += "Cloud=$(if ($cloud) { 'ON' } else { 'OFF' })" }
+    if ($applyFusion) { $bits += "Fusion=$(if ($fusion) { 'ON' } else { 'OFF' })" }
+    if ($applyAuto)   { $bits += "AutoUpdate=$(if ($autoUpdate.Enabled) { 'ON' } else { 'OFF' })" }
     if ($applyMode)   { $bits += "Mode=$deviceMode" }
+
     $msg = "Apply [$($bits -join ', ')] to $($selectedIPs.Count) device(s) as '$($cred.UserName)'?"
     $confirm = [System.Windows.MessageBox]::Show($msg, "Confirm apply", 'YesNo', 'Warning')
-    if ($confirm -ne 'Yes') { Update-Status 'Apply cancelled.'; return }
+    if ($confirm -ne 'Yes') {
+        Update-Status 'Apply cancelled.'
+        return
+    }
 
     # Mark selected rows
     foreach ($ip in $selectedIPs) {
         $row = $Script:BlanketState.RowsByIP[$ip]
         if ($row) {
-            $row.Status    = 'Pending'
-            $row.Sections  = ''
+            $row.Status      = 'Pending'
+            $row.Sections    = ''
             $row.Detail      = ''
             $row.NeedsReboot = $false
             $row.Timestamp   = ''
         }
     }
+
     $Script:UI.BlanketGrid.Items.Refresh()
     $Script:UI.BlanketProgressText.Text = "Applying to $($selectedIPs.Count) device(s)..."
     Set-BlanketControls $true
@@ -1888,41 +1955,60 @@ function Start-BlanketApply {
     $queue   = [System.Collections.Concurrent.ConcurrentQueue[object]]::new()
     $doneRef = [ref]$false
 
+    $selectedRows = @($Script:BlanketState.Rows | Where-Object Selected | ForEach-Object {
+        @{
+            IP                  = $_.IP
+            Model               = $_.Model
+            SupportsNtp         = [bool]$_.SupportsNtp
+            SupportsCloud       = [bool]$_.SupportsCloud
+            SupportsFusion      = [bool]$_.SupportsFusion
+            SupportsAutoUpdate  = [bool]$_.SupportsAutoUpdate
+            SupportsModeChange  = [bool]$_.SupportsModeChange
+            CapabilitiesFetched = [bool]$_.CapabilitiesFetched
+        }
+    })
+
     $rs = [runspacefactory]::CreateRunspace()
     $rs.ApartmentState = 'STA'
     $rs.Open()
-    $rs.SessionStateProxy.SetVariable('queue',     $queue)
-    $rs.SessionStateProxy.SetVariable('doneRef',   $doneRef)
-    $rs.SessionStateProxy.SetVariable('ips',       $selectedIPs)
-    $rs.SessionStateProxy.SetVariable('userName',  $cred.UserName)
-    $rs.SessionStateProxy.SetVariable('userPass',  $cred.GetNetworkCredential().Password)
-    $rs.SessionStateProxy.SetVariable('ntp',       $ntp)
-    $rs.SessionStateProxy.SetVariable('cloudArg',  $cloud)
-    $rs.SessionStateProxy.SetVariable('fusionArg', $fusion)
-    $rs.SessionStateProxy.SetVariable('autoUpdate',$autoUpdate)
-    $rs.SessionStateProxy.SetVariable('deviceMode',$deviceMode)
+
+    $rs.SessionStateProxy.SetVariable('queue',        $queue)
+    $rs.SessionStateProxy.SetVariable('doneRef',      $doneRef)
+    $rs.SessionStateProxy.SetVariable('selectedRows', $selectedRows)
+    $rs.SessionStateProxy.SetVariable('userName',     $cred.UserName)
+    $rs.SessionStateProxy.SetVariable('userPass',     $cred.GetNetworkCredential().Password)
+    $rs.SessionStateProxy.SetVariable('ntp',          $ntp)
+    $rs.SessionStateProxy.SetVariable('cloudArg',     $cloud)
+    $rs.SessionStateProxy.SetVariable('fusionArg',    $fusion)
+    $rs.SessionStateProxy.SetVariable('autoUpdate',   $autoUpdate)
+    $rs.SessionStateProxy.SetVariable('deviceMode',   $deviceMode)
 
     $ps = [powershell]::Create()
     $ps.Runspace = $rs
+
     [void]$ps.AddScript({
         try {
             Import-Module CrestronAdminBootstrap -Force -ErrorAction Stop
+
             $sec     = ConvertTo-SecureString $userPass -AsPlainText -Force
             $credObj = [pscredential]::new($userName, $sec)
 
-            # Resolve the module's manifest path once on the outer runspace; pass it
-            # into each parallel worker so they import by absolute path. Avoids
-            # PSModulePath quirks in nested runspaces.
+            # Resolve the module manifest path once in this runspace; pass it
+            # into each parallel worker so they import by absolute path.
             $modManifest = (Get-Module CrestronAdminBootstrap).Path
             if (-not $modManifest) {
-                $modManifest = (Get-Module -ListAvailable CrestronAdminBootstrap | Sort-Object Version -Descending | Select-Object -First 1).Path
+                $modManifest = (Get-Module -ListAvailable CrestronAdminBootstrap |
+                    Sort-Object Version -Descending |
+                    Select-Object -First 1).Path
             }
+
             if (-not $modManifest -or -not (Test-Path $modManifest)) {
                 throw "Could not locate CrestronAdminBootstrap module manifest. Reinstall the module."
             }
 
-            $ips | ForEach-Object -ThrottleLimit 16 -Parallel {
-                $ip       = $_
+            $selectedRows | ForEach-Object -ThrottleLimit 16 -Parallel {
+                $rowArg   = $_
+                $ip       = $rowArg.IP
                 $q        = $using:queue
                 $cred     = $using:credObj
                 $ntpArg   = $using:ntp
@@ -1932,26 +2018,71 @@ function Start-BlanketApply {
                 $modeArg  = $using:deviceMode
                 $manifest = $using:modManifest
 
-                $q.Enqueue([pscustomobject]@{ __progress=$true; IP=$ip; Status='Working' })
+                $q.Enqueue([pscustomobject]@{
+                    __progress = $true
+                    IP         = $ip
+                    Status     = 'Working'
+                })
 
                 try {
-                    if (-not $manifest -or -not (Test-Path $manifest)) { throw "Manifest path missing or not found: '$manifest'" }
+                    if (-not $manifest -or -not (Test-Path $manifest)) {
+                        throw "Manifest path missing or not found: '$manifest'"
+                    }
+
                     Import-Module $manifest -Force -ErrorAction Stop
-                    if (-not (Get-Command Connect-CrestronDevice -ErrorAction SilentlyContinue)) { throw "Import-Module ran but Connect-CrestronDevice not exposed. Module path: '$manifest'. Loaded modules: $((Get-Module).Name -join ', ')" }
+
+                    if (-not (Get-Command Connect-CrestronDevice -ErrorAction SilentlyContinue)) {
+                        throw "Import-Module ran but Connect-CrestronDevice not exposed. Module path: '$manifest'. Loaded modules: $((Get-Module).Name -join ', ')"
+                    }
+
                     $sess = Connect-CrestronDevice -IP $ip -Credential $cred
+
                     try {
-                        $callArgs = @{ Session = $sess }
-                        if ($ntpArg)            { $callArgs.Ntp        = $ntpArg }
-                        if ($null -ne $cArg)    { $callArgs.Cloud      = $cArg }
-                        if ($null -ne $fArg)    { $callArgs.Fusion     = $fArg }
-                        if ($auArg)             { $callArgs.AutoUpdate = $auArg }
+                        $callArgs = @{
+                            Session = $sess
+                        }
 
                         $stepResults = @()
                         $sections = @()
                         $allOk = $true
                         $needsReboot = $false
+                        $skippedBeforeApply = @()
 
-                        if ($ntpArg -or $null -ne $cArg -or $null -ne $fArg -or $auArg) {
+                        if ($ntpArg) {
+                            if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsNtp) {
+                                $skippedBeforeApply += 'NTP=skipped; unsupported'
+                            } else {
+                                $callArgs.Ntp = $ntpArg
+                            }
+                        }
+
+                        if ($null -ne $cArg) {
+                            if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsCloud) {
+                                $skippedBeforeApply += 'Cloud=skipped; unsupported'
+                            } else {
+                                $callArgs.Cloud = $cArg
+                            }
+                        }
+
+                        if ($null -ne $fArg) {
+                            if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsFusion) {
+                                $skippedBeforeApply += 'Fusion=skipped; unsupported'
+                            } else {
+                                $callArgs.Fusion = $fArg
+                            }
+                        }
+
+                        if ($auArg) {
+                            if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsAutoUpdate) {
+                                $skippedBeforeApply += 'AutoUpdate=skipped; unsupported'
+                            } else {
+                                $callArgs.AutoUpdate = $auArg
+                            }
+                        }
+
+                        $stepResults += $skippedBeforeApply
+
+                        if ($callArgs.Keys.Count -gt 1) {
                             $r = Set-CrestronSettings @callArgs
 
                             if (-not $r.Success) {
@@ -1971,28 +2102,32 @@ function Start-BlanketApply {
 
                         if ($modeArg) {
                             try {
-                                $state = Get-CrestronDeviceState -Session $sess
+                                if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsModeChange) {
+                                    $stepResults += "DeviceMode=skipped; unsupported on $($rowArg.Model)"
+                                } else {
+                                    $state = Get-CrestronDeviceState -Session $sess
 
-                                if (-not $state.SupportsModeChange) {
-                                    $stepResults += "DeviceMode=skipped; unsupported on $($state.Model)"
-                                }
-                                elseif ($state.CurrentDeviceMode -eq $modeArg) {
-                                    $sections += 'DeviceMode'
-                                    $stepResults += "DeviceMode=already $modeArg"
-                                }
-                                else {
-                                    $rMode = Set-CrestronDeviceMode -Session $sess -Mode $modeArg
-
-                                    if (-not $rMode.Success) {
-                                        $allOk = $false
+                                    if (-not $state.SupportsModeChange) {
+                                        $stepResults += "DeviceMode=skipped; unsupported on $($state.Model)"
                                     }
-
-                                    if ($rMode.NeedsReboot) {
-                                        $needsReboot = $true
+                                    elseif ($state.CurrentDeviceMode -eq $modeArg) {
+                                        $sections += 'DeviceMode'
+                                        $stepResults += "DeviceMode=already $modeArg"
                                     }
+                                    else {
+                                        $rMode = Set-CrestronDeviceMode -Session $sess -Mode $modeArg
 
-                                    $sections += 'DeviceMode'
-                                    $stepResults += "DeviceMode=$(if ($rMode.Success) { 'OK' } else { $rMode.Status }) -> $modeArg"
+                                        if (-not $rMode.Success) {
+                                            $allOk = $false
+                                        }
+
+                                        if ($rMode.NeedsReboot) {
+                                            $needsReboot = $true
+                                        }
+
+                                        $sections += 'DeviceMode'
+                                        $stepResults += "DeviceMode=$(if ($rMode.Success) { 'OK' } else { $rMode.Status }) -> $modeArg"
+                                    }
                                 }
                             }
                             catch {
@@ -2014,11 +2149,15 @@ function Start-BlanketApply {
                             NeedsReboot = $needsReboot
                             Timestamp   = (Get-Date).ToString('s')
                         })
-                    } finally {
-                        if ($sess) { Disconnect-CrestronDevice -Session $sess }
                     }
-                } catch {
-                       $q.Enqueue([pscustomobject]@{
+                    finally {
+                        if ($sess) {
+                            Disconnect-CrestronDevice -Session $sess
+                        }
+                    }
+                }
+                catch {
+                    $q.Enqueue([pscustomobject]@{
                         __result    = $true
                         IP          = $ip
                         Status      = 'Error'
@@ -2029,9 +2168,13 @@ function Start-BlanketApply {
                     })
                 }
             }
-        } catch {
-            $queue.Enqueue([pscustomobject]@{ __error = $_.Exception.Message })
-        } finally {
+        }
+        catch {
+            $queue.Enqueue([pscustomobject]@{
+                __error = $_.Exception.Message
+            })
+        }
+        finally {
             $doneRef.Value = $true
         }
     })
@@ -2044,8 +2187,10 @@ function Start-BlanketApply {
 
     $timer = New-Object System.Windows.Threading.DispatcherTimer
     $timer.Interval = [TimeSpan]::FromMilliseconds(250)
+
     $timer.Add_Tick({
         $item = $null
+
         while ($Script:BlanketState.Queue.TryDequeue([ref]$item)) {
             if ($item.__error) {
                 [System.Windows.MessageBox]::Show("Apply failed: $($item.__error)", "Error", 'OK', 'Error') | Out-Null
@@ -2068,6 +2213,7 @@ function Start-BlanketApply {
                 $row.Timestamp   = $item.Timestamp
             }
         }
+
         $Script:UI.BlanketGrid.Items.Refresh()
         Update-BlanketSummary
 
@@ -2075,11 +2221,13 @@ function Start-BlanketApply {
             Stop-BlanketRunspace
             Set-BlanketControls $false
             Save-BlanketCsv
+
             $ok = ($Script:BlanketState.Rows | Where-Object Status -eq 'OK').Count
             $Script:UI.BlanketProgressText.Text = "Done. $ok device(s) OK."
             Update-Status "Apply complete. $ok device(s) OK. Saved $($Script:AppState.SettingsCsv)"
         }
     })
+
     $timer.Start()
     $Script:BlanketState.Timer = $timer
 }
@@ -3780,6 +3928,13 @@ $Script:UI.BlanketReloadButton.Add_Click({
                 Model               = ''
                 CurrentDeviceMode   = ''
                 SupportsModeChange  = $false
+                SupportsNtp         = $false
+                SupportsCloud       = $false
+                SupportsFusion      = $false
+                SupportsAutoUpdate  = $false
+                SupportsIpTable     = $false
+                SupportsNetwork     = $false
+                SupportsWifi        = $false
                 CapabilitiesFetched = $false
                 Status              = ''
                 Sections            = ''
