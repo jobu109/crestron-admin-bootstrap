@@ -296,10 +296,12 @@ $Script:AppState = [pscustomobject]@{
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock x:Name="BlanketSummaryText" Grid.Column="0" Text="No devices loaded." Foreground="#666" VerticalAlignment="Center" />
-                                <CheckBox  x:Name="BlanketSelectAll"   Grid.Column="1" Content="Select all" IsChecked="True" />
-                                <Button    x:Name="BlanketReloadButton" Grid.Column="2" Content="Add Devices..." Padding="10,2" Margin="8,0,0,0" />
+                                <Button x:Name="BlanketCapabilityButton" Grid.Column="1" Content="Fetch Capabilities" Padding="10,2" Margin="8,0,0,0" />
+                                <CheckBox  x:Name="BlanketSelectAll"        Grid.Column="2" Content="Select all" IsChecked="True" Margin="8,0,0,0" />
+                                <Button    x:Name="BlanketReloadButton"     Grid.Column="3" Content="Add Devices..." Padding="10,2" Margin="8,0,0,0" />
                             </Grid>
 
                             <DataGrid x:Name="BlanketGrid"
@@ -310,15 +312,19 @@ $Script:AppState = [pscustomobject]@{
                                       GridLinesVisibility="Horizontal"
                                       SelectionMode="Extended"
                                       AlternatingRowBackground="#F8F8F8">
-                                <DataGrid.Columns>
-                                    <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" />
-                                    <DataGridTextColumn Header="IP"        Binding="{Binding IP}"        Width="140" IsReadOnly="True" />
-                                    <DataGridTextColumn     Header="Status"   Binding="{Binding Status}"      Width="90"  IsReadOnly="True" />
-                                    <DataGridCheckBoxColumn Header="Reboot?"  Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
-                                    <DataGridTextColumn     Header="Sections" Binding="{Binding Sections}"    Width="200" IsReadOnly="True" />
-                                    <DataGridTextColumn     Header="Detail"   Binding="{Binding Detail}"      Width="*"   IsReadOnly="True" />
-                                    <DataGridTextColumn     Header="Time"     Binding="{Binding Timestamp}"   Width="160" IsReadOnly="True" />
-                                </DataGrid.Columns>
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" />
+                                <DataGridTextColumn     Header="IP"            Binding="{Binding IP}"                  Width="140" IsReadOnly="True" />
+                                <DataGridTextColumn     Header="Model"         Binding="{Binding Model}"               Width="120" IsReadOnly="True" />
+                                <DataGridTextColumn     Header="Current Mode"  Binding="{Binding CurrentDeviceMode}"   Width="110" IsReadOnly="True" />
+                                <DataGridCheckBoxColumn Header="Mode?"         Binding="{Binding SupportsModeChange}"  Width="70"  IsReadOnly="True" />
+                                <DataGridCheckBoxColumn Header="Fetched?"      Binding="{Binding CapabilitiesFetched}" Width="75"  IsReadOnly="True" />
+                                <DataGridTextColumn     Header="Status"        Binding="{Binding Status}"              Width="90"  IsReadOnly="True" />
+                                <DataGridCheckBoxColumn Header="Reboot?"       Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
+                                <DataGridTextColumn     Header="Sections"      Binding="{Binding Sections}"            Width="200" IsReadOnly="True" />
+                                <DataGridTextColumn     Header="Detail"        Binding="{Binding Detail}"              Width="*"   IsReadOnly="True" />
+                                <DataGridTextColumn     Header="Time"          Binding="{Binding Timestamp}"           Width="160" IsReadOnly="True" />
+                            </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>
                     </Border>
@@ -616,7 +622,7 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'VerifyCancelButton','VerifyProgressText',
                   'VerifyGrid','VerifySelectAll','VerifySummaryText',
                   'BlanketTab','BlanketGrid','BlanketSelectAll','BlanketSummaryText',
-                  'BlanketReloadButton','BlanketApplyButton','BlanketClearButton','BlanketCancelButton','BlanketProgressText',
+                  'BlanketReloadButton','BlanketApplyButton','BlanketClearButton','BlanketCancelButton','BlanketCapabilityButton','BlanketProgressText',
                   'NtpEnableBox','NtpServerBox','NtpTimeZoneBox',
                   'CloudEnableBox','CloudOnRadio','CloudOffRadio',
                   'FusionEnableBox','FusionOnRadio','FusionOffRadio',
@@ -1522,6 +1528,7 @@ function Set-BlanketControls ($isRunning) {
     $Script:UI.BlanketApplyButton.IsEnabled   = -not $isRunning
     $Script:UI.BlanketReloadButton.IsEnabled  = -not $isRunning
     $Script:UI.BlanketCancelButton.IsEnabled  = $isRunning
+    $Script:UI.BlanketCapabilityButton.IsEnabled = -not $isRunning
 }
 
 function Load-BlanketFromProvision {
@@ -1550,17 +1557,23 @@ function Load-BlanketFromProvision {
 
     foreach ($s in $source) {
         $row = [pscustomobject]@{
-            Selected    = $true
-            IP          = $s.IP
-            Status      = ''
-            Sections    = ''
-            Detail      = ''
-            NeedsReboot = $false
-            Timestamp   = ''
+            Selected            = $true
+            IP                  = $s.IP
+            Model               = ''
+            CurrentDeviceMode   = ''
+            SupportsModeChange  = $false
+            CapabilitiesFetched = $false
+            Status              = ''
+            Sections            = ''
+            Detail              = ''
+            NeedsReboot         = $false
+            Timestamp           = ''
         }
+
         $Script:BlanketState.Rows.Add($row)
         $Script:BlanketState.RowsByIP[$s.IP] = $row
     }
+
     Update-BlanketSummary
     Update-Status "Loaded $($Script:BlanketState.Rows.Count) device(s) into Blanket Settings tab."
 }
@@ -1589,6 +1602,199 @@ function Stop-BlanketRunspace {
         try { $Script:BlanketState.Runspace.Dispose() } catch {}
         $Script:BlanketState.Runspace = $null
     }
+}
+
+function Start-BlanketCapabilityFetch {
+    if ($Script:BlanketState.IsRunning) { return }
+
+    $ips = @($Script:BlanketState.Rows | Select-Object -ExpandProperty IP)
+
+    if ($ips.Count -eq 0) {
+        Update-Status 'No Blanket Settings devices loaded.'
+        return
+    }
+
+    $cred = Get-CachedCredential
+    if (-not $cred) {
+        Update-Status 'Capability fetch cancelled (no credentials).'
+        return
+    }
+
+    foreach ($row in $Script:BlanketState.Rows) {
+        $row.Status = 'Pending'
+        $row.Detail = ''
+        $row.Timestamp = ''
+    }
+
+    $Script:UI.BlanketGrid.Items.Refresh()
+    $Script:UI.BlanketProgressText.Text = "Fetching capabilities for $($ips.Count) device(s)..."
+    Set-BlanketControls $true
+    Update-Status "Fetching Blanket Settings capabilities..."
+
+    $modManifest = (Get-Module CrestronAdminBootstrap).Path
+
+    if (-not $modManifest) {
+        $modManifest = (Get-Module -ListAvailable CrestronAdminBootstrap |
+            Sort-Object Version -Descending |
+            Select-Object -First 1).Path
+    }
+
+    $queue   = [System.Collections.Concurrent.ConcurrentQueue[object]]::new()
+    $doneRef = [ref]$false
+
+    $rs = [runspacefactory]::CreateRunspace()
+    $rs.ApartmentState = 'STA'
+    $rs.Open()
+
+    $rs.SessionStateProxy.SetVariable('queue',    $queue)
+    $rs.SessionStateProxy.SetVariable('doneRef',  $doneRef)
+    $rs.SessionStateProxy.SetVariable('ips',      $ips)
+    $rs.SessionStateProxy.SetVariable('userName', $cred.UserName)
+    $rs.SessionStateProxy.SetVariable('userPass', $cred.GetNetworkCredential().Password)
+    $rs.SessionStateProxy.SetVariable('manifest', $modManifest)
+
+    $ps = [powershell]::Create()
+    $ps.Runspace = $rs
+
+    [void]$ps.AddScript({
+        try {
+            $ips | ForEach-Object -ThrottleLimit 16 -Parallel {
+                $ip = $_
+                $q  = $using:queue
+                $u  = $using:userName
+                $p  = $using:userPass
+                $mp = $using:manifest
+
+                $q.Enqueue([pscustomobject]@{
+                    __progress = $true
+                    IP         = $ip
+                    Status     = 'Working'
+                })
+
+                try {
+                    if (-not $mp -or -not (Test-Path $mp)) {
+                        throw "Module manifest path missing: '$mp'"
+                    }
+
+                    Import-Module $mp -Force -ErrorAction Stop
+
+                    $sec  = ConvertTo-SecureString $p -AsPlainText -Force
+                    $cred = [pscredential]::new($u, $sec)
+                    $sess = Connect-CrestronDevice -IP $ip -Credential $cred
+
+                    try {
+                        $state = Get-CrestronDeviceState -Session $sess
+
+                        $q.Enqueue([pscustomobject]@{
+                            __result            = $true
+                            IP                  = $ip
+                            Model               = $sess.Model
+                            CurrentDeviceMode   = $state.CurrentDeviceMode
+                            SupportsModeChange  = [bool]$state.SupportsModeChange
+                            CapabilitiesFetched = $true
+                            Status              = 'OK'
+                            Detail              = 'Capabilities fetched'
+                            Timestamp           = (Get-Date).ToString('s')
+                        })
+                    }
+                    finally {
+                        Disconnect-CrestronDevice -Session $sess
+                    }
+                }
+                catch {
+                    $q.Enqueue([pscustomobject]@{
+                        __result            = $true
+                        IP                  = $ip
+                        Model               = ''
+                        CurrentDeviceMode   = ''
+                        SupportsModeChange  = $false
+                        CapabilitiesFetched = $false
+                        Status              = 'Error'
+                        Detail              = "ERROR: $($_.Exception.Message)"
+                        Timestamp           = (Get-Date).ToString('s')
+                    })
+                }
+            }
+        }
+        catch {
+            $queue.Enqueue([pscustomobject]@{
+                __error = $_.Exception.Message
+            })
+        }
+        finally {
+            $doneRef.Value = $true
+        }
+    })
+
+    $Script:BlanketState.Runspace    = $rs
+    $Script:BlanketState.PowerShell  = $ps
+    $Script:BlanketState.AsyncHandle = $ps.BeginInvoke()
+    $Script:BlanketState.Queue       = $queue
+    $Script:BlanketState.DoneRef     = $doneRef
+
+    $timer = New-Object System.Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(250)
+
+    $timer.Add_Tick({
+        $item = $null
+
+        while ($Script:BlanketState.Queue.TryDequeue([ref]$item)) {
+            if ($item.__error) {
+                [System.Windows.MessageBox]::Show("Capability fetch failed: $($item.__error)", "Error", 'OK', 'Error') | Out-Null
+                continue
+            }
+
+            $row = $Script:BlanketState.RowsByIP[$item.IP]
+            if (-not $row) { continue }
+
+            foreach ($prop in @(
+                'Model',
+                'CurrentDeviceMode',
+                'SupportsModeChange',
+                'CapabilitiesFetched',
+                'NeedsReboot'
+            )) {
+                if (-not ($row.PSObject.Properties.Name -contains $prop)) {
+                    $defaultValue = switch ($prop) {
+                        'Model'               { '' }
+                        'CurrentDeviceMode'   { '' }
+                        'SupportsModeChange'  { $false }
+                        'CapabilitiesFetched' { $false }
+                        'NeedsReboot'         { $false }
+                    }
+
+                    $row | Add-Member -NotePropertyName $prop -NotePropertyValue $defaultValue -Force
+                }
+            }
+
+            $row.Status = $item.Status
+
+            if (-not $item.__progress) {
+                $row.Model               = "$($item.Model)"
+                $row.CurrentDeviceMode   = "$($item.CurrentDeviceMode)"
+                $row.SupportsModeChange  = [bool]$item.SupportsModeChange
+                $row.CapabilitiesFetched = [bool]$item.CapabilitiesFetched
+                $row.Detail              = $item.Detail
+                $row.Timestamp           = $item.Timestamp
+            }
+        }
+
+        $Script:UI.BlanketGrid.Items.Refresh()
+        Update-BlanketSummary
+
+        if ($Script:BlanketState.DoneRef.Value -and $Script:BlanketState.Queue.IsEmpty) {
+            Stop-BlanketRunspace
+            Set-BlanketControls $false
+            Save-BlanketCsv
+
+            $ok = ($Script:BlanketState.Rows | Where-Object Status -eq 'OK').Count
+            $Script:UI.BlanketProgressText.Text = "Capability fetch complete. $ok device(s) OK."
+            Update-Status "Blanket capability fetch complete. $ok OK."
+        }
+    })
+
+    $timer.Start()
+    $Script:BlanketState.Timer = $timer
 }
 
 function Start-BlanketApply {
@@ -1768,7 +1974,7 @@ function Start-BlanketApply {
                                 $state = Get-CrestronDeviceState -Session $sess
 
                                 if (-not $state.SupportsModeChange) {
-                                    $stepResults += "DeviceMode=skipped; device does not expose DeviceSpecific.DeviceMode"
+                                    $stepResults += "DeviceMode=skipped; unsupported on $($state.Model)"
                                 }
                                 elseif ($state.CurrentDeviceMode -eq $modeArg) {
                                     $sections += 'DeviceMode'
@@ -1890,6 +2096,11 @@ $Script:UI.BlanketTab.Add_GotFocus({
     if ($Script:BlanketState.Rows.Count -eq 0) { Load-BlanketFromProvision }
 })
 $Script:UI.BlanketReloadButton.Add_Click({ Load-BlanketFromProvision })
+
+$Script:UI.BlanketCapabilityButton.Add_Click({
+    Start-BlanketCapabilityFetch
+})
+
 $Script:UI.BlanketClearButton.Add_Click({
     $count = $Script:BlanketState.Rows.Count
     if ($count -eq 0) {
@@ -3564,13 +3775,17 @@ $Script:UI.BlanketReloadButton.Add_Click({
         -RowFactory {
             param($ip)
             [pscustomobject]@{
-                Selected    = $true
-                IP          = $ip
-                Status      = ''
-                Sections    = ''
-                Detail      = ''
-                NeedsReboot = $false
-                Timestamp   = ''
+                Selected            = $true
+                IP                  = $ip
+                Model               = ''
+                CurrentDeviceMode   = ''
+                SupportsModeChange  = $false
+                CapabilitiesFetched = $false
+                Status              = ''
+                Sections            = ''
+                Detail              = ''
+                NeedsReboot         = $false
+                Timestamp           = ''
             }
         }
     Update-BlanketSummary
