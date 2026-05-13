@@ -59,6 +59,7 @@ function Set-CrestronSettings {
         [Parameter(Mandatory)][pscustomobject]$Session,
         [hashtable]$Ntp,
         [Nullable[bool]]$Cloud,
+        [Nullable[bool]]$Fusion,
         [hashtable]$AutoUpdate,
         [int]$TimeoutSec = 30
     )
@@ -66,8 +67,8 @@ function Set-CrestronSettings {
     if ($PSVersionTable.PSVersion.Major -lt 7) {
         throw "Requires PowerShell 7+."
     }
-    if (-not $Ntp -and -not $PSBoundParameters.ContainsKey('Cloud') -and -not $AutoUpdate) {
-        throw "Provide at least one of -Ntp, -Cloud, -AutoUpdate."
+    if (-not $Ntp -and -not $PSBoundParameters.ContainsKey('Cloud') -and -not $PSBoundParameters.ContainsKey('Fusion') -and -not $AutoUpdate) {
+        throw "Provide at least one of -Ntp, -Cloud, -Fusion, -AutoUpdate."
     }
 
     $deviceBody = @{}
@@ -103,11 +104,16 @@ function Set-CrestronSettings {
         $sections += 'SystemClock'
     }
 
-    # ---- XiO Cloud ----------------------------------------------------------
-    if ($PSBoundParameters.ContainsKey('Cloud') -and $null -ne $Cloud) {
-        $deviceBody.CloudSettings = @{
-            XioCloud = @{ IsEnabled = [bool]$Cloud }
-        }
+    # ---- XiO Cloud + Fusion Cloud ------------------------------------------
+    # Both live under Device.CloudSettings as sibling objects (XioCloud,
+    # FusionCloud). Per Crestron SDK CloudSettings reference.
+    $hasCloud  = $PSBoundParameters.ContainsKey('Cloud')  -and $null -ne $Cloud
+    $hasFusion = $PSBoundParameters.ContainsKey('Fusion') -and $null -ne $Fusion
+    if ($hasCloud -or $hasFusion) {
+        $cloudBody = @{}
+        if ($hasCloud)  { $cloudBody.XioCloud    = @{ IsEnabled = [bool]$Cloud } }
+        if ($hasFusion) { $cloudBody.FusionCloud = @{ IsEnabled = [bool]$Fusion } }
+        $deviceBody.CloudSettings = $cloudBody
         $sections += 'CloudSettings'
     }
 
@@ -116,14 +122,24 @@ function Set-CrestronSettings {
         $enabled = if ($null -ne $AutoUpdate.Enabled) { [bool]$AutoUpdate.Enabled } else { $true }
         $family  = $Session.DeviceFamily
 
-        if ($family -eq 'TouchPanel') {
+        # AutoUpdateMaster shape is used by TouchPanel, DM-NVX, AirMedia,
+        # HD-PS, and most "endpoint" devices. FeatureConfig.Avf.AvfAutoUpdate
+        # is for 4-Series control systems (CP4, MC4, RMC4 etc.).
+        $usesAutoUpdateMaster = $family -in 'TouchPanel','DM','AirMedia','HD-PS','OccupancySensor','TouchPanelCB','DM-NVX','NVX','DMPS','HDMD'
+        # Conservative default: if family is unknown OR not a ControlSystem,
+        # use AutoUpdateMaster (the simpler shape).
+        if (-not $usesAutoUpdateMaster -and $family -ne 'ControlSystem') {
+            $usesAutoUpdateMaster = $true
+        }
+
+        if ($usesAutoUpdateMaster) {
             $deviceBody.AutoUpdateMaster = @{ IsEnabled = $enabled }
             $sections += 'AutoUpdateMaster'
 
             $ignored = @('ManifestUrl','DayOfWeek','TimeOfDay','PollIntervalMin') |
                         Where-Object { $AutoUpdate.ContainsKey($_) }
             if ($ignored.Count -gt 0) {
-                Write-Warning "DeviceFamily=TouchPanel ignores AutoUpdate fields: $($ignored -join ', '). Only Enabled is applied."
+                Write-Warning "DeviceFamily=$family ignores AutoUpdate fields: $($ignored -join ', '). Only Enabled is applied."
             }
         } else {
             # Default to ControlSystem shape when family is unknown or anything

@@ -73,7 +73,7 @@ $Script:AppState = [pscustomobject]@{
         <!-- Status bar (docked bottom) -->
         <StatusBar DockPanel.Dock="Bottom" Height="28">
             <StatusBarItem>
-                <TextBlock x:Name="StatusText" Text="Idle" />
+                <TextBlock x:Name="StatusText" Text="Idle" Foreground="#CC0000" FontWeight="Bold" />
             </StatusBarItem>
             <Separator />
             <StatusBarItem>
@@ -203,7 +203,7 @@ $Script:AppState = [pscustomobject]@{
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <Button x:Name="ScanStartButton" Grid.Column="0" Content="Start Scan" Padding="16,4" FontWeight="Bold" />
-                            <TextBlock x:Name="ScanProgressText" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#666" />
+                            <TextBlock x:Name="ScanProgressText" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#CC0000" FontWeight="Bold" />
                             <Button x:Name="ScanCancelButton" Grid.Column="2" Content="Cancel" Padding="12,4" IsEnabled="False" />
                         </Grid>
 
@@ -312,10 +312,11 @@ $Script:AppState = [pscustomobject]@{
                                 <DataGrid.Columns>
                                     <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" />
                                     <DataGridTextColumn Header="IP"        Binding="{Binding IP}"        Width="140" IsReadOnly="True" />
-                                    <DataGridTextColumn Header="Status"   Binding="{Binding Status}"   Width="90"  IsReadOnly="True" />
-                                    <DataGridTextColumn Header="Sections" Binding="{Binding Sections}" Width="200" IsReadOnly="True" />
-                                    <DataGridTextColumn Header="Detail"   Binding="{Binding Detail}"   Width="*"   IsReadOnly="True" />
-                                    <DataGridTextColumn Header="Time"     Binding="{Binding Timestamp}" Width="160" IsReadOnly="True" />
+                                    <DataGridTextColumn     Header="Status"   Binding="{Binding Status}"      Width="90"  IsReadOnly="True" />
+                                    <DataGridCheckBoxColumn Header="Reboot?"  Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
+                                    <DataGridTextColumn     Header="Sections" Binding="{Binding Sections}"    Width="200" IsReadOnly="True" />
+                                    <DataGridTextColumn     Header="Detail"   Binding="{Binding Detail}"      Width="*"   IsReadOnly="True" />
+                                    <DataGridTextColumn     Header="Time"     Binding="{Binding Timestamp}"   Width="160" IsReadOnly="True" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>
@@ -325,13 +326,16 @@ $Script:AppState = [pscustomobject]@{
                     <Grid DockPanel.Dock="Bottom" Margin="0,0,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Button x:Name="BlanketApplyButton"  Grid.Column="0" Content="Apply to Selected" Padding="16,4" FontWeight="Bold" />
-                        <Button x:Name="BlanketRebootButton" Grid.Column="1" Content="Reboot Selected" Padding="10,4" Margin="8,0,0,0" HorizontalAlignment="Left" />
-                        <TextBlock x:Name="BlanketProgressText" Grid.Column="1" Margin="170,0,0,0" VerticalAlignment="Center" Foreground="#666" />
-                        <Button x:Name="BlanketCancelButton" Grid.Column="2" Content="Cancel" Padding="12,4" IsEnabled="False" />
+                        <Button x:Name="BlanketRebootButton" Grid.Column="1" Content="Reboot Needed"     Padding="10,4" Margin="8,0,0,0" />
+                        <Button x:Name="BlanketClearButton"  Grid.Column="2" Content="Clear Loaded"      Padding="10,4" Margin="8,0,0,0" />
+                        <TextBlock x:Name="BlanketProgressText" Grid.Column="3" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#CC0000" FontWeight="Bold" />
+                        <Button x:Name="BlanketCancelButton" Grid.Column="4" Content="Cancel" Padding="12,4" IsEnabled="False" />
                     </Grid>
 
                     <!-- Middle (fills): the three settings sections -->
@@ -361,30 +365,84 @@ $Script:AppState = [pscustomobject]@{
                                 </StackPanel>
                             </Border>
 
-                            <!-- XiO Cloud -->
+                         <!-- Cloud Connection (XiO) -->
                             <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" Margin="0,0,0,8">
                                 <StackPanel>
-                                    <CheckBox x:Name="CloudEnableBox" Content="Apply XiO Cloud toggle" FontWeight="Bold" />
+                                    <CheckBox x:Name="CloudEnableBox" Content="Apply Cloud Connection (XiO) toggle" FontWeight="Bold" />
                                     <StackPanel Orientation="Horizontal" Margin="20,8,0,0" IsEnabled="{Binding ElementName=CloudEnableBox, Path=IsChecked}">
-                                        <RadioButton x:Name="CloudOnRadio"  GroupName="CloudRadios" Content="Enable XiO Cloud"  IsChecked="True" Margin="0,0,16,0" />
-                                        <RadioButton x:Name="CloudOffRadio" GroupName="CloudRadios" Content="Disable XiO Cloud" />
+                                        <RadioButton x:Name="CloudOnRadio"  GroupName="CloudRadios" Content="Enable Cloud Connection"  IsChecked="True" Margin="0,0,16,0" />
+                                        <RadioButton x:Name="CloudOffRadio" GroupName="CloudRadios" Content="Disable Cloud Connection" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
 
-                            <!-- Auto-Update -->
-                            <Border BorderBrush="#DDD" BorderThickness="1" Padding="10">
+                            <!-- Fusion Room -->
+                            <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" Margin="0,0,0,8">
                                 <StackPanel>
-                                    <CheckBox x:Name="AutoUpdateEnableBox" Content="Apply Auto-Update toggle" FontWeight="Bold" />
-                                    <StackPanel Orientation="Horizontal" Margin="20,8,0,0" IsEnabled="{Binding ElementName=AutoUpdateEnableBox, Path=IsChecked}">
-                                        <RadioButton x:Name="AutoUpdateOnRadio"  GroupName="AutoUpdateRadios" Content="Enable Auto-Update"  IsChecked="True" Margin="0,0,16,0" />
-                                        <RadioButton x:Name="AutoUpdateOffRadio" GroupName="AutoUpdateRadios" Content="Disable Auto-Update" />
+                                    <CheckBox x:Name="FusionEnableBox" Content="Apply Fusion Room toggle" FontWeight="Bold" />
+                                    <StackPanel Orientation="Horizontal" Margin="20,8,0,0" IsEnabled="{Binding ElementName=FusionEnableBox, Path=IsChecked}">
+                                        <RadioButton x:Name="FusionOnRadio"  GroupName="FusionRadios" Content="Enable Fusion Room"  IsChecked="True" Margin="0,0,16,0" />
+                                        <RadioButton x:Name="FusionOffRadio" GroupName="FusionRadios" Content="Disable Fusion Room" />
                                     </StackPanel>
-                                    <TextBlock Margin="20,4,0,0" Foreground="#888" FontSize="11"
+                                </StackPanel>
+                            </Border>
+
+                        <!-- Auto-Update -->
+                            <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" Margin="0,0,0,8">
+                                <StackPanel>
+                                    <CheckBox x:Name="AutoUpdateEnableBox"
+                                              Content="Apply Auto-Update toggle"
+                                              FontWeight="Bold" />
+
+                                    <StackPanel Orientation="Horizontal"
+                                                Margin="20,8,0,0"
+                                                IsEnabled="{Binding ElementName=AutoUpdateEnableBox, Path=IsChecked}">
+                                        <RadioButton x:Name="AutoUpdateOnRadio"
+                                                     GroupName="AutoUpdateRadios"
+                                                     Content="Enable Auto-Update"
+                                                     IsChecked="True"
+                                                     Margin="0,0,16,0" />
+                                        <RadioButton x:Name="AutoUpdateOffRadio"
+                                                     GroupName="AutoUpdateRadios"
+                                                     Content="Disable Auto-Update" />
+                                    </StackPanel>
+
+                                    <TextBlock Margin="20,4,0,0"
+                                               Foreground="#888"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
                                                Text="On TouchPanel devices only the on/off flag is sent; schedule/manifest fields are touchscreen-incompatible and are not exposed in the GUI." />
                                 </StackPanel>
                             </Border>
 
+                            <!-- DM-NVX Device Mode -->
+                            <GroupBox Header="DM-NVX Device Mode" Margin="0,0,0,8" Padding="8">
+                                <StackPanel>
+                                    <CheckBox x:Name="ModeEnableBox"
+                                              Content="Apply Device Mode"
+                                              FontWeight="Bold"
+                                              Margin="0,0,0,6" />
+
+                                    <StackPanel Orientation="Horizontal"
+                                                Margin="20,0,0,0"
+                                                IsEnabled="{Binding ElementName=ModeEnableBox, Path=IsChecked}">
+                                        <RadioButton x:Name="ModeTransmitterRadio"
+                                                     GroupName="ModeRadios"
+                                                     Content="Transmitter"
+                                                     IsChecked="True"
+                                                     Margin="0,0,16,0" />
+                                        <RadioButton x:Name="ModeReceiverRadio"
+                                                     GroupName="ModeRadios"
+                                                     Content="Receiver" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="Only applies to DM-NVX units that expose DeviceSpecific.DeviceMode."
+                                               FontSize="11"
+                                               Foreground="#666"
+                                               TextWrapping="Wrap"
+                                               Margin="20,6,0,0" />
+                                </StackPanel>
+                            </GroupBox>
                         </StackPanel>
                     </ScrollViewer>
 
@@ -398,15 +456,17 @@ $Script:AppState = [pscustomobject]@{
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Button x:Name="PerDeviceApplyButton"   Grid.Column="0" Content="Apply Changes"       Padding="16,4" FontWeight="Bold" />
                         <Button x:Name="PerDeviceAddButton"     Grid.Column="1" Content="Add Devices..."      Padding="10,4" Margin="8,0,0,0" />
                         <Button x:Name="PerDeviceRefreshButton" Grid.Column="2" Content="Fetch current state" Padding="10,4" Margin="8,0,0,0" />
-                        <Button x:Name="PerDeviceRebootButton"  Grid.Column="3" Content="Reboot All Loaded"   Padding="10,4" Margin="8,0,0,0" />
-                        <TextBlock x:Name="PerDeviceProgressText" Grid.Column="4" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#666" />
-                        <Button x:Name="PerDeviceCancelButton"  Grid.Column="5" Content="Cancel" Padding="12,4" IsEnabled="False" />
+                        <Button x:Name="PerDeviceRebootButton"  Grid.Column="3" Content="Reboot Selected"     Padding="10,4" Margin="8,0,0,0" />
+                        <Button x:Name="PerDeviceClearButton"   Grid.Column="4" Content="Clear Loaded"        Padding="10,4" Margin="8,0,0,0" />
+                        <TextBlock x:Name="PerDeviceProgressText" Grid.Column="5" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#CC0000" FontWeight="Bold" />
+                        <Button x:Name="PerDeviceCancelButton"  Grid.Column="6" Content="Cancel" Padding="12,4" IsEnabled="False" />
                     </Grid>
 
                     <TextBlock DockPanel.Dock="Top" Margin="0,0,0,6" TextWrapping="Wrap" Foreground="#666" FontSize="11"
@@ -438,6 +498,16 @@ $Script:AppState = [pscustomobject]@{
                                     </x:Array>
                                 </DataGridComboBoxColumn.ItemsSource>
                             </DataGridComboBoxColumn>
+                            <DataGridTextColumn      Header="Current Mode" Binding="{Binding CurrentDeviceMode}" Width="110" IsReadOnly="True" />
+                            <DataGridComboBoxColumn  Header="Mode"         SelectedValueBinding="{Binding DeviceMode, UpdateSourceTrigger=PropertyChanged}" Width="115">
+                                <DataGridComboBoxColumn.ItemsSource>
+                                    <x:Array Type="sys:String" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+                                        <sys:String>Keep</sys:String>
+                                        <sys:String>Transmitter</sys:String>
+                                        <sys:String>Receiver</sys:String>
+                                    </x:Array>
+                                </DataGridComboBoxColumn.ItemsSource>
+                            </DataGridComboBoxColumn>
                             <DataGridTextColumn      Header="NewIP"       Binding="{Binding NewIP, UpdateSourceTrigger=PropertyChanged}"      Width="120" />
                             <DataGridTextColumn      Header="SubnetMask"  Binding="{Binding SubnetMask, UpdateSourceTrigger=PropertyChanged}" Width="120" />
                             <DataGridTextColumn      Header="Gateway"     Binding="{Binding Gateway, UpdateSourceTrigger=PropertyChanged}"    Width="120" />
@@ -446,7 +516,7 @@ $Script:AppState = [pscustomobject]@{
                             <DataGridCheckBoxColumn  Header="WiFi Off"    Binding="{Binding DisableWifi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="60" />
                             <DataGridTextColumn      Header="IPID"        Binding="{Binding NewIpId, UpdateSourceTrigger=PropertyChanged}"              Width="60" />
                             <DataGridTextColumn      Header="CS IP"       Binding="{Binding NewControlSystemAddr, UpdateSourceTrigger=PropertyChanged}" Width="130" />
-                            <DataGridTextColumn      Header="Status"      Binding="{Binding Status}"     Width="80"  IsReadOnly="True" />
+                            <DataGridCheckBoxColumn  Header="Reboot?"     Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
                             <DataGridTextColumn      Header="Detail"      Binding="{Binding Detail}"     Width="*"   IsReadOnly="True" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -458,6 +528,9 @@ $Script:AppState = [pscustomobject]@{
 
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -519,12 +592,14 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'VerifyCancelButton','VerifyProgressText',
                   'VerifyGrid','VerifySelectAll','VerifySummaryText',
                   'BlanketTab','BlanketGrid','BlanketSelectAll','BlanketSummaryText',
-                  'BlanketReloadButton','BlanketApplyButton','BlanketCancelButton','BlanketProgressText',
+                  'BlanketReloadButton','BlanketApplyButton','BlanketClearButton','BlanketCancelButton','BlanketProgressText',
                   'NtpEnableBox','NtpServerBox','NtpTimeZoneBox',
                   'CloudEnableBox','CloudOnRadio','CloudOffRadio',
+                  'FusionEnableBox','FusionOnRadio','FusionOffRadio',
                   'AutoUpdateEnableBox','AutoUpdateOnRadio','AutoUpdateOffRadio',
+                  'ModeEnableBox','ModeTransmitterRadio','ModeReceiverRadio',
                   'PerDeviceTab','PerDeviceGrid','PerDeviceSummaryText',
-                  'PerDeviceApplyButton','PerDeviceRefreshButton','PerDeviceAddButton',
+                  'PerDeviceApplyButton','PerDeviceRefreshButton','PerDeviceAddButton','PerDeviceClearButton',
                   'PerDeviceCancelButton','PerDeviceProgressText',
                   'ProvisionRebootButton','BlanketRebootButton','PerDeviceRebootButton',
                   'WorkflowTab','WorkflowStartButton','WorkflowContinueButton','WorkflowCancelButton',
@@ -626,6 +701,14 @@ $Script:UI.ForgetCredButton.Add_Click({
 
 Update-CredentialDisplay
 Update-Status 'Ready.'
+
+if ($Script:UI.BlanketRebootButton) {
+    $Script:UI.BlanketRebootButton.IsEnabled = $false
+}
+
+if ($Script:UI.PerDeviceRebootButton) {
+    $Script:UI.PerDeviceRebootButton.IsEnabled = $false
+}
 
 # =============================================================================
 # Scan tab
@@ -1396,11 +1479,17 @@ if ($defaultTz) { $Script:UI.NtpTimeZoneBox.SelectedItem = $defaultTz }
 elseif ($tzList.Count -gt 0) { $Script:UI.NtpTimeZoneBox.SelectedIndex = 0 }
 
 function Update-BlanketSummary {
-    $count    = $Script:BlanketState.Rows.Count
+    $count = $Script:BlanketState.Rows.Count
     $selected = ($Script:BlanketState.Rows | Where-Object Selected).Count
-    $ok       = ($Script:BlanketState.Rows | Where-Object { $_.Status -eq 'OK' }).Count
-    $fail     = ($Script:BlanketState.Rows | Where-Object { $_.Status -and $_.Status -notin 'OK','Pending','Working' }).Count
-    $Script:UI.BlanketSummaryText.Text = "Loaded $count device(s). Selected: $selected. OK: $ok. Failed: $fail."
+    $ok = ($Script:BlanketState.Rows | Where-Object { $_.Status -eq 'OK' }).Count
+    $fail = ($Script:BlanketState.Rows | Where-Object { $_.Status -and $_.Status -notin 'OK','Pending','Working' }).Count
+    $reboot = ($Script:BlanketState.Rows | Where-Object NeedsReboot).Count
+
+    $Script:UI.BlanketSummaryText.Text = "Loaded $count device(s). Selected: $selected. OK: $ok. Failed: $fail. Reboot needed: $reboot."
+
+    if ($Script:UI.BlanketRebootButton) {
+        $Script:UI.BlanketRebootButton.IsEnabled = ($reboot -gt 0)
+    }
 }
 
 function Set-BlanketControls ($isRunning) {
@@ -1436,12 +1525,13 @@ function Load-BlanketFromProvision {
 
     foreach ($s in $source) {
         $row = [pscustomobject]@{
-            Selected  = $true
-            IP        = $s.IP
-            Status    = ''
-            Sections  = ''
-            Detail    = ''
-            Timestamp = ''
+            Selected    = $true
+            IP          = $s.IP
+            Status      = ''
+            Sections    = ''
+            Detail      = ''
+            NeedsReboot = $false
+            Timestamp   = ''
         }
         $Script:BlanketState.Rows.Add($row)
         $Script:BlanketState.RowsByIP[$s.IP] = $row
@@ -1454,7 +1544,7 @@ function Save-BlanketCsv {
     if ($Script:BlanketState.Rows.Count -eq 0) { return }
     $Script:BlanketState.Rows |
         Where-Object Status -ne '' |
-        Select-Object IP, Status, Sections, Detail, Timestamp |
+        Select-Object IP, Status, Sections, Detail, NeedsReboot, Timestamp |
         Export-Csv -NoTypeInformation -Path $Script:AppState.SettingsCsv
 }
 
@@ -1488,8 +1578,11 @@ function Start-BlanketApply {
     # Build the args bag based on which sections are enabled
     $applyNtp    = [bool]$Script:UI.NtpEnableBox.IsChecked
     $applyCloud  = [bool]$Script:UI.CloudEnableBox.IsChecked
+    $applyFusion = [bool]$Script:UI.FusionEnableBox.IsChecked
     $applyAuto   = [bool]$Script:UI.AutoUpdateEnableBox.IsChecked
-    if (-not ($applyNtp -or $applyCloud -or $applyAuto)) {
+    $applyMode   = [bool]$Script:UI.ModeEnableBox.IsChecked
+
+    if (-not ($applyNtp -or $applyCloud -or $applyFusion -or $applyAuto -or $applyMode)) {
         [System.Windows.MessageBox]::Show("Enable at least one settings section before applying.", "Nothing to apply", 'OK', 'Warning') | Out-Null
         return
     }
@@ -1505,13 +1598,29 @@ function Start-BlanketApply {
         if (-not $server) { $server = 'time.google.com' }
         $ntp = @{ TimeZone = $tzItem.Code; NtpServer = $server; NtpEnabled = $true }
     }
+
     $cloud = $null
     if ($applyCloud) {
         $cloud = [bool]$Script:UI.CloudOnRadio.IsChecked
     }
+
+    $fusion = $null
+    if ($applyFusion) {
+        $fusion = [bool]$Script:UI.FusionOnRadio.IsChecked
+    }
+
     $autoUpdate = $null
     if ($applyAuto) {
         $autoUpdate = @{ Enabled = [bool]$Script:UI.AutoUpdateOnRadio.IsChecked }
+    }
+
+    $deviceMode = $null
+    if ($applyMode) {
+        $deviceMode = if ([bool]$Script:UI.ModeReceiverRadio.IsChecked) {
+            'Receiver'
+        } else {
+            'Transmitter'
+        }
     }
 
     # Credentials
@@ -1522,7 +1631,9 @@ function Start-BlanketApply {
     $bits = @()
     if ($applyNtp)    { $bits += "NTP=$($ntp.NtpServer)/$($ntp.TimeZone)" }
     if ($applyCloud)  { $bits += "Cloud=$(if ($cloud) {'ON'} else {'OFF'})" }
+    if ($applyFusion) { $bits += "Fusion=$(if ($fusion) {'ON'} else {'OFF'})" }
     if ($applyAuto)   { $bits += "AutoUpdate=$(if ($autoUpdate.Enabled) {'ON'} else {'OFF'})" }
+    if ($applyMode)   { $bits += "Mode=$deviceMode" }
     $msg = "Apply [$($bits -join ', ')] to $($selectedIPs.Count) device(s) as '$($cred.UserName)'?"
     $confirm = [System.Windows.MessageBox]::Show($msg, "Confirm apply", 'YesNo', 'Warning')
     if ($confirm -ne 'Yes') { Update-Status 'Apply cancelled.'; return }
@@ -1533,8 +1644,9 @@ function Start-BlanketApply {
         if ($row) {
             $row.Status    = 'Pending'
             $row.Sections  = ''
-            $row.Detail    = ''
-            $row.Timestamp = ''
+            $row.Detail      = ''
+            $row.NeedsReboot = $false
+            $row.Timestamp   = ''
         }
     }
     $Script:UI.BlanketGrid.Items.Refresh()
@@ -1555,7 +1667,9 @@ function Start-BlanketApply {
     $rs.SessionStateProxy.SetVariable('userPass',  $cred.GetNetworkCredential().Password)
     $rs.SessionStateProxy.SetVariable('ntp',       $ntp)
     $rs.SessionStateProxy.SetVariable('cloudArg',  $cloud)
+    $rs.SessionStateProxy.SetVariable('fusionArg', $fusion)
     $rs.SessionStateProxy.SetVariable('autoUpdate',$autoUpdate)
+    $rs.SessionStateProxy.SetVariable('deviceMode',$deviceMode)
 
     $ps = [powershell]::Create()
     $ps.Runspace = $rs
@@ -1582,7 +1696,9 @@ function Start-BlanketApply {
                 $cred     = $using:credObj
                 $ntpArg   = $using:ntp
                 $cArg     = $using:cloudArg
+                $fArg     = $using:fusionArg
                 $auArg    = $using:autoUpdate
+                $modeArg  = $using:deviceMode
                 $manifest = $using:modManifest
 
                 $q.Enqueue([pscustomobject]@{ __progress=$true; IP=$ip; Status='Working' })
@@ -1596,27 +1712,89 @@ function Start-BlanketApply {
                         $callArgs = @{ Session = $sess }
                         if ($ntpArg)            { $callArgs.Ntp        = $ntpArg }
                         if ($null -ne $cArg)    { $callArgs.Cloud      = $cArg }
+                        if ($null -ne $fArg)    { $callArgs.Fusion     = $fArg }
                         if ($auArg)             { $callArgs.AutoUpdate = $auArg }
-                        $r = Set-CrestronSettings @callArgs
+
+                        $stepResults = @()
+                        $sections = @()
+                        $allOk = $true
+                        $needsReboot = $false
+
+                        if ($ntpArg -or $null -ne $cArg -or $null -ne $fArg -or $auArg) {
+                            $r = Set-CrestronSettings @callArgs
+
+                            if (-not $r.Success) {
+                                $allOk = $false
+                            }
+
+                            $sections += @($r.AppliedSections)
+
+                            $stepResults += ($r.SectionResults | ForEach-Object {
+                                if ([int]$_.StatusId -eq 1) {
+                                    $needsReboot = $true
+                                }
+
+                                "$($_.Path):$($_.StatusInfo)"
+                            })
+                        }
+
+                        if ($modeArg) {
+                            try {
+                                $state = Get-CrestronDeviceState -Session $sess
+
+                                if (-not $state.SupportsModeChange) {
+                                    $stepResults += "DeviceMode=skipped; device does not expose DeviceSpecific.DeviceMode"
+                                }
+                                elseif ($state.CurrentDeviceMode -eq $modeArg) {
+                                    $sections += 'DeviceMode'
+                                    $stepResults += "DeviceMode=already $modeArg"
+                                }
+                                else {
+                                    $rMode = Set-CrestronDeviceMode -Session $sess -Mode $modeArg
+
+                                    if (-not $rMode.Success) {
+                                        $allOk = $false
+                                    }
+
+                                    if ($rMode.NeedsReboot) {
+                                        $needsReboot = $true
+                                    }
+
+                                    $sections += 'DeviceMode'
+                                    $stepResults += "DeviceMode=$(if ($rMode.Success) { 'OK' } else { $rMode.Status }) -> $modeArg"
+                                }
+                            }
+                            catch {
+                                $allOk = $false
+                                $stepResults += "DeviceMode=ERR: $($_.Exception.Message)"
+                            }
+                        }
+
+                        if ($needsReboot) {
+                            $stepResults += "REBOOT NEEDED"
+                        }
+
                         $q.Enqueue([pscustomobject]@{
-                            __result  = $true
-                            IP        = $ip
-                            Status    = $(if ($r.Success) { 'OK' } else { "$($r.Status)" })
-                            Sections  = ($r.AppliedSections -join ', ')
-                            Detail    = ($r.SectionResults | ForEach-Object { "$($_.Path):$($_.StatusInfo)" }) -join '; '
-                            Timestamp = $r.Timestamp
+                            __result    = $true
+                            IP          = $ip
+                            Status      = if ($allOk) { 'OK' } else { 'Partial' }
+                            Sections    = (($sections | Where-Object { $_ }) -join ', ')
+                            Detail      = ($stepResults -join '; ')
+                            NeedsReboot = $needsReboot
+                            Timestamp   = (Get-Date).ToString('s')
                         })
                     } finally {
                         if ($sess) { Disconnect-CrestronDevice -Session $sess }
                     }
                 } catch {
-                    $q.Enqueue([pscustomobject]@{
-                        __result  = $true
-                        IP        = $ip
-                        Status    = 'Error'
-                        Sections  = ''
-                        Detail    = "ERROR: $($_.Exception.Message)"
-                        Timestamp = (Get-Date).ToString('s')
+                       $q.Enqueue([pscustomobject]@{
+                        __result    = $true
+                        IP          = $ip
+                        Status      = 'Error'
+                        Sections    = ''
+                        Detail      = "ERROR: $($_.Exception.Message)"
+                        NeedsReboot = $false
+                        Timestamp   = (Get-Date).ToString('s')
                     })
                 }
             }
@@ -1642,13 +1820,17 @@ function Start-BlanketApply {
                 [System.Windows.MessageBox]::Show("Apply failed: $($item.__error)", "Error", 'OK', 'Error') | Out-Null
                 continue
             }
+
             $row = $Script:BlanketState.RowsByIP[$item.IP]
             if (-not $row) { continue }
+
             $row.Status = $item.Status
+
             if (-not $item.__progress) {
-                $row.Sections  = $item.Sections
-                $row.Detail    = $item.Detail
-                $row.Timestamp = $item.Timestamp
+                $row.Sections    = $item.Sections
+                $row.Detail      = $item.Detail
+                $row.NeedsReboot = [bool]$item.NeedsReboot
+                $row.Timestamp   = $item.Timestamp
             }
         }
         $Script:UI.BlanketGrid.Items.Refresh()
@@ -1679,6 +1861,23 @@ $Script:UI.BlanketTab.Add_GotFocus({
     if ($Script:BlanketState.Rows.Count -eq 0) { Load-BlanketFromProvision }
 })
 $Script:UI.BlanketReloadButton.Add_Click({ Load-BlanketFromProvision })
+$Script:UI.BlanketClearButton.Add_Click({
+    $count = $Script:BlanketState.Rows.Count
+    if ($count -eq 0) {
+        Update-Status 'Nothing to clear.'
+        return
+    }
+    $r = [System.Windows.MessageBox]::Show(
+        "Remove all $count device(s) from the Blanket Settings tab?",
+        "Clear Loaded", 'YesNo', 'Question'
+    )
+    if ($r -eq 'Yes') {
+        $Script:BlanketState.Rows.Clear()
+        $Script:BlanketState.RowsByIP.Clear()
+        Update-BlanketSummary
+        Update-Status "Cleared $count device(s) from Blanket Settings tab."
+    }
+})
 $Script:UI.BlanketApplyButton.Add_Click({ Start-BlanketApply })
 $Script:UI.BlanketCancelButton.Add_Click({ Stop-BlanketApply })
 
@@ -1693,7 +1892,15 @@ $Script:UI.BlanketSelectAll.Add_Unchecked({
     Update-BlanketSummary
 })
 
-$Script:UI.BlanketGrid.Add_CellEditEnding({ Update-BlanketSummary })
+$Script:UI.BlanketGrid.Add_CellEditEnding({
+    $Script:UI.BlanketGrid.Dispatcher.BeginInvoke([Action]{
+        Update-BlanketSummary
+    }, [System.Windows.Threading.DispatcherPriority]::Background) | Out-Null
+})
+
+$Script:UI.BlanketGrid.Add_CurrentCellChanged({
+    Update-BlanketSummary
+})
 
 $window.Add_Closed({ Stop-BlanketRunspace })
 
@@ -1715,13 +1922,24 @@ $Script:PerDeviceState = [pscustomobject]@{
 $Script:UI.PerDeviceGrid.ItemsSource = $Script:PerDeviceState.Rows
 
 function Update-PerDeviceSummary {
-    $count    = $Script:PerDeviceState.Rows.Count
-    $edited   = ($Script:PerDeviceState.Rows | Where-Object {
-        $_.NewHostname -or $_.IPMode -ne 'Keep' -or $_.DisableWifi
+    $count = $Script:PerDeviceState.Rows.Count
+    $edited = ($Script:PerDeviceState.Rows | Where-Object {
+        $_.NewHostname -or
+        $_.IPMode -ne 'Keep' -or
+        $_.DeviceMode -ne 'Keep' -or
+        $_.DisableWifi -or
+        $_.NewIpId -or
+        $_.NewControlSystemAddr
     }).Count
-    $ok       = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
-    $fail     = ($Script:PerDeviceState.Rows | Where-Object { $_.Status -and $_.Status -notin 'OK','Pending','Working' }).Count
-    $Script:UI.PerDeviceSummaryText.Text = "Loaded $count device(s). With changes: $edited. OK: $ok. Failed: $fail."
+    $ok = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
+    $fail = ($Script:PerDeviceState.Rows | Where-Object { $_.Status -and $_.Status -notin 'OK','Pending','Working' }).Count
+    $reboot = ($Script:PerDeviceState.Rows | Where-Object NeedsReboot).Count
+
+    $Script:UI.PerDeviceSummaryText.Text = "Loaded $count device(s). With changes: $edited. OK: $ok. Failed: $fail. Reboot needed: $reboot."
+
+    if ($Script:UI.PerDeviceRebootButton) {
+        $Script:UI.PerDeviceRebootButton.IsEnabled = ($reboot -gt 0)
+    }
 }
 
 function Set-PerDeviceControls ($isRunning) {
@@ -1757,29 +1975,35 @@ function Load-PerDeviceFromProvision {
 
     foreach ($s in $source) {
         $row = [pscustomobject]@{
-            IP                      = $s.IP
-            Model                   = ''
-            CurrentHostname         = ''
-            CurrentDhcp             = $null
-            CurrentWifi             = $null
-            HasWifi                 = $true
-            CurrentIpId             = ''
+            IP                       = $s.IP
+            Model                    = ''
+            CurrentHostname          = ''
+            CurrentDhcp              = $null
+            CurrentWifi              = $null
+            HasWifi                  = $true
+            CurrentIpId              = ''
             CurrentControlSystemAddr = ''
-            CurrentRoomId           = ''
-            NewHostname             = ''
-            IPMode                  = 'Keep'
-            NewIP                   = ''
-            SubnetMask              = ''
-            Gateway                 = ''
-            PrimaryDns              = ''
-            SecondaryDns            = ''
-            DisableWifi             = $false
-            NewIpId                 = ''
-            NewControlSystemAddr    = ''
-            NewRoomId               = ''
-            Status                  = ''
-            Detail                  = ''
-            Timestamp               = ''
+            CurrentRoomId            = ''
+            CurrentDeviceMode        = ''
+            SupportsModeChange       = $false
+
+            NewHostname              = ''
+            IPMode                   = 'Keep'
+            DeviceMode               = 'Keep'
+            NewIP                    = ''
+            SubnetMask               = ''
+            Gateway                  = ''
+            PrimaryDns               = ''
+            SecondaryDns             = ''
+            DisableWifi              = $false
+            NewIpId                  = ''
+            NewControlSystemAddr     = ''
+            NewRoomId                = ''
+
+            Status                   = ''
+            Detail                   = ''
+            NeedsReboot              = $false
+            Timestamp                = ''
         }
         $Script:PerDeviceState.Rows.Add($row)
         $Script:PerDeviceState.RowsByIP[$s.IP] = $row
@@ -1792,8 +2016,11 @@ function Save-PerDeviceCsv {
     if ($Script:PerDeviceState.Rows.Count -eq 0) { return }
     $Script:PerDeviceState.Rows |
         Where-Object Status -ne '' |
-        Select-Object IP, Model, CurrentHostname, NewHostname, IPMode, NewIP, SubnetMask, Gateway,
-                      PrimaryDns, SecondaryDns, DisableWifi, Status, Detail, Timestamp |
+        Select-Object IP, Model, CurrentHostname, CurrentDeviceMode, SupportsModeChange,
+                    NewHostname, IPMode, DeviceMode, NewIP, SubnetMask, Gateway,
+                    PrimaryDns, SecondaryDns, DisableWifi,
+                    NewIpId, NewControlSystemAddr, NewRoomId,
+                    Status, Detail, NeedsReboot, Timestamp |
         Export-Csv -NoTypeInformation -Path $Script:AppState.PerDeviceCsv
 }
 
@@ -1818,28 +2045,40 @@ function Stop-PerDeviceRunspace {
 # Bulk-fetch device state to pre-fill the grid
 function Start-PerDeviceFetch {
     if ($Script:PerDeviceState.IsRunning) { return }
+
     $ips = @($Script:PerDeviceState.Rows.IP)
+
     if ($ips.Count -eq 0) {
         Update-Status 'Nothing to fetch — load provisioned devices first.'
         return
     }
+
     $cred = Get-CachedCredential
-    if (-not $cred) { Update-Status 'Fetch cancelled (no credentials).'; return }
+
+    if (-not $cred) {
+        Update-Status 'Fetch cancelled (no credentials).'
+        return
+    }
 
     $Script:UI.PerDeviceProgressText.Text = "Fetching state for $($ips.Count) device(s)..."
     Set-PerDeviceControls $true
     Update-Status "Fetching device state..."
 
     $modManifest = (Get-Module CrestronAdminBootstrap).Path
+
     if (-not $modManifest) {
-        $modManifest = (Get-Module -ListAvailable CrestronAdminBootstrap | Sort-Object Version -Descending | Select-Object -First 1).Path
+        $modManifest = (Get-Module -ListAvailable CrestronAdminBootstrap |
+            Sort-Object Version -Descending |
+            Select-Object -First 1).Path
     }
 
     $queue   = [System.Collections.Concurrent.ConcurrentQueue[object]]::new()
     $doneRef = [ref]$false
 
     $rs = [runspacefactory]::CreateRunspace()
-    $rs.ApartmentState = 'STA'; $rs.Open()
+    $rs.ApartmentState = 'STA'
+    $rs.Open()
+
     $rs.SessionStateProxy.SetVariable('queue',    $queue)
     $rs.SessionStateProxy.SetVariable('doneRef',  $doneRef)
     $rs.SessionStateProxy.SetVariable('ips',      $ips)
@@ -1847,46 +2086,72 @@ function Start-PerDeviceFetch {
     $rs.SessionStateProxy.SetVariable('userPass', $cred.GetNetworkCredential().Password)
     $rs.SessionStateProxy.SetVariable('manifest', $modManifest)
 
-    $ps = [powershell]::Create(); $ps.Runspace = $rs
+    $ps = [powershell]::Create()
+    $ps.Runspace = $rs
+
     [void]$ps.AddScript({
         try {
             $ips | ForEach-Object -ThrottleLimit 16 -Parallel {
-                $ip   = $_
-                $q    = $using:queue
-                $u    = $using:userName
-                $p    = $using:userPass
-                $mp   = $using:manifest
+                $ip = $_
+                $q  = $using:queue
+                $u  = $using:userName
+                $p  = $using:userPass
+                $mp = $using:manifest
+
                 try {
-                    if (-not $mp -or -not (Test-Path $mp)) { throw "Module manifest path missing: '$mp'" }
+                    if (-not $mp -or -not (Test-Path $mp)) {
+                        throw "Module manifest path missing: '$mp'"
+                    }
+
                     Import-Module $mp -Force -ErrorAction Stop
+
                     $sec  = ConvertTo-SecureString $p -AsPlainText -Force
                     $cred = [pscredential]::new($u, $sec)
                     $sess = Connect-CrestronDevice -IP $ip -Credential $cred
+
                     try {
                         $state = Get-CrestronDeviceState -Session $sess
-                            $q.Enqueue([pscustomobject]@{
+
+                        $dnsArr = @($state.DnsServers)
+                        $dns1 = if ($dnsArr.Count -ge 1) { $dnsArr[0] } else { '' }
+                        $dns2 = if ($dnsArr.Count -ge 2) { $dnsArr[1] } else { '' }
+
+                        $q.Enqueue([pscustomobject]@{
                             IP                       = $ip
                             Model                    = $sess.Model
                             CurrentHostname          = $state.Hostname
                             CurrentDhcp              = $state.EthernetLanDhcp
                             CurrentWifi              = $state.WifiEnabled
                             HasWifi                  = $state.HasWifi
+                            CurrentIP                = $state.EthernetLanIP
+                            CurrentSubnet            = $state.EthernetLanSubnet
+                            CurrentGateway           = $state.EthernetLanGateway
+                            CurrentDns1              = $dns1
+                            CurrentDns2              = $dns2
                             CurrentIpId              = $state.CurrentIpId
                             CurrentControlSystemAddr = $state.CurrentControlSystemAddr
                             CurrentRoomId            = $state.CurrentRoomId
+                            CurrentDeviceMode        = $state.CurrentDeviceMode
+                            SupportsModeChange       = $state.SupportsModeChange
                             Detail                   = "OK"
                         })
-                    } finally { Disconnect-CrestronDevice -Session $sess }
+                    } finally {
+                        Disconnect-CrestronDevice -Session $sess
+                    }
                 } catch {
                     $q.Enqueue([pscustomobject]@{
-                        IP = $ip
+                        IP     = $ip
                         Detail = "ERROR: $($_.Exception.Message)"
                     })
                 }
             }
         } catch {
-            $queue.Enqueue([pscustomobject]@{ __error = $_.Exception.Message })
-        } finally { $doneRef.Value = $true }
+            $queue.Enqueue([pscustomobject]@{
+                __error = $_.Exception.Message
+            })
+        } finally {
+            $doneRef.Value = $true
+        }
     })
 
     $Script:PerDeviceState.Runspace    = $rs
@@ -1897,15 +2162,40 @@ function Start-PerDeviceFetch {
 
     $timer = New-Object System.Windows.Threading.DispatcherTimer
     $timer.Interval = [TimeSpan]::FromMilliseconds(250)
+
     $timer.Add_Tick({
         $item = $null
+
         while ($Script:PerDeviceState.Queue.TryDequeue([ref]$item)) {
             if ($item.__error) {
                 [System.Windows.MessageBox]::Show("Fetch failed: $($item.__error)", "Error", 'OK', 'Error') | Out-Null
                 continue
             }
+
             $row = $Script:PerDeviceState.RowsByIP[$item.IP]
-            if (-not $row) { continue }
+
+            if (-not $row) {
+                continue
+            }
+
+            foreach ($prop in @(
+                'CurrentDeviceMode',
+                'SupportsModeChange',
+                'DeviceMode',
+                'NeedsReboot'
+            )) {
+                if (-not ($row.PSObject.Properties.Name -contains $prop)) {
+                    $defaultValue = switch ($prop) {
+                        'CurrentDeviceMode'  { '' }
+                        'SupportsModeChange' { $false }
+                        'DeviceMode'         { 'Keep' }
+                        'NeedsReboot'        { $false }
+                    }
+
+                    $row | Add-Member -NotePropertyName $prop -NotePropertyValue $defaultValue -Force
+                }
+            }
+
             if ($item.Model) {
                 $row.Model                    = $item.Model
                 $row.CurrentHostname          = $item.CurrentHostname
@@ -1915,10 +2205,46 @@ function Start-PerDeviceFetch {
                 $row.CurrentIpId              = "$($item.CurrentIpId)"
                 $row.CurrentControlSystemAddr = "$($item.CurrentControlSystemAddr)"
                 $row.CurrentRoomId            = "$($item.CurrentRoomId)"
-                if (-not $row.Status) { $row.Status = '' }
+                $row.CurrentDeviceMode        = "$($item.CurrentDeviceMode)"
+                $row.SupportsModeChange       = [bool]$item.SupportsModeChange
+
+                # Pre-fill editable network/IP-table boxes with current values
+                if (-not $row.NewIpId) {
+                    $row.NewIpId = "$($item.CurrentIpId)"
+                }
+
+                if (-not $row.NewControlSystemAddr) {
+                    $row.NewControlSystemAddr = "$($item.CurrentControlSystemAddr)"
+                }
+
+                if (-not $row.NewIP) {
+                    $row.NewIP = "$($item.CurrentIP)"
+                }
+
+                if (-not $row.SubnetMask) {
+                    $row.SubnetMask = "$($item.CurrentSubnet)"
+                }
+
+                if (-not $row.Gateway) {
+                    $row.Gateway = "$($item.CurrentGateway)"
+                }
+
+                if (-not $row.PrimaryDns) {
+                    $row.PrimaryDns = "$($item.CurrentDns1)"
+                }
+
+                if (-not $row.SecondaryDns) {
+                    $row.SecondaryDns = "$($item.CurrentDns2)"
+                }
+
+                if (-not $row.Status) {
+                    $row.Status = ''
+                }
             }
+
             $row.Detail = $item.Detail
         }
+
         $Script:UI.PerDeviceGrid.Items.Refresh()
         Update-PerDeviceSummary
 
@@ -1929,6 +2255,7 @@ function Start-PerDeviceFetch {
             Update-Status "Per-device state fetch complete."
         }
     })
+
     $timer.Start()
     $Script:PerDeviceState.Timer = $timer
 }
@@ -1962,6 +2289,12 @@ function Test-PerDeviceRow ($row) {
         $isHost = $addr -match '^[A-Za-z0-9]([A-Za-z0-9\-\.]{0,253}[A-Za-z0-9])?$'
         if (-not ($isIpv4 -or $isHost)) { return "Control System IP '$addr' is not a valid IPv4 or hostname" }
     }
+    if ($row.DeviceMode -in 'Transmitter','Receiver') {
+        if (-not $row.SupportsModeChange) {
+            return "Device mode change selected, but this device does not expose DeviceSpecific.DeviceMode"
+        }
+    }
+
     return $null
 }
 
@@ -1969,10 +2302,17 @@ function Start-PerDeviceApply {
     if ($Script:PerDeviceState.IsRunning) { return }
 
     # Find rows with any change
+    # Only treat IPID/CS-IP as a "change" if the new value differs from current
+    # (otherwise every fetched row would trigger a pointless rewrite).
     $rowsToApply = @($Script:PerDeviceState.Rows | Where-Object {
-        $_.NewHostname -or $_.IPMode -ne 'Keep' -or $_.DisableWifi -or
-        $_.NewIpId -or $_.NewControlSystemAddr
+        $_.NewHostname -or
+        $_.IPMode -ne 'Keep' -or
+        $_.DeviceMode -ne 'Keep' -or
+        $_.DisableWifi -or
+        $_.NewIpId -or
+        $_.NewControlSystemAddr
     })
+
     if ($rowsToApply.Count -eq 0) {
         [System.Windows.MessageBox]::Show("No rows have any pending changes.", "Nothing to apply", 'OK', 'Warning') | Out-Null
         return
@@ -1984,13 +2324,17 @@ function Start-PerDeviceApply {
         $err = Test-PerDeviceRow $r
         if ($err) { $errors += "$($r.IP): $err" }
     }
+
     if ($errors.Count -gt 0) {
         [System.Windows.MessageBox]::Show("Validation failed:`n`n$($errors -join "`n")", "Fix errors first", 'OK', 'Error') | Out-Null
         return
     }
 
     $cred = Get-CachedCredential
-    if (-not $cred) { Update-Status 'Apply cancelled (no credentials).'; return }
+    if (-not $cred) {
+        Update-Status 'Apply cancelled (no credentials).'
+        return
+    }
 
     # WiFi safety check — anyone reaching the device via WiFi about to lose it?
     $wifiWarnings = @()
@@ -2001,21 +2345,30 @@ function Start-PerDeviceApply {
             $wifiWarnings += $r.IP
         }
     }
+
     if ($wifiWarnings.Count -gt 0) {
         $msg = "WiFi will be disabled on these device(s):`n`n$($wifiWarnings -join "`n")`n`nIf any of these are reached over WiFi, you will lose connection. Continue?"
         $ans = [System.Windows.MessageBox]::Show($msg, "WiFi disable warning", 'YesNo', 'Warning')
-        if ($ans -ne 'Yes') { Update-Status 'Apply cancelled.'; return }
+        if ($ans -ne 'Yes') {
+            Update-Status 'Apply cancelled.'
+            return
+        }
     }
 
     $msg = "Apply changes to $($rowsToApply.Count) device(s) as '$($cred.UserName)'?`n`nIP changes are fire-and-forget — Success means the device acknowledged the change, not that it came back on the new IP."
     $ans = [System.Windows.MessageBox]::Show($msg, "Confirm per-device apply", 'YesNo', 'Warning')
-    if ($ans -ne 'Yes') { Update-Status 'Apply cancelled.'; return }
+    if ($ans -ne 'Yes') {
+        Update-Status 'Apply cancelled.'
+        return
+    }
 
     foreach ($r in $rowsToApply) {
-        $r.Status    = 'Pending'
-        $r.Detail    = ''
-        $r.Timestamp = ''
+        $r.Status      = 'Pending'
+        $r.Detail      = ''
+        $r.NeedsReboot = $false
+        $r.Timestamp   = ''
     }
+
     $Script:UI.PerDeviceGrid.Items.Refresh()
     $Script:UI.PerDeviceProgressText.Text = "Applying to $($rowsToApply.Count) device(s)..."
     Set-PerDeviceControls $true
@@ -2024,17 +2377,22 @@ function Start-PerDeviceApply {
     # Serialize rows as plain hashtables so they cross the runspace boundary
     $rowData = $rowsToApply | ForEach-Object {
         @{
-            IP                   = $_.IP
-            NewHostname          = $_.NewHostname
-            IPMode               = $_.IPMode
-            NewIP                = $_.NewIP
-            SubnetMask           = $_.SubnetMask
-            Gateway              = $_.Gateway
-            PrimaryDns           = $_.PrimaryDns
-            SecondaryDns         = $_.SecondaryDns
-            DisableWifi          = [bool]$_.DisableWifi
-            NewIpId              = $_.NewIpId
-            NewControlSystemAddr = $_.NewControlSystemAddr
+            IP                       = $_.IP
+            NewHostname              = $_.NewHostname
+            IPMode                   = $_.IPMode
+            DeviceMode               = $_.DeviceMode
+            SupportsModeChange       = [bool]$_.SupportsModeChange
+            CurrentDeviceMode        = $_.CurrentDeviceMode
+            NewIP                    = $_.NewIP
+            SubnetMask               = $_.SubnetMask
+            Gateway                  = $_.Gateway
+            PrimaryDns               = $_.PrimaryDns
+            SecondaryDns             = $_.SecondaryDns
+            DisableWifi              = [bool]$_.DisableWifi
+            NewIpId                  = $_.NewIpId
+            NewControlSystemAddr     = $_.NewControlSystemAddr
+            CurrentIpId              = $_.CurrentIpId
+            CurrentControlSystemAddr = $_.CurrentControlSystemAddr
         }
     }
 
@@ -2047,7 +2405,8 @@ function Start-PerDeviceApply {
     $doneRef = [ref]$false
 
     $rs = [runspacefactory]::CreateRunspace()
-    $rs.ApartmentState = 'STA'; $rs.Open()
+    $rs.ApartmentState = 'STA'
+    $rs.Open()
     $rs.SessionStateProxy.SetVariable('queue',    $queue)
     $rs.SessionStateProxy.SetVariable('doneRef',  $doneRef)
     $rs.SessionStateProxy.SetVariable('rows',     $rowData)
@@ -2055,60 +2414,124 @@ function Start-PerDeviceApply {
     $rs.SessionStateProxy.SetVariable('userPass', $cred.GetNetworkCredential().Password)
     $rs.SessionStateProxy.SetVariable('manifest', $modManifest)
 
-    $ps = [powershell]::Create(); $ps.Runspace = $rs
+    $ps = [powershell]::Create()
+    $ps.Runspace = $rs
+
     [void]$ps.AddScript({
         try {
             $rows | ForEach-Object -ThrottleLimit 16 -Parallel {
-                $row  = $_
-                $q    = $using:queue
-                $u    = $using:userName
-                $p    = $using:userPass
-                $mp   = $using:manifest
+                $row = $_
+                $q   = $using:queue
+                $u   = $using:userName
+                $p   = $using:userPass
+                $mp  = $using:manifest
 
-                $q.Enqueue([pscustomobject]@{ __progress=$true; IP=$row.IP; Status='Working' })
+                $q.Enqueue([pscustomobject]@{
+                    __progress = $true
+                    IP         = $row.IP
+                    Status     = 'Working'
+                })
 
                 try {
-                    if (-not $mp -or -not (Test-Path $mp)) { throw "Module manifest path missing: '$mp'" }
+                    if (-not $mp -or -not (Test-Path $mp)) {
+                        throw "Module manifest path missing: '$mp'"
+                    }
+
                     Import-Module $mp -Force -ErrorAction Stop
+
                     $sec  = ConvertTo-SecureString $p -AsPlainText -Force
                     $cred = [pscredential]::new($u, $sec)
                     $sess = Connect-CrestronDevice -IP $row.IP -Credential $cred
 
                     $stepResults = @()
                     $allOk = $true
+                    $needsReboot = $false
 
                     try {
                         if ($row.NewHostname) {
                             $r1 = Set-CrestronHostname -Session $sess -Hostname $row.NewHostname
                             $stepResults += "Hostname=$(if($r1.Success){'OK'}else{$r1.Status})"
-                            if (-not $r1.Success) { $allOk = $false }
+
+                            if ($r1.SectionResults) {
+                                foreach ($sr in @($r1.SectionResults)) {
+                                    if ([int]$sr.StatusId -eq 1) {
+                                        $needsReboot = $true
+                                    }
+                                }
+                            }
+
+                            if (-not $r1.Success) {
+                                $allOk = $false
+                            }
                         }
-                        if ($row.NewIpId -or $row.NewControlSystemAddr) {
+
+                        $ipChanged = ($row.NewIpId             -and $row.NewIpId             -ne $row.CurrentIpId) -or
+                                     ($row.NewControlSystemAddr -and $row.NewControlSystemAddr -ne $row.CurrentControlSystemAddr)
+
+                        if ($ipChanged) {
                             try {
                                 $r3 = Set-CrestronIpTable -Session $sess `
                                     -IpId $row.NewIpId `
                                     -ControlSystemAddress $row.NewControlSystemAddr `
                                     -EncryptConnection $false
+
                                 $stepResults += "IpTable=$(if($r3.Success){'OK'}else{$r3.Status})"
-                                if (-not $r3.Success) { $allOk = $false }
+
+                                if ($r3.SectionResults) {
+                                    foreach ($sr in @($r3.SectionResults)) {
+                                        if ([int]$sr.StatusId -eq 1) {
+                                            $needsReboot = $true
+                                        }
+                                    }
+                                }
+
+                                if (-not $r3.Success) {
+                                    $allOk = $false
+                                }
                             } catch {
                                 $stepResults += "IpTable=ERR: $($_.Exception.Message)"
                                 $allOk = $false
                             }
                         }
+
                         if ($row.IPMode -in 'DHCP','Static') {
-                            $netArgs = @{ Session = $sess; IPMode = $row.IPMode }
-                            if ($row.IPMode -eq 'Static') {
-                                $netArgs.NewIP        = $row.NewIP
-                                $netArgs.SubnetMask   = $row.SubnetMask
-                                $netArgs.Gateway      = $row.Gateway
-                                if ($row.PrimaryDns)   { $netArgs.PrimaryDns   = $row.PrimaryDns }
-                                if ($row.SecondaryDns) { $netArgs.SecondaryDns = $row.SecondaryDns }
+                            $netArgs = @{
+                                Session = $sess
+                                IPMode  = $row.IPMode
                             }
-                            if ($row.DisableWifi)     { $netArgs.DisableWifi   = $true }
+
+                            if ($row.IPMode -eq 'Static') {
+                                $netArgs.NewIP      = $row.NewIP
+                                $netArgs.SubnetMask = $row.SubnetMask
+                                $netArgs.Gateway    = $row.Gateway
+
+                                if ($row.PrimaryDns) {
+                                    $netArgs.PrimaryDns = $row.PrimaryDns
+                                }
+
+                                if ($row.SecondaryDns) {
+                                    $netArgs.SecondaryDns = $row.SecondaryDns
+                                }
+                            }
+
+                            if ($row.DisableWifi) {
+                                $netArgs.DisableWifi = $true
+                            }
+
                             $r2 = Set-CrestronNetwork @netArgs
                             $stepResults += "Network=$(if($r2.Success){'OK'}else{$r2.Status})"
-                            if (-not $r2.Success) { $allOk = $false }
+
+                            if ($r2.SectionResults) {
+                                foreach ($sr in @($r2.SectionResults)) {
+                                    if ([int]$sr.StatusId -eq 1) {
+                                        $needsReboot = $true
+                                    }
+                                }
+                            }
+
+                            if (-not $r2.Success) {
+                                $allOk = $false
+                            }
                         } elseif ($row.DisableWifi) {
                             # WiFi-off only, no IP change. Need a payload — use IPMode=Keep semantics:
                             # we'll send a DHCP-mode write keeping it on its current setting only
@@ -2120,12 +2543,44 @@ function Start-PerDeviceApply {
                             $allOk = $false
                         }
 
+                        if ($row.DeviceMode -in 'Transmitter','Receiver') {
+                            try {
+                                if (-not [bool]$row.SupportsModeChange) {
+                                    $stepResults += "DeviceMode=skipped; unsupported"
+                                    $allOk = $false
+                                }
+                                elseif ($row.CurrentDeviceMode -eq $row.DeviceMode) {
+                                    $stepResults += "DeviceMode=already $($row.DeviceMode)"
+                                }
+                                else {
+                                    $rMode = Set-CrestronDeviceMode -Session $sess -Mode $row.DeviceMode
+                                    $stepResults += "DeviceMode=$(if($rMode.Success){'OK'}else{$rMode.Status}) -> $($row.DeviceMode)"
+
+                                    if ($rMode.NeedsReboot) {
+                                        $needsReboot = $true
+                                    }
+
+                                    if (-not $rMode.Success) {
+                                        $allOk = $false
+                                    }
+                                }
+                            } catch {
+                                $stepResults += "DeviceMode=ERR: $($_.Exception.Message)"
+                                $allOk = $false
+                            }
+                        }
+
+                        if ($needsReboot) {
+                            $stepResults += "REBOOT NEEDED"
+                        }
+
                         $q.Enqueue([pscustomobject]@{
-                            __result   = $true
-                            IP         = $row.IP
-                            Status     = if ($allOk) { 'OK' } else { 'Partial' }
-                            Detail     = ($stepResults -join '; ')
-                            Timestamp  = (Get-Date).ToString('s')
+                            __result    = $true
+                            IP          = $row.IP
+                            Status      = if ($allOk) { 'OK' } else { 'Partial' }
+                            Detail      = ($stepResults -join '; ')
+                            NeedsReboot = $needsReboot
+                            Timestamp   = (Get-Date).ToString('s')
                         })
                     } finally {
                         # Session may be invalid after IP change; Disconnect just cleans local jar
@@ -2133,17 +2588,22 @@ function Start-PerDeviceApply {
                     }
                 } catch {
                     $q.Enqueue([pscustomobject]@{
-                        __result  = $true
-                        IP        = $row.IP
-                        Status    = 'Error'
-                        Detail    = "ERROR: $($_.Exception.Message)"
-                        Timestamp = (Get-Date).ToString('s')
+                        __result    = $true
+                        IP          = $row.IP
+                        Status      = 'Error'
+                        Detail      = "ERROR: $($_.Exception.Message)"
+                        NeedsReboot = $false
+                        Timestamp   = (Get-Date).ToString('s')
                     })
                 }
             }
         } catch {
-            $queue.Enqueue([pscustomobject]@{ __error = $_.Exception.Message })
-        } finally { $doneRef.Value = $true }
+            $queue.Enqueue([pscustomobject]@{
+                __error = $_.Exception.Message
+            })
+        } finally {
+            $doneRef.Value = $true
+        }
     })
 
     $Script:PerDeviceState.Runspace    = $rs
@@ -2156,19 +2616,25 @@ function Start-PerDeviceApply {
     $timer.Interval = [TimeSpan]::FromMilliseconds(250)
     $timer.Add_Tick({
         $item = $null
+
         while ($Script:PerDeviceState.Queue.TryDequeue([ref]$item)) {
             if ($item.__error) {
                 [System.Windows.MessageBox]::Show("Apply failed: $($item.__error)", "Error", 'OK', 'Error') | Out-Null
                 continue
             }
+
             $row = $Script:PerDeviceState.RowsByIP[$item.IP]
             if (-not $row) { continue }
+
             $row.Status = $item.Status
+
             if (-not $item.__progress) {
-                $row.Detail    = $item.Detail
-                $row.Timestamp = $item.Timestamp
+                $row.Detail      = $item.Detail
+                $row.NeedsReboot = [bool]$item.NeedsReboot
+                $row.Timestamp   = $item.Timestamp
             }
         }
+
         $Script:UI.PerDeviceGrid.Items.Refresh()
         Update-PerDeviceSummary
 
@@ -2176,11 +2642,13 @@ function Start-PerDeviceApply {
             Stop-PerDeviceRunspace
             Set-PerDeviceControls $false
             Save-PerDeviceCsv
+
             $ok = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
             $Script:UI.PerDeviceProgressText.Text = "Done. $ok device(s) OK."
             Update-Status "Per-device apply complete. $ok OK. Saved $($Script:AppState.PerDeviceCsv)"
         }
     })
+
     $timer.Start()
     $Script:PerDeviceState.Timer = $timer
 }
@@ -2209,7 +2677,15 @@ $Script:UI.PerDeviceRefreshButton.Add_Click({ Start-PerDeviceFetch })
 $Script:UI.PerDeviceApplyButton.Add_Click({ Start-PerDeviceApply })
 $Script:UI.PerDeviceCancelButton.Add_Click({ Stop-PerDeviceApply })
 
-$Script:UI.PerDeviceGrid.Add_CellEditEnding({ Update-PerDeviceSummary })
+$Script:UI.PerDeviceGrid.Add_CellEditEnding({
+    $Script:UI.PerDeviceGrid.Dispatcher.BeginInvoke([Action]{
+        Update-PerDeviceSummary
+    }, [System.Windows.Threading.DispatcherPriority]::Background) | Out-Null
+})
+
+$Script:UI.PerDeviceGrid.Add_CurrentCellChanged({
+    Update-PerDeviceSummary
+})
 
 $window.Add_Closed({ Stop-PerDeviceRunspace })
 
@@ -2335,7 +2811,7 @@ function Invoke-RebootBulk ($ips, $statusCallback) {
         }
         if ($Script:RebootState.DoneRef.Value -and $Script:RebootState.Queue.IsEmpty) {
             Stop-RebootRunspace
-            Update-Status "Reboot complete."
+            Update-Status "Reboot Command Sent."
         }
     })
     $timer.Start()
@@ -2359,13 +2835,18 @@ $Script:UI.ProvisionRebootButton.Add_Click({
 
 # Blanket Settings tab — reboot selected
 $Script:UI.BlanketRebootButton.Add_Click({
-    $ips = @($Script:BlanketState.Rows | Where-Object Selected | Select-Object -ExpandProperty IP)
+    $ips = @($Script:BlanketState.Rows | Where-Object NeedsReboot | Select-Object -ExpandProperty IP)
     Invoke-RebootBulk $ips {
         param($item)
         $row = $Script:BlanketState.RowsByIP[$item.IP]
         if ($row) {
-            $row.Status    = if ($item.Success -eq 'True') { 'Rebooting' } else { 'RebootFail' }
-            $row.Detail    = $item.Detail
+            $row.Status = if ($item.Success -eq 'True') { 'Rebooting' } else { 'RebootFail' }
+            $row.Detail = $item.Detail
+
+            if ($item.Success -eq 'True') {
+                $row.NeedsReboot = $false
+            }
+
             $row.Timestamp = (Get-Date).ToString('s')
         }
         $Script:UI.BlanketGrid.Items.Refresh()
@@ -2374,13 +2855,18 @@ $Script:UI.BlanketRebootButton.Add_Click({
 
 # Per-Device tab — reboot all loaded
 $Script:UI.PerDeviceRebootButton.Add_Click({
-    $ips = @($Script:PerDeviceState.Rows | Select-Object -ExpandProperty IP)
+    $ips = @($Script:PerDeviceState.Rows | Where-Object NeedsReboot | Select-Object -ExpandProperty IP)
     Invoke-RebootBulk $ips {
         param($item)
         $row = $Script:PerDeviceState.RowsByIP[$item.IP]
         if ($row) {
-            $row.Status    = if ($item.Success -eq 'True') { 'Rebooting' } else { 'RebootFail' }
-            $row.Detail    = $item.Detail
+            $row.Status = if ($item.Success -eq 'True') { 'Rebooting' } else { 'RebootFail' }
+            $row.Detail = $item.Detail
+
+            if ($item.Success -eq 'True') {
+                $row.NeedsReboot = $false
+            }
+
             $row.Timestamp = (Get-Date).ToString('s')
         }
         $Script:UI.PerDeviceGrid.Items.Refresh()
@@ -2815,7 +3301,10 @@ function Add-DevicesToGrid {
     }
 
     Update-Status "Probing $($newIps.Count) candidate IP(s)..."
-    $probeResults  = Find-DevicesReachable -Ips $newIps -Credential $Script:AppState.Credential
+    $probeResults = Show-ProbingDialog `
+        -Title "Adding devices" `
+        -Message "Probing $($newIps.Count) IP(s) on the network, please wait..." `
+        -Work { Find-DevicesReachable -Ips $newIps -Credential $Script:AppState.Credential }
     $reachableObjs = @($probeResults | Where-Object Reachable)
     if ($reachableObjs.Count -eq 0) {
         [System.Windows.MessageBox]::Show("No Crestron devices responded among $($newIps.Count) IP(s).", "No devices found", 'OK', 'Warning') | Out-Null
@@ -2908,6 +3397,23 @@ $Script:UI.PerDeviceAddButton.Add_Click({
     }
 })
 
+$Script:UI.PerDeviceClearButton.Add_Click({
+    $count = $Script:PerDeviceState.Rows.Count
+    if ($count -eq 0) {
+        Update-Status 'Nothing to clear.'
+        return
+    }
+    $r = [System.Windows.MessageBox]::Show(
+        "Remove all $count device(s) from the Per-Device tab?",
+        "Clear Loaded", 'YesNo', 'Question'
+    )
+    if ($r -eq 'Yes') {
+        $Script:PerDeviceState.Rows.Clear()
+        $Script:PerDeviceState.RowsByIP.Clear()
+        Update-PerDeviceSummary
+        Update-Status "Cleared $count device(s) from Per-Device tab."
+    }
+})
 # Repurpose the existing Blanket "Reload" button to open the same dialog.
 # We swap the click handler at runtime — replaces the previous "reload from CSV" behavior.
 # (cannot remove the old Click handler at runtime; the previous Load-BlanketFromProvision call fires too, which is harmless)
@@ -2970,6 +3476,57 @@ $dispatcherHandler = {
 # =============================================================================
 # Add Devices — shared dialog + discovery helper
 # =============================================================================
+
+function Show-ProbingDialog {
+    <#
+    Modal dialog with an indeterminate progress bar. Runs the supplied
+    scriptblock on a background dispatcher cycle so the dialog renders
+    before the work starts, then closes when the work finishes. Returns
+    whatever the scriptblock returns.
+    #>
+    param(
+        [string]$Title = 'Adding devices',
+        [string]$Message = 'Working, please wait...',
+        [Parameter(Mandatory)][scriptblock]$Work
+    )
+    [xml]$dxaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Adding devices" Width="420" Height="140"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        WindowStyle="ToolWindow">
+    <StackPanel Margin="20" VerticalAlignment="Center">
+        <TextBlock x:Name="ProbingText" Text="Working, please wait..." Margin="0,0,0,10" />
+        <ProgressBar x:Name="ProbingBar" Height="20" IsIndeterminate="True" />
+    </StackPanel>
+</Window>
+'@
+    $reader = [System.Xml.XmlNodeReader]::new($dxaml)
+    $dlg = [Windows.Markup.XamlReader]::Load($reader)
+    $dlg.Owner = $window
+    $dlg.Title = $Title
+    $dlg.FindName('ProbingText').Text = $Message
+
+    $script:_probeResult = $null
+    $dlg.Add_ContentRendered({
+        # The dialog is now visible; queue the work to run after the dispatcher
+        # processes pending UI events, then close when done.
+        $dlg.Dispatcher.BeginInvoke(
+            [System.Windows.Threading.DispatcherPriority]::Background,
+            [Action]{
+                try {
+                    $script:_probeResult = & $Work
+                } finally {
+                    $dlg.DialogResult = $true
+                    $dlg.Close()
+                }
+            }
+        ) | Out-Null
+    })
+
+    [void]$dlg.ShowDialog()
+    return $script:_probeResult
+}
 
 function Show-AddDevicesDialog {
     <#

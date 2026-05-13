@@ -50,7 +50,14 @@ function Get-CrestronDeviceState {
 
     # Also fetch IpTableV2 (Control System binding). Best-effort: some firmware
     # exposes only the older IpTable object; failures here don't break the call.
-    $ipTableJson = $null
+        $deviceSpecificJson = $null
+    try {
+        $dsApi = Invoke-CrestronApi -Session $Session -Path '/Device/DeviceSpecific' `
+                                    -Method GET -TimeoutSec $TimeoutSec
+        if ($dsApi.Success -and $dsApi.BodyJson) {
+            $deviceSpecificJson = $dsApi.BodyJson.Device.DeviceSpecific
+        }
+    } catch { }
     try {
         $ipApi = Invoke-CrestronApi -Session $Session -Path '/Device/IpTableV2' `
                                     -Method GET -TimeoutSec $TimeoutSec
@@ -68,9 +75,30 @@ function Get-CrestronDeviceState {
         } catch { }
     }
 
-    $na   = $api.BodyJson.Device.NetworkAdapters
-    $eth  = $na.Adapters.EthernetLan
-    $wifi = $na.Adapters.Wifi
+$na = $api.BodyJson.Device.NetworkAdapters
+
+    # The Adapters dict is keyed by an arbitrary per-device adapter name
+    # (e.g. "EthernetLan" on DM-NVX-D30, "Vlan00" on DM-NVX-360, etc.).
+    # Find the first active+enabled IPv4 adapter to treat as "ethernet"
+    # and (separately) any adapter with WiFi-flavored naming for the WiFi slot.
+    $eth = $null
+    $wifi = $null
+    if ($na.Adapters) {
+        $adapterProps = @($na.Adapters | Get-Member -MemberType NoteProperty -ErrorAction SilentlyContinue)
+        foreach ($p in $adapterProps) {
+            $a = $na.Adapters.$($p.Name)
+            $isWifi = $p.Name -match 'Wifi|Wireless|Wlan'
+            if ($isWifi -and -not $wifi) {
+                $wifi = $a
+            } elseif (-not $isWifi -and -not $eth -and $a.IPv4) {
+                # Prefer active+enabled, but accept any IPv4-capable adapter as fallback
+                if (($a.IsActive -and $a.IsAdapterEnabled) -or -not $eth) {
+                    $eth = $a
+                }
+            }
+        }
+        # If we didn't find a WiFi adapter by name pattern, leave $wifi null
+    }
 
     # Pull the first IPv4 address reported as 'current' (vs configured static)
     $ethCurrentIp = $null
@@ -136,7 +164,7 @@ function Get-CrestronDeviceState {
         EthernetLanIP            = $ethCurrentIp
         EthernetLanStaticIP      = $ethStaticIp
         EthernetLanSubnet        = $ethStaticMask
-        EthernetLanGateway       = $eth.IPv4.StaticDefaultGateway
+        EthernetLanGateway       = if ($eth.IPv4.DefaultGateway) { $eth.IPv4.DefaultGateway } else { $eth.IPv4.StaticDefaultGateway }
         DnsServers               = $dnsServers
         HasWifi                  = $hasWifi
         WifiEnabled              = [bool]$wifi.IsAdapterEnabled
@@ -145,6 +173,8 @@ function Get-CrestronDeviceState {
         CurrentControlSystemAddr = $currentCsAddr
         CurrentRoomId            = $currentRoomId
         CurrentEncryptConnection = $currentEncrypt
+        CurrentDeviceMode        = if ($deviceSpecificJson) { $deviceSpecificJson.DeviceMode } else { '' }
+        SupportsModeChange       = [bool]($deviceSpecificJson -and $deviceSpecificJson.DeviceMode)
         RawJson                  = $api.BodyJson
         FetchedAt                = (Get-Date).ToString('s')
     }
