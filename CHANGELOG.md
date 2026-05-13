@@ -4,7 +4,38 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# Changelog
+
+All notable changes to this project are documented here.
+
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [Unreleased]
+
+## [0.7.0] - 2026-05-13
+
+### Added
+
+- `Set-CrestronDeviceMode` cmdlet. Sets DM-NVX dual-mode units to `Transmitter` or `Receiver` via `Device.DeviceSpecific.DeviceMode`.
+- `Get-CrestronDeviceState` now reports `CurrentDeviceMode` and `SupportsModeChange` when the device exposes `DeviceSpecific.DeviceMode`.
+- Blanket Settings tab now includes a DM-NVX Device Mode section for applying Transmitter/Receiver mode across selected compatible devices.
+- Per-Device tab now includes current mode display and a per-row Mode selector: `Keep`, `Transmitter`, or `Receiver`.
+- Blanket Settings and Per-Device tabs now track `NeedsReboot` when CresNext responses report `StatusId=1`.
+- Editable `Reboot?` checkboxes allow manually selecting devices for reboot if the reboot-needed status was not automatically checked.
+
+### Changed
+
+- Reboot buttons now target rows marked with `Reboot?` instead of blindly rebooting every loaded row.
+- Reboot button wording now uses `Reboot Selected`.
+- Reboot completion messaging now says `Reboot command sent` to better reflect that the command was issued, not that the device has finished rebooting.
+- Per-Device CSV now includes device mode and reboot-tracking fields.
+- Blanket Settings CSV now includes reboot-tracking state.
+
+### Known limitations
+
+- Device mode changes only apply to DM-NVX units that expose `Device.DeviceSpecific.DeviceMode`; fixed-purpose transmitter-only or receiver-only units are skipped/marked unsupported.
+- Mode changes require a reboot before taking effect.
+- Reboot detection depends on CresNext response `StatusId=1`; manual `Reboot?` selection remains available for edge cases.
 
 ## [0.6.0] - 2026-05-12
 
@@ -214,7 +245,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.6.0
 [0.5.1]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.5.1
 [0.4.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.4.0
