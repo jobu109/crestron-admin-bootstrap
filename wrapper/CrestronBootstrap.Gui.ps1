@@ -57,8 +57,101 @@ $Script:AppState = [pscustomobject]@{
     VerifyCsv          = Join-Path $WorkingDirectory 'crestron-verified.csv'
     SettingsCsv        = Join-Path $WorkingDirectory 'crestron-settings.csv'
     PerDeviceCsv       = Join-Path $WorkingDirectory 'crestron-perdevice.csv'
+    GuiSettingsJson    = Join-Path $WorkingDirectory 'gui-settings.json'
     SubnetsFile        = Join-Path $WorkingDirectory 'subnets.txt'
 }
+
+function New-DefaultGuiSettings {
+    [pscustomobject]@{
+        DefaultUsername          = ''
+        ProtectedDefaultPassword = ''
+        DarkMode                 = $false
+    }
+}
+
+function Protect-GuiSettingPassword {
+    param(
+        [string]$Password
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Password)) {
+        return ''
+    }
+
+    try {
+        return ConvertFrom-SecureString (ConvertTo-SecureString $Password -AsPlainText -Force)
+    }
+    catch {
+        return ''
+    }
+}
+
+function Unprotect-GuiSettingPassword {
+    param(
+        [string]$ProtectedPassword
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ProtectedPassword)) {
+        return ''
+    }
+
+    try {
+        $secure = ConvertTo-SecureString $ProtectedPassword
+        $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+
+        try {
+            return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+        }
+        finally {
+            if ($bstr -ne [IntPtr]::Zero) {
+                [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+            }
+        }
+    }
+    catch {
+        return ''
+    }
+}
+
+function Load-GuiSettings {
+    $settings = New-DefaultGuiSettings
+
+    if (-not (Test-Path $Script:AppState.GuiSettingsJson)) {
+        $Script:GuiSettings = $settings
+        return
+    }
+
+    try {
+        $loaded = Get-Content $Script:AppState.GuiSettingsJson -Raw | ConvertFrom-Json
+
+        if ($loaded.DefaultUsername) {
+            $settings.DefaultUsername = "$($loaded.DefaultUsername)"
+        }
+
+        if ($loaded.ProtectedDefaultPassword) {
+            $settings.ProtectedDefaultPassword = "$($loaded.ProtectedDefaultPassword)"
+        }
+
+        $settings.DarkMode = [bool]$loaded.DarkMode
+    }
+    catch {
+        $settings = New-DefaultGuiSettings
+    }
+
+    $Script:GuiSettings = $settings
+}
+
+function Save-GuiSettings {
+    if (-not $Script:GuiSettings) {
+        $Script:GuiSettings = New-DefaultGuiSettings
+    }
+
+    $Script:GuiSettings |
+        ConvertTo-Json -Depth 5 |
+        Set-Content -Path $Script:AppState.GuiSettingsJson -Encoding UTF8
+}
+
+Load-GuiSettings
 
 # ---- XAML --------------------------------------------------------------------
 [xml]$xaml = @'
@@ -605,6 +698,52 @@ $Script:AppState = [pscustomobject]@{
 
                 </DockPanel>
             </TabItem>
+            <TabItem Header="Settings" x:Name="SettingsTab">
+                <DockPanel Margin="12">
+                    <StackPanel DockPanel.Dock="Top" MaxWidth="520" HorizontalAlignment="Left">
+                        <TextBlock Text="GUI Settings" FontSize="18" FontWeight="Bold" Margin="0,0,0,8" />
+                        <TextBlock Text="These settings are saved locally in the workspace and are not pushed to devices." Foreground="#666" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                        <GroupBox Header="Default Credentials" Padding="10" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Username" VerticalAlignment="Center" Margin="0,0,8,8" />
+                                <TextBox x:Name="SettingsDefaultUsernameBox" Grid.Row="0" Grid.Column="1" Padding="4,2" Margin="0,0,0,8" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Password" VerticalAlignment="Center" Margin="0,0,8,8" />
+                                <PasswordBox x:Name="SettingsDefaultPasswordBox" Grid.Row="1" Grid.Column="1" Padding="4,2" Margin="0,0,0,8" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="1"
+                                        Text="Password is encrypted using the current Windows user account."
+                                        Foreground="#888"
+                                        FontSize="11"
+                                        TextWrapping="Wrap" />
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Appearance" Padding="10" Margin="0,0,0,12">
+                            <CheckBox x:Name="SettingsDarkModeBox"
+                            Content="Enable dark mode (coming soon)"
+                            IsEnabled="False" />
+                        </GroupBox>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="SettingsSaveButton" Content="Save Settings" Padding="14,4" FontWeight="Bold" />
+                            <Button x:Name="SettingsClearPasswordButton" Content="Clear Saved Password" Padding="14,4" Margin="8,0,0,0" />
+                            <TextBlock x:Name="SettingsStatusText" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#666" />
+                        </StackPanel>
+                    </StackPanel>
+                </DockPanel>
+            </TabItem>
         </TabControl>
     </DockPanel>
 </Window>
@@ -619,6 +758,7 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'ScanCidrInput','ScanAddCidr','ScanRemoveCidr','ScanCidrList',
                   'ScanStartButton','ScanCancelButton','ScanProgressText',
                   'ScanResultsGrid','ScanSelectAll','ScanSummaryText',
+                  'SettingsDefaultUsernameBox','SettingsDefaultPasswordBox','SettingsDarkModeBox','SettingsSaveButton','SettingsClearPasswordButton','SettingsStatusText',
                   'ProvisionTab','ProvisionStartButton','ProvisionReloadButton',
                   'ProvisionCancelButton','ProvisionProgressText',
                   'ProvisionGrid','ProvisionSelectAll','ProvisionSummaryText',
@@ -642,6 +782,160 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
     $Script:UI[$name] = $window.FindName($name)
 }
 
+function Initialize-SettingsTab {
+    if (-not $Script:GuiSettings) {
+        $Script:GuiSettings = New-DefaultGuiSettings
+    }
+
+    $Script:UI.SettingsDefaultUsernameBox.Text = "$($Script:GuiSettings.DefaultUsername)"
+    $Script:UI.SettingsDefaultPasswordBox.Password = Unprotect-GuiSettingPassword $Script:GuiSettings.ProtectedDefaultPassword
+    $Script:UI.SettingsDarkModeBox.IsChecked = $false
+    $Script:UI.SettingsStatusText.Text = ''
+}
+
+function Find-VisualChildren {
+    param(
+        [System.Windows.DependencyObject]$Parent,
+        [type]$ChildType
+    )
+
+    if (-not $Parent) { return }
+
+    $count = [System.Windows.Media.VisualTreeHelper]::GetChildrenCount($Parent)
+
+    for ($i = 0; $i -lt $count; $i++) {
+        $child = [System.Windows.Media.VisualTreeHelper]::GetChild($Parent, $i)
+
+        if ($child -and $ChildType.IsAssignableFrom($child.GetType())) {
+            $child
+        }
+
+        Find-VisualChildren -Parent $child -ChildType $ChildType
+    }
+}
+
+function New-Brush {
+    param(
+        [Parameter(Mandatory)][string]$Color
+    )
+
+    return [System.Windows.Media.SolidColorBrush](
+        [System.Windows.Media.ColorConverter]::ConvertFromString($Color)
+    )
+}
+
+function Apply-GuiTheme {
+    param(
+        [bool]$DarkMode
+    )
+
+    if (-not $window) { return }
+
+    if ($DarkMode) {
+        $bg          = New-Brush '#1E1E1E'
+        $panelBg     = New-Brush '#252526'
+        $controlBg   = New-Brush '#2D2D30'
+        $textFg      = New-Brush '#E6E6E6'
+        $borderBrush = New-Brush '#555555'
+        $gridAltBg   = New-Brush '#333337'
+        $buttonBg    = New-Brush '#3A3A3D'
+        $statusBg    = New-Brush '#111111'
+    }
+    else {
+        $bg          = New-Brush '#FFFFFF'
+        $panelBg     = New-Brush '#FFFFFF'
+        $controlBg   = New-Brush '#FFFFFF'
+        $textFg      = New-Brush '#000000'
+        $borderBrush = New-Brush '#DDDDDD'
+        $gridAltBg   = New-Brush '#F8F8F8'
+        $buttonBg    = New-Brush '#F0F0F0'
+        $statusBg    = New-Brush '#F0F0F0'
+    }
+
+    $window.Background = $bg
+    $window.Foreground = $textFg
+
+    foreach ($border in Find-VisualChildren $window ([System.Windows.Controls.Border])) {
+        $border.Background = $panelBg
+        $border.BorderBrush = $borderBrush
+    }
+
+    foreach ($group in Find-VisualChildren $window ([System.Windows.Controls.GroupBox])) {
+        $group.Background = $panelBg
+        $group.Foreground = $textFg
+        $group.BorderBrush = $borderBrush
+    }
+
+    foreach ($tab in Find-VisualChildren $window ([System.Windows.Controls.TabControl])) {
+        $tab.Background = $bg
+        $tab.Foreground = $textFg
+        $tab.BorderBrush = $borderBrush
+    }
+
+    foreach ($tabItem in Find-VisualChildren $window ([System.Windows.Controls.TabItem])) {
+        $tabItem.Background = if ($DarkMode) { $controlBg } else { $buttonBg }
+        $tabItem.Foreground = $textFg
+        $tabItem.BorderBrush = $borderBrush
+    }
+
+    foreach ($tb in Find-VisualChildren $window ([System.Windows.Controls.TextBlock])) {
+        $tb.Foreground = $textFg
+    }
+
+    foreach ($box in Find-VisualChildren $window ([System.Windows.Controls.TextBox])) {
+        $box.Background = $controlBg
+        $box.Foreground = $textFg
+        $box.BorderBrush = $borderBrush
+        $box.CaretBrush = $textFg
+    }
+
+    foreach ($box in Find-VisualChildren $window ([System.Windows.Controls.PasswordBox])) {
+        $box.Background = $controlBg
+        $box.Foreground = $textFg
+        $box.BorderBrush = $borderBrush
+        $box.CaretBrush = $textFg
+    }
+
+    foreach ($combo in Find-VisualChildren $window ([System.Windows.Controls.ComboBox])) {
+        $combo.Background = $controlBg
+        $combo.Foreground = $textFg
+        $combo.BorderBrush = $borderBrush
+    }
+
+    foreach ($button in Find-VisualChildren $window ([System.Windows.Controls.Button])) {
+        $button.Background = $buttonBg
+        $button.Foreground = $textFg
+        $button.BorderBrush = $borderBrush
+    }
+
+    foreach ($check in Find-VisualChildren $window ([System.Windows.Controls.CheckBox])) {
+        $check.Foreground = $textFg
+    }
+
+    foreach ($radio in Find-VisualChildren $window ([System.Windows.Controls.RadioButton])) {
+        $radio.Foreground = $textFg
+    }
+
+    foreach ($grid in Find-VisualChildren $window ([System.Windows.Controls.DataGrid])) {
+        $grid.Background = $panelBg
+        $grid.Foreground = $textFg
+        $grid.RowBackground = $panelBg
+        $grid.AlternatingRowBackground = $gridAltBg
+        $grid.HorizontalGridLinesBrush = $borderBrush
+        $grid.VerticalGridLinesBrush = $borderBrush
+        $grid.BorderBrush = $borderBrush
+
+        # Avoid clipping/odd header rendering after theme changes.
+        $grid.HeadersVisibility = 'Column'
+        $grid.ColumnHeaderHeight = 24
+    }
+
+    foreach ($status in Find-VisualChildren $window ([System.Windows.Controls.Primitives.StatusBar])) {
+        $status.Background = $statusBg
+        $status.Foreground = $textFg
+    }
+}
+
 # ---- Helpers -----------------------------------------------------------------
 function Update-Status ($text) {
     $Script:UI.StatusText.Text = $text
@@ -658,13 +952,62 @@ function Update-CredentialDisplay {
 }
 
 function Get-CachedCredential {
-    if ($null -ne $Script:AppState.Credential) { return $Script:AppState.Credential }
+    param(
+        [switch]$OfferSavedDefault
+    )
+
+    if ($null -ne $Script:AppState.Credential) {
+        return $Script:AppState.Credential
+    }
+
+    $hasSavedDefault = $Script:GuiSettings -and
+                       -not [string]::IsNullOrWhiteSpace($Script:GuiSettings.DefaultUsername) -and
+                       -not [string]::IsNullOrWhiteSpace($Script:GuiSettings.ProtectedDefaultPassword)
+
+    if ($OfferSavedDefault -and $hasSavedDefault) {
+        $answer = [System.Windows.MessageBox]::Show(
+            "Use saved default credentials from Settings for this provisioning step?`n`nUsername: $($Script:GuiSettings.DefaultUsername)",
+            "Use default credentials?",
+            'YesNoCancel',
+            'Question'
+        )
+
+        if ($answer -eq 'Cancel') {
+            return $null
+        }
+
+        if ($answer -eq 'Yes') {
+            $plainPassword = Unprotect-GuiSettingPassword $Script:GuiSettings.ProtectedDefaultPassword
+
+            if (-not [string]::IsNullOrWhiteSpace($plainPassword)) {
+                try {
+                    $secure = ConvertTo-SecureString $plainPassword -AsPlainText -Force
+                    $cred = [pscredential]::new($Script:GuiSettings.DefaultUsername, $secure)
+
+                    $Script:AppState.Credential = $cred
+                    Update-CredentialDisplay
+                    return $cred
+                }
+                catch {
+                    [System.Windows.MessageBox]::Show(
+                        "Saved default password could not be decrypted. The normal credential dialog will be shown.",
+                        "Saved credential error",
+                        'OK',
+                        'Warning'
+                    ) | Out-Null
+                }
+            }
+        }
+    }
+
     $cred = Show-CredentialDialog
+
     if ($cred -and $cred.UserName -and $cred.GetNetworkCredential().Password) {
         $Script:AppState.Credential = $cred
         Update-CredentialDisplay
         return $cred
     }
+
     return $null
 }
 
@@ -687,25 +1030,42 @@ function Show-CredentialDialog {
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="Username"   Margin="0,0,0,2" />
-        <TextBox  x:Name="UserBox" Grid.Row="1" Padding="4,2" />
-        <TextBlock Grid.Row="2" Text="Password"   Margin="0,8,0,2" />
+        <TextBlock Grid.Row="0" Text="Username" Margin="0,0,0,2" />
+        <TextBox x:Name="UserBox" Grid.Row="1" Padding="4,2" />
+        <TextBlock Grid.Row="2" Text="Password" Margin="0,8,0,2" />
         <PasswordBox x:Name="PassBox" Grid.Row="3" Padding="4,2" />
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
             <Button x:Name="CancelBtn" Content="Cancel" Padding="14,4" Margin="0,0,8,0" />
-            <Button x:Name="OkBtn"     Content="OK"     Padding="14,4" IsDefault="True" />
+            <Button x:Name="OkBtn" Content="OK" Padding="14,4" IsDefault="True" />
         </StackPanel>
     </Grid>
 </Window>
 '@
+
     $reader = [System.Xml.XmlNodeReader]::new($dxaml)
     $dlg = [Windows.Markup.XamlReader]::Load($reader)
+
     $userBox = $dlg.FindName('UserBox')
     $passBox = $dlg.FindName('PassBox')
     $okBtn   = $dlg.FindName('OkBtn')
     $cancel  = $dlg.FindName('CancelBtn')
 
+    if ($Script:GuiSettings) {
+        if (-not [string]::IsNullOrWhiteSpace($Script:GuiSettings.DefaultUsername)) {
+            $userBox.Text = "$($Script:GuiSettings.DefaultUsername)"
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($Script:GuiSettings.ProtectedDefaultPassword)) {
+            $defaultPassword = Unprotect-GuiSettingPassword $Script:GuiSettings.ProtectedDefaultPassword
+
+            if (-not [string]::IsNullOrWhiteSpace($defaultPassword)) {
+                $passBox.Password = $defaultPassword
+            }
+        }
+    }
+
     $script:_credResult = $null
+
     $okBtn.Add_Click({
         if ($userBox.Text -and $passBox.Password) {
             $sec = ConvertTo-SecureString $passBox.Password -AsPlainText -Force
@@ -714,9 +1074,22 @@ function Show-CredentialDialog {
             $dlg.Close()
         }
     })
-    $cancel.Add_Click({ $dlg.DialogResult = $false; $dlg.Close() })
+
+    $cancel.Add_Click({
+        $dlg.DialogResult = $false
+        $dlg.Close()
+    })
+
     $dlg.Owner = $window
+
+    if ($userBox.Text -and -not $passBox.Password) {
+        $passBox.Focus() | Out-Null
+    } else {
+        $userBox.Focus() | Out-Null
+    }
+
     [void]$dlg.ShowDialog()
+
     return $script:_credResult
 }
 
@@ -856,7 +1229,7 @@ function Start-Scan {
 
     $Script:ScanState.Results.Clear()
     Update-ScanSummary
-    $Script:UI.ScanProgressText.Text = 'Probing...'
+    $Script:UI.ScanProgressText.Text = 'Scan in Progress...'
     Set-ScanControls $true
     Update-Status 'Scan in progress...'
 
@@ -1077,7 +1450,7 @@ function Start-Provision {
         return
     }
 
-    $cred = Get-CachedCredential
+    $cred = Get-CachedCredential -OfferSavedDefault
     if (-not $cred) {
         Update-Status 'Provision cancelled (no credentials).'
         return
@@ -1130,10 +1503,20 @@ function Start-Provision {
 
             $results = Set-CrestronAdmin -IP $ips -Credential $credObj -Force
             foreach ($r in @($results)) {
+                $displayStatus = if ($r.Success) {
+                    'OK'
+                }
+                elseif ($r.Status) {
+                    'Error'
+                }
+                else {
+                    'Error'
+                }
+
                 $queue.Enqueue([pscustomobject]@{
                     __result  = $true
                     IP        = $r.IP
-                    Status    = "$($r.Status)"
+                    Status    = $displayStatus
                     Success   = "$($r.Success)"
                     Response  = $r.Response
                     Timestamp = $r.Timestamp
@@ -1848,6 +2231,53 @@ function Start-BlanketCapabilityFetch {
     $Script:BlanketState.Timer = $timer
 }
 
+function Test-ResultNeedsReboot {
+    param(
+        $Result
+    )
+
+    if (-not $Result) {
+        return $false
+    }
+
+    if ($Result.PSObject.Properties.Name -contains 'NeedsReboot') {
+        if ([bool]$Result.NeedsReboot) {
+            return $true
+        }
+    }
+
+    if ($Result.PSObject.Properties.Name -contains 'SectionResults' -and $Result.SectionResults) {
+        foreach ($sr in @($Result.SectionResults)) {
+            if ($sr.PSObject.Properties.Name -contains 'StatusId') {
+                try {
+                    if ([int]$sr.StatusId -eq 1) {
+                        return $true
+                    }
+                }
+                catch { }
+            }
+
+            if ("$($sr.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
+                return $true
+            }
+
+            if ("$($sr.Response)" -match '(?i)reboot|restart|power cycle') {
+                return $true
+            }
+        }
+    }
+
+    if ("$($Result.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
+        return $true
+    }
+
+    if ("$($Result.Response)" -match '(?i)reboot|restart|power cycle') {
+        return $true
+    }
+
+    return $false
+}
+
 function Start-BlanketApply {
     if ($Script:BlanketState.IsRunning) { return }
 
@@ -2042,11 +2472,58 @@ function Start-BlanketApply {
                             Session = $sess
                         }
 
-                        $stepResults = @()
-                        $sections = @()
-                        $allOk = $true
-                        $needsReboot = $false
-                        $skippedBeforeApply = @()
+                    $stepResults = @()
+                    $sections = @()
+                    $allOk = $true
+                    $needsReboot = $false
+                    $skippedBeforeApply = @()
+
+                    function Test-ResultNeedsReboot {
+                        param(
+                            $Result
+                        )
+
+                        if (-not $Result) {
+                            return $false
+                        }
+
+                        if ($Result.PSObject.Properties.Name -contains 'NeedsReboot') {
+                            if ([bool]$Result.NeedsReboot) {
+                                return $true
+                            }
+                        }
+
+                        if ($Result.PSObject.Properties.Name -contains 'SectionResults' -and $Result.SectionResults) {
+                            foreach ($sr in @($Result.SectionResults)) {
+                                if ($sr.PSObject.Properties.Name -contains 'StatusId') {
+                                    try {
+                                        if ([int]$sr.StatusId -eq 1) {
+                                            return $true
+                                        }
+                                    }
+                                    catch { }
+                                }
+
+                                if ("$($sr.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
+                                    return $true
+                                }
+
+                                if ("$($sr.Response)" -match '(?i)reboot|restart|power cycle') {
+                                    return $true
+                                }
+                            }
+                        }
+
+                        if ("$($Result.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
+                            return $true
+                        }
+
+                        if ("$($Result.Response)" -match '(?i)reboot|restart|power cycle') {
+                            return $true
+                        }
+
+                        return $false
+                    }
 
                         if ($ntpArg) {
                             if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsNtp) {
@@ -2091,11 +2568,11 @@ function Start-BlanketApply {
 
                             $sections += @($r.AppliedSections)
 
-                            $stepResults += ($r.SectionResults | ForEach-Object {
-                                if ([int]$_.StatusId -eq 1) {
-                                    $needsReboot = $true
-                                }
+                            if (Test-ResultNeedsReboot $r) {
+                                $needsReboot = $true
+                            }
 
+                            $stepResults += ($r.SectionResults | ForEach-Object {
                                 "$($_.Path):$($_.StatusInfo)"
                             })
                         }
@@ -2288,6 +2765,35 @@ $Script:UI.BlanketGrid.Add_CellEditEnding({
 
 $Script:UI.BlanketGrid.Add_CurrentCellChanged({
     Update-BlanketSummary
+})
+
+$Script:UI.SettingsSaveButton.Add_Click({
+    if (-not $Script:GuiSettings) {
+        $Script:GuiSettings = New-DefaultGuiSettings
+    }
+
+    $Script:GuiSettings.DefaultUsername = "$($Script:UI.SettingsDefaultUsernameBox.Text)"
+    $Script:GuiSettings.ProtectedDefaultPassword = Protect-GuiSettingPassword $Script:UI.SettingsDefaultPasswordBox.Password
+    $Script:GuiSettings.DarkMode = $false
+
+    Save-GuiSettings
+
+    $Script:UI.SettingsStatusText.Text = "Saved."
+    Update-Status "GUI settings saved."
+})
+
+$Script:UI.SettingsClearPasswordButton.Add_Click({
+    if (-not $Script:GuiSettings) {
+        $Script:GuiSettings = New-DefaultGuiSettings
+    }
+
+    $Script:GuiSettings.ProtectedDefaultPassword = ''
+    $Script:UI.SettingsDefaultPasswordBox.Password = ''
+
+    Save-GuiSettings
+
+    $Script:UI.SettingsStatusText.Text = "Saved password cleared."
+    Update-Status "Saved default password cleared."
 })
 
 $window.Add_Closed({ Stop-BlanketRunspace })
@@ -2922,17 +3428,60 @@ function Start-PerDeviceApply {
                     $allOk = $true
                     $needsReboot = $false
 
+                    function Test-ResultNeedsReboot {
+                        param(
+                            $Result
+                        )
+
+                        if (-not $Result) {
+                            return $false
+                        }
+
+                        if ($Result.PSObject.Properties.Name -contains 'NeedsReboot') {
+                            if ([bool]$Result.NeedsReboot) {
+                                return $true
+                            }
+                        }
+
+                        if ($Result.PSObject.Properties.Name -contains 'SectionResults' -and $Result.SectionResults) {
+                            foreach ($sr in @($Result.SectionResults)) {
+                                if ($sr.PSObject.Properties.Name -contains 'StatusId') {
+                                    try {
+                                        if ([int]$sr.StatusId -eq 1) {
+                                            return $true
+                                        }
+                                    }
+                                    catch { }
+                                }
+
+                                if ("$($sr.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
+                                    return $true
+                                }
+
+                                if ("$($sr.Response)" -match '(?i)reboot|restart|power cycle') {
+                                    return $true
+                                }
+                            }
+                        }
+
+                        if ("$($Result.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
+                            return $true
+                        }
+
+                        if ("$($Result.Response)" -match '(?i)reboot|restart|power cycle') {
+                            return $true
+                        }
+
+                        return $false
+                    }
+
                     try {
                             if ($row.NewHostname -and "$($row.NewHostname)" -ne "$($row.CurrentHostname)") {
                             $r1 = Set-CrestronHostname -Session $sess -Hostname $row.NewHostname
                             $stepResults += "Hostname=$(if($r1.Success){'OK'}else{$r1.Status})"
 
-                            if ($r1.SectionResults) {
-                                foreach ($sr in @($r1.SectionResults)) {
-                                    if ([int]$sr.StatusId -eq 1) {
-                                        $needsReboot = $true
-                                    }
-                                }
+                            if (Test-ResultNeedsReboot $r1) {
+                                $needsReboot = $true
                             }
 
                             if (-not $r1.Success) {
@@ -2952,12 +3501,8 @@ function Start-PerDeviceApply {
 
                                 $stepResults += "IpTable=$(if($r3.Success){'OK'}else{$r3.Status})"
 
-                                if ($r3.SectionResults) {
-                                    foreach ($sr in @($r3.SectionResults)) {
-                                        if ([int]$sr.StatusId -eq 1) {
-                                            $needsReboot = $true
-                                        }
-                                    }
+                                if (Test-ResultNeedsReboot $r3) {
+                                    $needsReboot = $true
                                 }
 
                                 if (-not $r3.Success) {
@@ -3010,12 +3555,8 @@ function Start-PerDeviceApply {
                             $r2 = Set-CrestronNetwork @netArgs
                             $stepResults += "Network=$(if($r2.Success){'OK'}else{$r2.Status})"
 
-                            if ($r2.SectionResults) {
-                                foreach ($sr in @($r2.SectionResults)) {
-                                    if ([int]$sr.StatusId -eq 1) {
-                                        $needsReboot = $true
-                                    }
-                                }
+                            if (Test-ResultNeedsReboot $r2) {
+                                $needsReboot = $true
                             }
 
                             if (-not $r2.Success) {
@@ -3538,8 +4079,29 @@ function Start-FullWorkflow {
     try {
         # --- Step 1: Scan ----------------------------------------------------
         $Script:WorkflowState.CurrentStep = 0
-        Set-WorkflowStep 0 '🔄' 'Probing CIDRs...'
+        Set-WorkflowStep 0 '⏸' 'Confirm or edit Subnets (CIDR) on the Scan tab, then click OK to start scanning.'
         $Script:UI.MainTabs.SelectedIndex = 1  # Scan tab
+
+        $cidrText = if ($Script:ScanState.Cidrs.Count -gt 0) {
+            ($Script:ScanState.Cidrs -join "`n")
+        } else {
+            '(none)'
+        }
+
+        $scanConfirm = [System.Windows.MessageBox]::Show(
+            "Confirm the Subnets (CIDR) list on the Scan tab before starting the Full Workflow scan.`n`nCurrent CIDRs:`n$cidrText`n`nClick OK to start scanning, or Cancel to stop the workflow.",
+            "Confirm scan subnets",
+            'OKCancel',
+            'Question'
+        )
+
+        if ($scanConfirm -ne 'OK') {
+            Set-WorkflowStep 0 'ℹ️' 'Workflow cancelled before scan.'
+            return
+        }
+
+        Save-ScanCidrs
+        Set-WorkflowStep 0 '🔄' 'Scanning Network...'
         Start-Scan
         Wait-ForInnerTab { $Script:ScanState.IsScanning }
         if ($Script:WorkflowState.Cancelled) { throw 'Cancelled by user.' }
@@ -3769,7 +4331,7 @@ $Script:UI.WorkflowCancelButton.Add_Click({
 function Add-DevicesToGrid {
     <#
     Shared logic: open the dialog, probe IPs, merge new ones into the target
-    grid's row collection. $target is the row dict (e.g. $Script:PerDeviceState.RowsByIP).
+    grid's row collection. $RowsByIP is the row dict.
     #>
     param(
         [System.Collections.ObjectModel.ObservableCollection[object]]$Rows,
@@ -3778,25 +4340,45 @@ function Add-DevicesToGrid {
     )
 
     $candidateIps = Show-AddDevicesDialog
-    if (-not $candidateIps -or $candidateIps.Count -eq 0) { return }
 
-    # Filter out IPs already in the grid
+    if (-not $candidateIps -or $candidateIps.Count -eq 0) {
+        return
+    }
+
+    # Filter out IPs already in the grid.
     $newIps = @($candidateIps | Where-Object { -not $RowsByIP.ContainsKey($_) })
     $skipped = $candidateIps.Count - $newIps.Count
 
     if ($newIps.Count -eq 0) {
-        [System.Windows.MessageBox]::Show("All $($candidateIps.Count) IP(s) are already loaded.", "Nothing to add", 'OK', 'Information') | Out-Null
+        [System.Windows.MessageBox]::Show(
+            "All $($candidateIps.Count) IP(s) are already loaded.",
+            "Nothing to add",
+            'OK',
+            'Information'
+        ) | Out-Null
+
         return
     }
 
-    Update-Status "Probing $($newIps.Count) candidate IP(s)..."
+    Update-Status "Scanning $($newIps.Count) candidate IP(s)..."
+
     $probeResults = Show-ProbingDialog `
         -Title "Adding devices" `
-        -Message "Probing $($newIps.Count) IP(s) on the network, please wait..." `
-        -Work { Find-DevicesReachable -Ips $newIps -Credential $Script:AppState.Credential }
+        -Message "Scanning $($newIps.Count) IP(s) on the network, please wait..." `
+        -Work {
+            Find-DevicesReachable -Ips $newIps -Credential $Script:AppState.Credential
+        }
+
     $reachableObjs = @($probeResults | Where-Object Reachable)
+
     if ($reachableObjs.Count -eq 0) {
-        [System.Windows.MessageBox]::Show("No Crestron devices responded among $($newIps.Count) IP(s).", "No devices found", 'OK', 'Warning') | Out-Null
+        [System.Windows.MessageBox]::Show(
+            "No Crestron devices responded among $($newIps.Count) IP(s).",
+            "No devices found",
+            'OK',
+            'Warning'
+        ) | Out-Null
+
         Update-Status "No responsive Crestron devices found."
         return
     }
@@ -3807,40 +4389,65 @@ function Add-DevicesToGrid {
 
     foreach ($obj in $reachableObjs) {
         $row = & $RowFactory $obj.IP
-        # If the row has a Detail field, surface auth failure there so the tech sees it
+
+        # If the row has a Detail field, surface auth failure there so the tech sees it.
         if ($null -ne $row.PSObject.Properties['Detail']) {
             if ($Script:AppState.Credential) {
                 if ($obj.Authenticated) {
                     $row.Detail = 'Auth OK'
-                } else {
+                }
+                else {
                     $row.Detail = "Auth FAILED: $($obj.AuthDetail)"
-                    if ($null -ne $row.PSObject.Properties['Status']) { $row.Status = 'AuthFail' }
+
+                    if ($null -ne $row.PSObject.Properties['Status']) {
+                        $row.Status = 'AuthFail'
+                    }
                 }
             }
         }
+
         $Rows.Add($row)
         $RowsByIP[$obj.IP] = $row
     }
 
     $bits = @()
     $bits += "Added $($reachableObjs.Count) device(s)"
-    if ($authOk.Count -gt 0)   { $bits += "Auth OK: $($authOk.Count)" }
-    if ($authFail.Count -gt 0) { $bits += "Auth failed: $($authFail.Count)" }
-    if ($noTested.Count -gt 0) { $bits += "Not tested (no creds): $($noTested.Count)" }
-    if ($skipped -gt 0)        { $bits += "Skipped (already loaded): $skipped" }
+
+    if ($authOk.Count -gt 0) {
+        $bits += "Auth OK: $($authOk.Count)"
+    }
+
+    if ($authFail.Count -gt 0) {
+        $bits += "Auth failed: $($authFail.Count)"
+    }
+
+    if ($noTested.Count -gt 0) {
+        $bits += "Not tested (no creds): $($noTested.Count)"
+    }
+
+    if ($skipped -gt 0) {
+        $bits += "Skipped (already loaded): $skipped"
+    }
+
     if ($reachableObjs.Count -lt $newIps.Count) {
         $bits += "Unreachable: $($newIps.Count - $reachableObjs.Count)"
     }
+
     Update-Status ($bits -join '. ')
 
     if ($authFail.Count -gt 0) {
         $sample = $authFail | Select-Object -First 3
-        $sampleDetail = ($sample | ForEach-Object { "  $($_.IP):  $($_.AuthDetail)" }) -join "`n"
+        $sampleDetail = ($sample | ForEach-Object {
+            "  $($_.IP):  $($_.AuthDetail)"
+        }) -join "`n"
+
         $failedIps = ($authFail | Select-Object -ExpandProperty IP) -join ', '
+
         [System.Windows.MessageBox]::Show(
             "$($authFail.Count) device(s) failed authentication with the cached credentials:`n`n$failedIps`n`nFirst few errors:`n$sampleDetail`n`nIf the credentials work in the web UI but fail here, copy the error message and share it.",
             "Some devices failed authentication",
-            'OK', 'Warning'
+            'OK',
+            'Warning'
         ) | Out-Null
     }
 }
@@ -3990,51 +4597,64 @@ $dispatcherHandler = {
 function Show-ProbingDialog {
     <#
     Modal dialog with an indeterminate progress bar. Runs the supplied
-    scriptblock on a background dispatcher cycle so the dialog renders
-    before the work starts, then closes when the work finishes. Returns
-    whatever the scriptblock returns.
+    scriptblock after the dialog renders, then closes when the work finishes.
+    Returns whatever the scriptblock returns.
     #>
     param(
         [string]$Title = 'Adding devices',
         [string]$Message = 'Working, please wait...',
         [Parameter(Mandatory)][scriptblock]$Work
     )
+
     [xml]$dxaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Adding devices" Width="420" Height="140"
+        Title="Working" Width="440" Height="150"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         WindowStyle="ToolWindow">
     <StackPanel Margin="20" VerticalAlignment="Center">
-        <TextBlock x:Name="ProbingText" Text="Working, please wait..." Margin="0,0,0,10" />
-        <ProgressBar x:Name="ProbingBar" Height="20" IsIndeterminate="True" />
+        <TextBlock x:Name="ProbingText" Text="Working, please wait..." Margin="0,0,0,10" TextWrapping="Wrap" />
+        <TextBlock x:Name="ProbingStatusText" Text="Starting..." Margin="0,8,0,0" Foreground="#666" />
     </StackPanel>
 </Window>
 '@
+
     $reader = [System.Xml.XmlNodeReader]::new($dxaml)
     $dlg = [Windows.Markup.XamlReader]::Load($reader)
+
     $dlg.Owner = $window
     $dlg.Title = $Title
+
     $dlg.FindName('ProbingText').Text = $Message
+    $dlg.FindName('ProbingStatusText').Text = 'Scanning Network...'
 
     $script:_probeResult = $null
+    $script:_probeError  = $null
+
     $dlg.Add_ContentRendered({
-        # The dialog is now visible; queue the work to run after the dispatcher
-        # processes pending UI events, then close when done.
         $dlg.Dispatcher.BeginInvoke(
-            [System.Windows.Threading.DispatcherPriority]::Background,
             [Action]{
                 try {
                     $script:_probeResult = & $Work
-                } finally {
+                }
+                catch {
+                    $script:_probeError = $_.Exception.Message
+                }
+                finally {
                     $dlg.DialogResult = $true
                     $dlg.Close()
                 }
-            }
+            },
+            [System.Windows.Threading.DispatcherPriority]::ApplicationIdle
         ) | Out-Null
     })
 
     [void]$dlg.ShowDialog()
+
+    if ($script:_probeError) {
+        throw $script:_probeError
+    }
+
     return $script:_probeResult
 }
 
@@ -4274,6 +4894,7 @@ function Find-DevicesReachable {
 
 # ---- Show window -------------------------------------------------------------
 try {
+    Initialize-SettingsTab
     $window.ShowDialog() | Out-Null
 } catch {
     [System.Windows.MessageBox]::Show(

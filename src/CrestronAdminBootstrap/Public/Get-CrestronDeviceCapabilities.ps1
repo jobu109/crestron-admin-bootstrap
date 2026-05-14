@@ -90,6 +90,23 @@ function Get-CrestronDeviceCapabilities {
                             ($deviceProps -contains 'FusionConfig')
             $supportsAutoUpdate = ($deviceProps -contains 'AutoUpdateMaster') -or
                                 ($deviceProps -contains 'AutoUpdate')
+
+            if (-not $supportsFusion -and ($deviceProps -contains 'CloudSettings')) {
+                try {
+                    $cloudApi = Invoke-CrestronApi -Session $Session -Path '/Device/CloudSettings' -Method GET -TimeoutSec $TimeoutSec
+
+                    if ($cloudApi.Success -and $cloudApi.BodyJson -and
+                        $cloudApi.BodyJson.Device -and
+                        $cloudApi.BodyJson.Device.CloudSettings) {
+
+                        $cloudSettings = $cloudApi.BodyJson.Device.CloudSettings
+                        $cloudProps = @($cloudSettings.PSObject.Properties.Name)
+
+                        $supportsFusion = ($cloudProps -contains 'FusionCloud')
+                    }
+                }
+                catch { }
+            }
         }
     }
     catch { }
