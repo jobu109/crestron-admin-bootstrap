@@ -74,6 +74,7 @@ function Get-CrestronDeviceCapabilities {
     $supportsCloud = $false
     $supportsFusion = $false
     $supportsAutoUpdate = $false
+    $avSettings = $null
 
     try {
         $deviceApi = Invoke-CrestronApi -Session $Session -Path '/Device' -Method GET -TimeoutSec $TimeoutSec
@@ -111,9 +112,44 @@ function Get-CrestronDeviceCapabilities {
     }
     catch { }
 
+    try {
+        $avSettings = Get-CrestronAvSettings -Session $Session -TimeoutSec $TimeoutSec
+    }
+    catch {
+        $avSettings = $null
+    }
+
+    $supportsAvSettings = $false
+    $supportsAvMulticast = $false
+    $supportsGlobalEdid = $false
+    $avApiFamily = 'None'
+    $avApiVersion = ''
+    $edidNames = @()
+    $model = "$($Session.Model)"
+
+    if ([string]::IsNullOrWhiteSpace($model) -and $state -and -not [string]::IsNullOrWhiteSpace("$($state.Model)")) {
+        $model = "$($state.Model)"
+    }
+
+    if ($avSettings) {
+        if ([string]::IsNullOrWhiteSpace($model) -and -not [string]::IsNullOrWhiteSpace("$($avSettings.Model)")) {
+            $model = "$($avSettings.Model)"
+        }
+
+        $avApiFamily = "$($avSettings.AvApiFamily)"
+        $avApiVersion = "$($avSettings.AvApiVersion)"
+        $supportsAvSettings = ($avApiFamily -ne 'None')
+        $supportsAvMulticast = ($model -match '^DM-NVX') -and
+                               ([bool]$avSettings.SupportsStreamTransmit -or [bool]$avSettings.SupportsStreamReceive)
+        $supportsGlobalEdid = [bool]$avSettings.SupportsGlobalEdid
+        $edidNames = @($avSettings.EdidNames |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique)
+    }
+
     [pscustomobject]@{
         IP                     = $Session.IP
-        Model                  = $Session.Model
+        Model                  = $model
 
         SupportsDevice         = $supportsDevice
         SupportsNetwork        = $supportsNetwork
@@ -128,6 +164,12 @@ function Get-CrestronDeviceCapabilities {
         SupportsCloud          = $supportsCloud
         SupportsFusion         = $supportsFusion
         SupportsAutoUpdate     = $supportsAutoUpdate
+        SupportsAvSettings     = $supportsAvSettings
+        SupportsAvMulticast    = $supportsAvMulticast
+        SupportsGlobalEdid     = $supportsGlobalEdid
+        AvApiFamily            = $avApiFamily
+        AvApiVersion           = $avApiVersion
+        EdidNames              = $edidNames
 
         FetchedAt              = (Get-Date).ToString('s')
     }

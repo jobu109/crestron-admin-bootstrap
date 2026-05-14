@@ -66,6 +66,9 @@ function New-DefaultGuiSettings {
         DefaultUsername          = ''
         ProtectedDefaultPassword = ''
         DarkMode                 = $false
+        MostUsedSubnets          = @(
+            '172.22.0.0/24'
+        )
     }
 }
 
@@ -130,6 +133,16 @@ function Load-GuiSettings {
 
         if ($loaded.ProtectedDefaultPassword) {
             $settings.ProtectedDefaultPassword = "$($loaded.ProtectedDefaultPassword)"
+        }
+
+        if ($loaded.PSObject.Properties.Name -contains 'MostUsedSubnets' -and $loaded.MostUsedSubnets) {
+            $loadedSubnets = @($loaded.MostUsedSubnets | Where-Object {
+                -not [string]::IsNullOrWhiteSpace($_)
+            })
+
+            if ($loadedSubnets.Count -gt 0) {
+                $settings.MostUsedSubnets = $loadedSubnets
+            }
         }
 
         $settings.DarkMode = [bool]$loaded.DarkMode
@@ -269,20 +282,40 @@ Load-GuiSettings
                     <!-- Subnets panel (left) -->
                     <Border DockPanel.Dock="Left" Width="320" BorderBrush="#DDD" BorderThickness="1" Padding="8" Margin="0,0,8,0">
                         <DockPanel LastChildFill="True">
-                            <TextBlock DockPanel.Dock="Top" Text="Subnets (CIDR)" FontWeight="Bold" Margin="0,0,0,6" />
+                            <TextBlock DockPanel.Dock="Top" Text="Subnets (CIDR)" FontWeight="Bold" Margin="0,0,0,4" />
+
+                            <TextBlock DockPanel.Dock="Top"
+                                    Text="Check subnet(s) to scan. Defaults come from Settings → Most Used Subnets."
+                                    Foreground="#666"
+                                    FontSize="11"
+                                    TextWrapping="Wrap"
+                                    Margin="0,0,0,8" />
 
                             <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBox x:Name="ScanCidrInput" Grid.Column="0" Padding="4,2" VerticalContentAlignment="Center" />
-                                <Button   x:Name="ScanAddCidr"  Grid.Column="1" Content="Add" Margin="6,0,0,0" Padding="10,2" />
+                                <TextBox x:Name="ScanCidrInput"
+                                        Grid.Column="0"
+                                        Padding="4,2"
+                                        VerticalContentAlignment="Center" />
+                                <Button x:Name="ScanAddCidr"
+                                        Grid.Column="1"
+                                        Content="Add"
+                                        Margin="6,0,0,0"
+                                        Padding="10,2" />
                             </Grid>
 
-                            <Button x:Name="ScanRemoveCidr" DockPanel.Dock="Bottom" Content="Remove Selected" Margin="0,6,0,0" Padding="10,2" />
+                            <Button x:Name="ScanRemoveCidr"
+                                    DockPanel.Dock="Bottom"
+                                    Content="Remove Checked"
+                                    Margin="0,6,0,0"
+                                    Padding="10,2" />
 
-                            <ListBox x:Name="ScanCidrList" SelectionMode="Extended" />
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="ScanCidrList" />
+                            </ScrollViewer>
                         </DockPanel>
                     </Border>
 
@@ -410,6 +443,9 @@ Load-GuiSettings
                                 <DataGridTextColumn     Header="IP"            Binding="{Binding IP}"                  Width="140" IsReadOnly="True" />
                                 <DataGridTextColumn     Header="Model"         Binding="{Binding Model}"               Width="120" IsReadOnly="True" />
                                 <DataGridTextColumn     Header="Current Mode"  Binding="{Binding CurrentDeviceMode}"   Width="110" IsReadOnly="True" />
+                                <DataGridTextColumn     Header="AV API"        Binding="{Binding AvApiFamily}"         Width="120" IsReadOnly="True" />
+                                <DataGridCheckBoxColumn Header="AV?"           Binding="{Binding SupportsAvSettings}"  Width="55"  IsReadOnly="True" />
+                                <DataGridCheckBoxColumn Header="EDID?"         Binding="{Binding SupportsGlobalEdid}"  Width="60"  IsReadOnly="True" />
                                 <DataGridCheckBoxColumn Header="NTP?"          Binding="{Binding SupportsNtp}"         Width="55"  IsReadOnly="True" />
                                 <DataGridCheckBoxColumn Header="Cloud?"        Binding="{Binding SupportsCloud}"       Width="65"  IsReadOnly="True" />
                                 <DataGridCheckBoxColumn Header="Fusion?"       Binding="{Binding SupportsFusion}"      Width="65"  IsReadOnly="True" />
@@ -442,7 +478,7 @@ Load-GuiSettings
                         <Button x:Name="BlanketCancelButton" Grid.Column="4" Content="Cancel" Padding="12,4" IsEnabled="False" />
                     </Grid>
 
-                    <!-- Middle (fills): the three settings sections -->
+                    <!-- Middle (fills): settings sections -->
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="0,0,0,8">
 
@@ -547,6 +583,89 @@ Load-GuiSettings
                                                Margin="20,6,0,0" />
                                 </StackPanel>
                             </GroupBox>
+
+                            <!-- AV Settings -->
+                            <GroupBox Header="AV Settings" Margin="0,0,0,8" Padding="8">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,16,8">
+                                            <CheckBox x:Name="AvInputHdcpEnableBox"
+                                                      Content="Apply Input HDCP"
+                                                      FontWeight="Bold" />
+                                            <ComboBox x:Name="AvInputHdcpModeBox"
+                                                      Margin="20,8,0,0"
+                                                      Width="180"
+                                                      HorizontalAlignment="Left"
+                                                      Padding="4,2"
+                                                      IsEnabled="{Binding ElementName=AvInputHdcpEnableBox, Path=IsChecked}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,8">
+                                            <CheckBox x:Name="AvOutputHdcpEnableBox"
+                                                      Content="Apply Output HDCP"
+                                                      FontWeight="Bold" />
+                                            <ComboBox x:Name="AvOutputHdcpModeBox"
+                                                      Margin="20,8,0,0"
+                                                      Width="180"
+                                                      HorizontalAlignment="Left"
+                                                      Padding="4,2"
+                                                      IsEnabled="{Binding ElementName=AvOutputHdcpEnableBox, Path=IsChecked}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,16,8">
+                                            <CheckBox x:Name="AvOutputResolutionEnableBox"
+                                                      Content="Apply Output Resolution"
+                                                      FontWeight="Bold" />
+                                            <ComboBox x:Name="AvOutputResolutionBox"
+                                                      Margin="20,8,0,0"
+                                                      Width="180"
+                                                      HorizontalAlignment="Left"
+                                                      Padding="4,2"
+                                                      IsEnabled="{Binding ElementName=AvOutputResolutionEnableBox, Path=IsChecked}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
+                                            <CheckBox x:Name="AvGlobalEdidEnableBox"
+                                                      Content="Apply Global EDID"
+                                                      FontWeight="Bold" />
+                                            <Grid Margin="20,8,0,0"
+                                                  IsEnabled="{Binding ElementName=AvGlobalEdidEnableBox, Path=IsChecked}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="280" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="140" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="Name" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                <ComboBox x:Name="AvGlobalEdidNameBox"
+                                                          Grid.Column="1"
+                                                          Padding="4,2"
+                                                          IsEditable="True"
+                                                          Text="4K60 444 2CH Non-HDR" />
+                                                <TextBlock Grid.Column="2" Text="Type" Margin="16,0,8,0" VerticalAlignment="Center" />
+                                                <ComboBox x:Name="AvGlobalEdidTypeBox" Grid.Column="3" Padding="4,2" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <TextBlock Text="Global EDID is skipped on older AudioVideoInputOutput firmware below 2.5.0."
+                                               FontSize="11"
+                                               Foreground="#666"
+                                               TextWrapping="Wrap"
+                                               Margin="20,6,0,0" />
+                                </StackPanel>
+                            </GroupBox>
                         </StackPanel>
                     </ScrollViewer>
 
@@ -587,20 +706,24 @@ Load-GuiSettings
                               HeadersVisibility="Column"
                               GridLinesVisibility="Horizontal"
                               SelectionMode="Extended"
+                              HorizontalScrollBarVisibility="Visible"
                               AlternatingRowBackground="#F8F8F8">
                         <DataGrid.Columns>
                             <DataGridTextColumn      Header="IP"          Binding="{Binding IP}"          Width="120" IsReadOnly="True" />
                             <DataGridTextColumn      Header="Model"       Binding="{Binding Model}"       Width="90"  IsReadOnly="True" />
-                            <DataGridTextColumn      Header="Hostname"    Binding="{Binding NewHostname, UpdateSourceTrigger=PropertyChanged}" Width="170" />
-                            <DataGridComboBoxColumn  Header="IPMode"      SelectedValueBinding="{Binding IPMode, UpdateSourceTrigger=PropertyChanged}" Width="80">
-                                <DataGridComboBoxColumn.ItemsSource>
-                                    <x:Array Type="sys:String">
-                                        <sys:String>Keep</sys:String>
-                                        <sys:String>DHCP</sys:String>
-                                        <sys:String>Static</sys:String>
-                                    </x:Array>
-                                </DataGridComboBoxColumn.ItemsSource>
-                            </DataGridComboBoxColumn>
+                            <DataGridTemplateColumn Header="Hostname" Width="170">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewHostname}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewHostname, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsNetwork}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="TX/RX Mode" Width="115">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -612,6 +735,7 @@ Load-GuiSettings
                                         <ComboBox SelectedItem="{Binding DeviceMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                 IsEnabled="{Binding SupportsModeChange}">
                                             <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
                                                 <sys:String>Keep</sys:String>
                                                 <sys:String>Transmitter</sys:String>
                                                 <sys:String>Receiver</sys:String>
@@ -620,11 +744,119 @@ Load-GuiSettings
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn      Header="NewIP"       Binding="{Binding NewIP, UpdateSourceTrigger=PropertyChanged}"      Width="120" />
-                            <DataGridTextColumn      Header="SubnetMask"  Binding="{Binding SubnetMask, UpdateSourceTrigger=PropertyChanged}" Width="120" />
-                            <DataGridTextColumn      Header="Gateway"     Binding="{Binding Gateway, UpdateSourceTrigger=PropertyChanged}"    Width="120" />
-                            <DataGridTextColumn      Header="DNS1"        Binding="{Binding PrimaryDns, UpdateSourceTrigger=PropertyChanged}" Width="100" />
-                            <DataGridTextColumn      Header="DNS2"        Binding="{Binding SecondaryDns, UpdateSourceTrigger=PropertyChanged}" Width="100" />
+                            <DataGridTextColumn Header="Current TX MC" Binding="{Binding CurrentTransmitMulticast}" Width="130" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Current RX MC" Binding="{Binding CurrentReceiveMulticast}" Width="130" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="MC Address" Width="130">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewMulticastAddress}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewMulticastAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsAvMulticast}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="MC Stream" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding MulticastStreamIndex}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding MulticastStreamIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsAvMulticast}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="IP Mode" Width="95">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding IPMode}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding IPMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsNetwork}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Keep</sys:String>
+                                                <sys:String>DHCP</sys:String>
+                                                <sys:String>Static</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="IP Address" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewIP}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewIP, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsNetwork}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="SubnetMask" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding SubnetMask}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding SubnetMask, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsNetwork}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Gateway" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Gateway}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Gateway, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsNetwork}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="DNS1" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding PrimaryDns}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding PrimaryDns, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsNetwork}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="DNS2" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding SecondaryDns}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding SecondaryDns, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsNetwork}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="WiFi Off" Width="70">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -641,8 +873,32 @@ Load-GuiSettings
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn      Header="IPID"        Binding="{Binding NewIpId, UpdateSourceTrigger=PropertyChanged}"              Width="60" />
-                            <DataGridTextColumn      Header="CS IP"       Binding="{Binding NewControlSystemAddr, UpdateSourceTrigger=PropertyChanged}" Width="130" />
+                            <DataGridTemplateColumn Header="IPID" Width="60">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewIpId}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewIpId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsIpTable}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="CS IP" Width="130">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewControlSystemAddr}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewControlSystemAddr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsIpTable}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridCheckBoxColumn  Header="Reboot?"     Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
                             <DataGridTextColumn      Header="Detail"      Binding="{Binding Detail}"     Width="*"   IsReadOnly="True" />
                         </DataGrid.Columns>
@@ -730,6 +986,25 @@ Load-GuiSettings
                             </Grid>
                         </GroupBox>
 
+                        <GroupBox Header="Most Used Subnets" Padding="10" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Enter one CIDR per line. These will populate the Scan tab and Add Devices CIDR scan by default."
+                                        Foreground="#666"
+                                        FontSize="11"
+                                        TextWrapping="Wrap"
+                                        Margin="0,0,0,6" />
+
+                                <TextBox x:Name="SettingsMostUsedSubnetsBox"
+                                        Height="90"
+                                        AcceptsReturn="True"
+                                        TextWrapping="NoWrap"
+                                        VerticalScrollBarVisibility="Auto"
+                                        HorizontalScrollBarVisibility="Auto"
+                                        FontFamily="Consolas"
+                                        Padding="4,2" />
+                            </StackPanel>
+                        </GroupBox>
+
                         <GroupBox Header="Appearance" Padding="10" Margin="0,0,0,12">
                             <CheckBox x:Name="SettingsDarkModeBox"
                             Content="Enable dark mode (coming soon)"
@@ -758,7 +1033,7 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'ScanCidrInput','ScanAddCidr','ScanRemoveCidr','ScanCidrList',
                   'ScanStartButton','ScanCancelButton','ScanProgressText',
                   'ScanResultsGrid','ScanSelectAll','ScanSummaryText',
-                  'SettingsDefaultUsernameBox','SettingsDefaultPasswordBox','SettingsDarkModeBox','SettingsSaveButton','SettingsClearPasswordButton','SettingsStatusText',
+                  'SettingsMostUsedSubnetsBox','SettingsDefaultUsernameBox','SettingsDefaultPasswordBox','SettingsDarkModeBox','SettingsSaveButton','SettingsClearPasswordButton','SettingsStatusText',
                   'ProvisionTab','ProvisionStartButton','ProvisionReloadButton',
                   'ProvisionCancelButton','ProvisionProgressText',
                   'ProvisionGrid','ProvisionSelectAll','ProvisionSummaryText',
@@ -772,6 +1047,10 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'FusionEnableBox','FusionOnRadio','FusionOffRadio',
                   'AutoUpdateEnableBox','AutoUpdateOnRadio','AutoUpdateOffRadio',
                   'ModeEnableBox','ModeTransmitterRadio','ModeReceiverRadio',
+                  'AvInputHdcpEnableBox','AvInputHdcpModeBox',
+                  'AvOutputHdcpEnableBox','AvOutputHdcpModeBox',
+                  'AvOutputResolutionEnableBox','AvOutputResolutionBox',
+                  'AvGlobalEdidEnableBox','AvGlobalEdidNameBox','AvGlobalEdidTypeBox',
                   'PerDeviceTab','PerDeviceGrid','PerDeviceSummaryText',
                   'PerDeviceApplyButton','PerDeviceRefreshButton','PerDeviceAddButton','PerDeviceClearButton',
                   'PerDeviceCancelButton','PerDeviceProgressText',
@@ -789,6 +1068,9 @@ function Initialize-SettingsTab {
 
     $Script:UI.SettingsDefaultUsernameBox.Text = "$($Script:GuiSettings.DefaultUsername)"
     $Script:UI.SettingsDefaultPasswordBox.Password = Unprotect-GuiSettingPassword $Script:GuiSettings.ProtectedDefaultPassword
+    $Script:UI.SettingsMostUsedSubnetsBox.Text = (($Script:GuiSettings.MostUsedSubnets | Where-Object {
+        -not [string]::IsNullOrWhiteSpace($_)
+    }) -join "`r`n")
     $Script:UI.SettingsDarkModeBox.IsChecked = $false
     $Script:UI.SettingsStatusText.Text = ''
 }
@@ -1132,21 +1414,93 @@ $Script:ScanState = [pscustomobject]@{
     Timer        = $null
     IsScanning   = $false
 }
-$Script:UI.ScanCidrList.ItemsSource    = $Script:ScanState.Cidrs
+# ScanCidrList is now a StackPanel of CheckBox controls, populated by Initialize-ScanCidrs.
 $Script:UI.ScanResultsGrid.ItemsSource = $Script:ScanState.Results
+
+function Add-ScanCidrCheckbox {
+    param(
+        [Parameter(Mandatory)][string]$Cidr,
+        [bool]$Checked = $true
+    )
+
+    if (-not $Script:UI.ScanCidrList) {
+        return
+    }
+
+    foreach ($child in $Script:UI.ScanCidrList.Children) {
+        if ("$($child.Content)" -eq $Cidr) {
+            $child.IsChecked = $Checked
+            return
+        }
+    }
+
+    $check = New-Object System.Windows.Controls.CheckBox
+    $check.Content = $Cidr
+    $check.IsChecked = $Checked
+    $check.Margin = '2,2,2,2'
+
+    [void]$Script:UI.ScanCidrList.Children.Add($check)
+}
+
+function Get-CheckedScanCidrs {
+    $cidrs = @()
+
+    if (-not $Script:UI.ScanCidrList) {
+        return $cidrs
+    }
+
+    foreach ($child in $Script:UI.ScanCidrList.Children) {
+        if ([bool]$child.IsChecked) {
+            $cidrs += "$($child.Content)"
+        }
+    }
+
+    return @($cidrs | Sort-Object -Unique)
+}
+
+function Sync-ScanStateFromCheckedCidrs {
+    $Script:ScanState.Cidrs.Clear()
+
+    foreach ($cidr in Get-CheckedScanCidrs) {
+        [void]$Script:ScanState.Cidrs.Add($cidr)
+    }
+}
 
 # Seed CIDRs: load from existing subnets.txt or pre-fill 172.22.0.0/24
 function Initialize-ScanCidrs {
     $Script:ScanState.Cidrs.Clear()
-    if (Test-Path $Script:AppState.SubnetsFile) {
-        $loaded = Get-Content $Script:AppState.SubnetsFile |
+
+    if ($Script:UI.ScanCidrList) {
+        $Script:UI.ScanCidrList.Children.Clear()
+    }
+
+    $settingsSubnets = @()
+
+    if ($Script:GuiSettings -and
+        $Script:GuiSettings.PSObject.Properties.Name -contains 'MostUsedSubnets' -and
+        $Script:GuiSettings.MostUsedSubnets) {
+
+        $settingsSubnets = @($Script:GuiSettings.MostUsedSubnets | Where-Object {
+            $_ -match '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$'
+        })
+    }
+
+    if ($settingsSubnets.Count -eq 0 -and (Test-Path $Script:AppState.SubnetsFile)) {
+        $settingsSubnets = @(Get-Content $Script:AppState.SubnetsFile |
             ForEach-Object { ($_ -split '#')[0].Trim() } |
-            Where-Object   { $_ -match '^\d+\.\d+\.\d+\.\d+/\d+$' }
-        foreach ($c in $loaded) { [void]$Script:ScanState.Cidrs.Add($c) }
+            Where-Object { $_ -match '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$' })
     }
-    if ($Script:ScanState.Cidrs.Count -eq 0) {
-        [void]$Script:ScanState.Cidrs.Add('172.22.0.0/24')
+
+    if ($settingsSubnets.Count -eq 0) {
+        $settingsSubnets = @('192.168.20.0/24')
     }
+
+    foreach ($cidr in ($settingsSubnets | Sort-Object -Unique)) {
+        Add-ScanCidrCheckbox -Cidr $cidr -Checked $true
+        [void]$Script:ScanState.Cidrs.Add($cidr)
+    }
+
+    Save-ScanCidrs
 }
 
 function Save-ScanCidrs {
@@ -1155,23 +1509,51 @@ function Save-ScanCidrs {
 
 function Add-ScanCidr {
     $entry = $Script:UI.ScanCidrInput.Text.Trim()
-    if ([string]::IsNullOrWhiteSpace($entry)) { return }
-    if ($entry -notmatch '^\d+\.\d+\.\d+\.\d+/\d+$') {
-        [System.Windows.MessageBox]::Show("Not a valid CIDR (expected like 10.10.20.0/24).", "Invalid CIDR", 'OK', 'Warning') | Out-Null
+
+    if ([string]::IsNullOrWhiteSpace($entry)) {
         return
     }
-    if ($Script:ScanState.Cidrs -contains $entry) {
-        Update-Status "CIDR already in list: $entry"
+
+    if ($entry -notmatch '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$') {
+        [System.Windows.MessageBox]::Show(
+            "Invalid CIDR. Example: 192.168.20.0/24",
+            "Invalid input",
+            'OK',
+            'Warning'
+        ) | Out-Null
         return
     }
-    [void]$Script:ScanState.Cidrs.Add($entry)
-    $Script:UI.ScanCidrInput.Text = ''
+
+    Add-ScanCidrCheckbox -Cidr $entry -Checked $true
+    Sync-ScanStateFromCheckedCidrs
     Save-ScanCidrs
+
+    $Script:UI.ScanCidrInput.Clear()
 }
 
 function Remove-ScanCidr {
-    $sel = @($Script:UI.ScanCidrList.SelectedItems)
-    foreach ($s in $sel) { [void]$Script:ScanState.Cidrs.Remove($s) }
+    if (-not $Script:UI.ScanCidrList) {
+        return
+    }
+
+    $toRemove = @()
+
+    foreach ($child in $Script:UI.ScanCidrList.Children) {
+        if ([bool]$child.IsChecked) {
+            $toRemove += $child
+        }
+    }
+
+    if ($toRemove.Count -eq 0) {
+        Update-Status 'No checked subnets to remove.'
+        return
+    }
+
+    foreach ($child in $toRemove) {
+        $Script:UI.ScanCidrList.Children.Remove($child)
+    }
+
+    Sync-ScanStateFromCheckedCidrs
     Save-ScanCidrs
 }
 
@@ -1221,6 +1603,9 @@ function Stop-ScanRunspace {
 
 function Start-Scan {
     if ($Script:ScanState.IsScanning) { return }
+
+    Sync-ScanStateFromCheckedCidrs
+
     if ($Script:ScanState.Cidrs.Count -eq 0) {
         [System.Windows.MessageBox]::Show("Add at least one CIDR to the list before scanning.", "Nothing to scan", 'OK', 'Warning') | Out-Null
         return
@@ -1896,6 +2281,55 @@ $defaultTz = $tzList | Where-Object { $_.Code -eq '010' } | Select-Object -First
 if ($defaultTz) { $Script:UI.NtpTimeZoneBox.SelectedItem = $defaultTz }
 elseif ($tzList.Count -gt 0) { $Script:UI.NtpTimeZoneBox.SelectedIndex = 0 }
 
+$Script:UI.AvInputHdcpModeBox.ItemsSource = @('Auto', 'Disabled', 'Enabled')
+$Script:UI.AvInputHdcpModeBox.SelectedIndex = 0
+
+$Script:UI.AvOutputHdcpModeBox.ItemsSource = @('Auto', 'FollowInput', 'ForceHighest', 'NeverAuthenticate')
+$Script:UI.AvOutputHdcpModeBox.SelectedIndex = 0
+
+$Script:UI.AvOutputResolutionBox.ItemsSource = @(
+    'Auto',
+    '3840x2160@60',
+    '3840x2160@30',
+    '1920x1080@60',
+    '1920x1080@30',
+    '1280x720@60'
+)
+$Script:UI.AvOutputResolutionBox.SelectedIndex = 0
+
+$Script:UI.AvGlobalEdidTypeBox.ItemsSource = @('Copy', 'System', 'Custom')
+$Script:UI.AvGlobalEdidTypeBox.SelectedIndex = 1
+
+function Update-AvGlobalEdidOptions {
+    if (-not $Script:UI.AvGlobalEdidNameBox) {
+        return
+    }
+
+    $currentText = "$($Script:UI.AvGlobalEdidNameBox.Text)"
+    $names = @()
+
+    foreach ($row in @($Script:BlanketState.Rows)) {
+        if ($row.PSObject.Properties.Name -contains 'EdidNames' -and $row.EdidNames) {
+            $names += @("$($row.EdidNames)" -split '\|' | Where-Object {
+                -not [string]::IsNullOrWhiteSpace($_)
+            })
+        }
+    }
+
+    $names = @($names | Sort-Object -Unique)
+
+    if ($names.Count -gt 0) {
+        $Script:UI.AvGlobalEdidNameBox.ItemsSource = $names
+
+        if (-not [string]::IsNullOrWhiteSpace($currentText)) {
+            $Script:UI.AvGlobalEdidNameBox.Text = $currentText
+        }
+        else {
+            $Script:UI.AvGlobalEdidNameBox.Text = "$($names[0])"
+        }
+    }
+}
+
 function Update-BlanketSummary {
     $count = $Script:BlanketState.Rows.Count
     $selected = ($Script:BlanketState.Rows | Where-Object Selected).Count
@@ -1948,6 +2382,12 @@ function Load-BlanketFromProvision {
             IP                  = $s.IP
             Model                = ''
             CurrentDeviceMode    = ''
+            AvApiFamily          = ''
+            AvApiVersion         = ''
+            SupportsAvSettings   = $false
+            SupportsAvMulticast  = $false
+            SupportsGlobalEdid   = $false
+            EdidNames            = ''
             SupportsModeChange   = $false
             SupportsNtp          = $false
             SupportsCloud        = $false
@@ -1978,6 +2418,8 @@ function Save-BlanketCsv {
     $Script:BlanketState.Rows |
         Where-Object Status -ne '' |
         Select-Object IP, Model, CurrentDeviceMode,
+                      AvApiFamily, AvApiVersion, SupportsAvSettings, SupportsAvMulticast, SupportsGlobalEdid,
+                      EdidNames,
                       SupportsNtp, SupportsCloud, SupportsFusion, SupportsAutoUpdate,
                       SupportsIpTable, SupportsNetwork, SupportsWifi, SupportsModeChange,
                       CapabilitiesFetched,
@@ -2089,6 +2531,12 @@ function Start-BlanketCapabilityFetch {
                             IP                  = $ip
                             Model               = $caps.Model
                             CurrentDeviceMode   = $caps.CurrentDeviceMode
+                            AvApiFamily         = "$($caps.AvApiFamily)"
+                            AvApiVersion        = "$($caps.AvApiVersion)"
+                            SupportsAvSettings  = [bool]$caps.SupportsAvSettings
+                            SupportsAvMulticast = [bool]$caps.SupportsAvMulticast
+                            SupportsGlobalEdid  = [bool]$caps.SupportsGlobalEdid
+                            EdidNames           = (@($caps.EdidNames) -join '|')
                             SupportsModeChange  = [bool]$caps.SupportsModeChange
                             SupportsNtp         = [bool]$caps.SupportsNtp
                             SupportsCloud       = [bool]$caps.SupportsCloud
@@ -2113,6 +2561,12 @@ function Start-BlanketCapabilityFetch {
                         IP                  = $ip
                         Model               = ''
                         CurrentDeviceMode   = ''
+                        AvApiFamily         = ''
+                        AvApiVersion        = ''
+                        SupportsAvSettings  = $false
+                        SupportsAvMulticast = $false
+                        SupportsGlobalEdid  = $false
+                        EdidNames           = ''
                         SupportsModeChange  = $false
                         SupportsNtp         = $false
                         SupportsCloud       = $false
@@ -2163,6 +2617,12 @@ function Start-BlanketCapabilityFetch {
             foreach ($prop in @(
                 'Model',
                 'CurrentDeviceMode',
+                'AvApiFamily',
+                'AvApiVersion',
+                'SupportsAvSettings',
+                'SupportsAvMulticast',
+                'SupportsGlobalEdid',
+                'EdidNames',
                 'SupportsModeChange',
                 'SupportsNtp',
                 'SupportsCloud',
@@ -2178,6 +2638,12 @@ function Start-BlanketCapabilityFetch {
                     $defaultValue = switch ($prop) {
                         'Model'               { '' }
                         'CurrentDeviceMode'   { '' }
+                        'AvApiFamily'         { '' }
+                        'AvApiVersion'        { '' }
+                        'SupportsAvSettings'  { $false }
+                        'SupportsAvMulticast' { $false }
+                        'SupportsGlobalEdid'  { $false }
+                        'EdidNames'           { '' }
                         'SupportsModeChange'  { $false }
                         'SupportsNtp'         { $false }
                         'SupportsCloud'       { $false }
@@ -2199,6 +2665,12 @@ function Start-BlanketCapabilityFetch {
             if (-not $item.__progress) {
                 $row.Model               = "$($item.Model)"
                 $row.CurrentDeviceMode   = "$($item.CurrentDeviceMode)"
+                $row.AvApiFamily         = "$($item.AvApiFamily)"
+                $row.AvApiVersion        = "$($item.AvApiVersion)"
+                $row.SupportsAvSettings  = [bool]$item.SupportsAvSettings
+                $row.SupportsAvMulticast = [bool]$item.SupportsAvMulticast
+                $row.SupportsGlobalEdid  = [bool]$item.SupportsGlobalEdid
+                $row.EdidNames           = "$($item.EdidNames)"
                 $row.SupportsModeChange  = [bool]$item.SupportsModeChange
                 $row.SupportsNtp         = [bool]$item.SupportsNtp
                 $row.SupportsCloud       = [bool]$item.SupportsCloud
@@ -2224,6 +2696,7 @@ function Start-BlanketCapabilityFetch {
             $ok = ($Script:BlanketState.Rows | Where-Object Status -eq 'OK').Count
             $Script:UI.BlanketProgressText.Text = "Capability fetch complete. $ok device(s) OK."
             Update-Status "Blanket capability fetch complete. $ok OK."
+            Update-AvGlobalEdidOptions
         }
     })
 
@@ -2278,6 +2751,102 @@ function Test-ResultNeedsReboot {
     return $false
 }
 
+$Script:SuppressRebootNeededNotice = $false
+
+function Show-RebootNeededNotice {
+    param(
+        [int]$Count,
+        [string]$AreaName = 'this tab'
+    )
+
+    if ($Script:SuppressRebootNeededNotice) {
+        return 'None'
+    }
+
+    if ($Count -le 0) {
+        return 'None'
+    }
+
+    $result = [System.Windows.MessageBox]::Show(
+        "$Count device(s) require a reboot for changes to take effect.`n`nThe Reboot? box has been checked automatically.`n`nReboot now?",
+        "Reboot required",
+        'YesNo',
+        'Warning'
+    )
+
+    if ($result -eq 'Yes') {
+        Update-Status "$Count device(s) in $AreaName require reboot. User chose Reboot Now."
+        return 'RebootNow'
+    }
+
+    Update-Status "$Count device(s) in $AreaName require reboot. Reboot later selected."
+    return 'RebootLater'
+}
+
+function Invoke-RebootNeededRows {
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Rows,
+
+        [Parameter(Mandatory)]
+        [hashtable]$RowsByIP,
+
+        [Parameter(Mandatory)]
+        $Grid,
+
+        [Parameter(Mandatory)]
+        [scriptblock]$UpdateSummary,
+
+        [Parameter(Mandatory)]
+        [string]$AreaName
+    )
+
+    $rebootNeeded = @($Rows | Where-Object { [bool]$_.NeedsReboot }).Count
+
+    if ($Script:WorkflowState -and [bool]$Script:WorkflowState.IsRunning) {
+        if ($rebootNeeded -gt 0) {
+            Update-Status "$rebootNeeded device(s) in $AreaName require reboot. Full Workflow will reboot later."
+        }
+
+        return
+    }
+
+    $rebootChoice = Show-RebootNeededNotice -Count $rebootNeeded -AreaName $AreaName
+
+    if ($rebootChoice -ne 'RebootNow') {
+        return
+    }
+
+    $ipsToReboot = @($Rows |
+        Where-Object { [bool]$_.NeedsReboot } |
+        Select-Object -ExpandProperty IP)
+
+    if ($ipsToReboot.Count -eq 0) {
+        Update-Status "Reboot requested, but no $AreaName rows are marked NeedsReboot."
+        return
+    }
+
+    $statusCallback = {
+        param($item)
+
+        $row = $RowsByIP[$item.IP]
+        if ($row) {
+            $row.Status = if ($item.Success -eq 'True') { 'Rebooting' } else { 'RebootFail' }
+            $row.Detail = $item.Detail
+
+            if ($item.Success -eq 'True') {
+                $row.NeedsReboot = $false
+            }
+
+            $row.Timestamp = (Get-Date).ToString('s')
+        }
+
+        $Grid.Items.Refresh()
+        & $UpdateSummary
+    }.GetNewClosure()
+
+    Invoke-RebootBulk -Ips $ipsToReboot -StatusCallback $statusCallback -SkipConfirm
+}
 function Start-BlanketApply {
     if ($Script:BlanketState.IsRunning) { return }
 
@@ -2293,8 +2862,15 @@ function Start-BlanketApply {
     $applyFusion = [bool]$Script:UI.FusionEnableBox.IsChecked
     $applyAuto   = [bool]$Script:UI.AutoUpdateEnableBox.IsChecked
     $applyMode   = [bool]$Script:UI.ModeEnableBox.IsChecked
+    $applyInputHdcp = [bool]$Script:UI.AvInputHdcpEnableBox.IsChecked
+    $applyOutputHdcp = [bool]$Script:UI.AvOutputHdcpEnableBox.IsChecked
+    $applyOutputResolution = [bool]$Script:UI.AvOutputResolutionEnableBox.IsChecked
+    $applyGlobalEdid = [bool]$Script:UI.AvGlobalEdidEnableBox.IsChecked
 
-    if (-not ($applyNtp -or $applyCloud -or $applyFusion -or $applyAuto -or $applyMode)) {
+    if (-not (
+        $applyNtp -or $applyCloud -or $applyFusion -or $applyAuto -or $applyMode -or
+        $applyInputHdcp -or $applyOutputHdcp -or $applyOutputResolution -or $applyGlobalEdid
+    )) {
         [System.Windows.MessageBox]::Show("Enable at least one settings section before applying.", "Nothing to apply", 'OK', 'Warning') | Out-Null
         return
     }
@@ -2343,6 +2919,24 @@ function Start-BlanketApply {
         }
     }
 
+    $inputHdcpMode = if ($applyInputHdcp) { "$($Script:UI.AvInputHdcpModeBox.SelectedItem)" } else { $null }
+    $outputHdcpMode = if ($applyOutputHdcp) { "$($Script:UI.AvOutputHdcpModeBox.SelectedItem)" } else { $null }
+    $outputResolution = if ($applyOutputResolution) { "$($Script:UI.AvOutputResolutionBox.SelectedItem)" } else { $null }
+
+    $globalEdid = $null
+    if ($applyGlobalEdid) {
+        $edidName = $Script:UI.AvGlobalEdidNameBox.Text.Trim()
+        if ([string]::IsNullOrWhiteSpace($edidName)) {
+            [System.Windows.MessageBox]::Show("Enter an EDID name.", "Missing EDID name", 'OK', 'Warning') | Out-Null
+            return
+        }
+
+        $globalEdid = @{
+            EdidName = $edidName
+            EdidType = "$($Script:UI.AvGlobalEdidTypeBox.SelectedItem)"
+        }
+    }
+
     # Credentials
     $cred = Get-CachedCredential
     if (-not $cred) {
@@ -2357,6 +2951,10 @@ function Start-BlanketApply {
     if ($applyFusion) { $bits += "Fusion=$(if ($fusion) { 'ON' } else { 'OFF' })" }
     if ($applyAuto)   { $bits += "AutoUpdate=$(if ($autoUpdate.Enabled) { 'ON' } else { 'OFF' })" }
     if ($applyMode)   { $bits += "Mode=$deviceMode" }
+    if ($applyInputHdcp) { $bits += "InputHDCP=$inputHdcpMode" }
+    if ($applyOutputHdcp) { $bits += "OutputHDCP=$outputHdcpMode" }
+    if ($applyOutputResolution) { $bits += "OutputResolution=$outputResolution" }
+    if ($applyGlobalEdid) { $bits += "GlobalEDID=$($globalEdid.EdidType):$($globalEdid.EdidName)" }
 
     $msg = "Apply [$($bits -join ', ')] to $($selectedIPs.Count) device(s) as '$($cred.UserName)'?"
     $confirm = [System.Windows.MessageBox]::Show($msg, "Confirm apply", 'YesNo', 'Warning')
@@ -2389,6 +2987,11 @@ function Start-BlanketApply {
         @{
             IP                  = $_.IP
             Model               = $_.Model
+            AvApiFamily         = $_.AvApiFamily
+            AvApiVersion        = $_.AvApiVersion
+            SupportsAvSettings  = [bool]$_.SupportsAvSettings
+            SupportsAvMulticast = [bool]$_.SupportsAvMulticast
+            SupportsGlobalEdid  = [bool]$_.SupportsGlobalEdid
             SupportsNtp         = [bool]$_.SupportsNtp
             SupportsCloud       = [bool]$_.SupportsCloud
             SupportsFusion      = [bool]$_.SupportsFusion
@@ -2412,6 +3015,10 @@ function Start-BlanketApply {
     $rs.SessionStateProxy.SetVariable('fusionArg',    $fusion)
     $rs.SessionStateProxy.SetVariable('autoUpdate',   $autoUpdate)
     $rs.SessionStateProxy.SetVariable('deviceMode',   $deviceMode)
+    $rs.SessionStateProxy.SetVariable('inputHdcpMode', $inputHdcpMode)
+    $rs.SessionStateProxy.SetVariable('outputHdcpMode', $outputHdcpMode)
+    $rs.SessionStateProxy.SetVariable('outputResolution', $outputResolution)
+    $rs.SessionStateProxy.SetVariable('globalEdid', $globalEdid)
 
     $ps = [powershell]::Create()
     $ps.Runspace = $rs
@@ -2446,6 +3053,10 @@ function Start-BlanketApply {
                 $fArg     = $using:fusionArg
                 $auArg    = $using:autoUpdate
                 $modeArg  = $using:deviceMode
+                $inHdcpArg = $using:inputHdcpMode
+                $outHdcpArg = $using:outputHdcpMode
+                $outResArg = $using:outputResolution
+                $edidArg  = $using:globalEdid
                 $manifest = $using:modManifest
 
                 $q.Enqueue([pscustomobject]@{
@@ -2523,6 +3134,39 @@ function Start-BlanketApply {
                         }
 
                         return $false
+                    }
+
+                    function Get-StepResultDetail {
+                        param(
+                            [Parameter(Mandatory)][string]$Name,
+                            [Parameter(Mandatory)]$Result,
+                            [string]$Target = ''
+                        )
+
+                        $statusText = if ($Result.Success) {
+                            'OK'
+                        }
+                        else {
+                            "Status $($Result.Status)"
+                        }
+
+                        $text = if ($Target) {
+                            "$Name=$statusText -> $Target"
+                        }
+                        else {
+                            "$Name=$statusText"
+                        }
+
+                        $failDetails = @($Result.SectionResults |
+                            Where-Object { -not [bool]$_.Ok } |
+                            Select-Object -First 2 |
+                            ForEach-Object { "$($_.Path):$($_.StatusInfo)" })
+
+                        if ($failDetails.Count -gt 0) {
+                            return "$text ($($failDetails -join ' | '))"
+                        }
+
+                        return $text
                     }
 
                         if ($ntpArg) {
@@ -2610,6 +3254,119 @@ function Start-BlanketApply {
                             catch {
                                 $allOk = $false
                                 $stepResults += "DeviceMode=ERR: $($_.Exception.Message)"
+                            }
+                        }
+
+                        if ($inHdcpArg) {
+                            try {
+                                if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsAvSettings) {
+                                    $stepResults += "InputHdcp=skipped; unsupported on $($rowArg.Model)"
+                                }
+                                else {
+                                    $rInHdcp = Set-CrestronInputHdcp -Session $sess -Mode $inHdcpArg
+
+                                    if (-not $rInHdcp.Success) {
+                                        $allOk = $false
+                                    }
+
+                                    if (Test-ResultNeedsReboot $rInHdcp) {
+                                        $needsReboot = $true
+                                    }
+
+                                    $sections += 'InputHdcp'
+                                    $stepResults += Get-StepResultDetail -Name 'InputHdcp' -Result $rInHdcp -Target $inHdcpArg
+                                }
+                            }
+                            catch {
+                                $allOk = $false
+                                $stepResults += "InputHdcp=ERR: $($_.Exception.Message)"
+                            }
+                        }
+
+                        if ($outHdcpArg) {
+                            try {
+                                if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsAvSettings) {
+                                    $stepResults += "OutputHdcp=skipped; unsupported on $($rowArg.Model)"
+                                }
+                                else {
+                                    $rOutHdcp = Set-CrestronOutputHdcp -Session $sess -Mode $outHdcpArg
+
+                                    if (-not $rOutHdcp.Success) {
+                                        $allOk = $false
+                                    }
+
+                                    if (Test-ResultNeedsReboot $rOutHdcp) {
+                                        $needsReboot = $true
+                                    }
+
+                                    $sections += 'OutputHdcp'
+                                    $stepResults += Get-StepResultDetail -Name 'OutputHdcp' -Result $rOutHdcp -Target $outHdcpArg
+                                }
+                            }
+                            catch {
+                                $allOk = $false
+                                $stepResults += "OutputHdcp=ERR: $($_.Exception.Message)"
+                            }
+                        }
+
+                        if ($outResArg) {
+                            try {
+                                if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsAvSettings) {
+                                    $stepResults += "OutputResolution=skipped; unsupported on $($rowArg.Model)"
+                                }
+                                else {
+                                    $rOutRes = Set-CrestronOutputResolution -Session $sess -Resolution $outResArg
+
+                                    if (-not $rOutRes.Success) {
+                                        $allOk = $false
+                                    }
+
+                                    if (Test-ResultNeedsReboot $rOutRes) {
+                                        $needsReboot = $true
+                                    }
+
+                                    $sections += 'OutputResolution'
+                                    $stepResults += Get-StepResultDetail -Name 'OutputResolution' -Result $rOutRes -Target $outResArg
+                                }
+                            }
+                            catch {
+                                $allOk = $false
+                                $stepResults += "OutputResolution=ERR: $($_.Exception.Message)"
+                            }
+                        }
+
+                        if ($edidArg) {
+                            try {
+                                if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsAvSettings) {
+                                    $stepResults += "GlobalEdid=skipped; unsupported on $($rowArg.Model)"
+                                }
+                                elseif ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsGlobalEdid) {
+                                    $stepResults += "GlobalEdid=skipped; requires AudioVideoInputOutput 2.5.0+ or AvioV2 (device: $($rowArg.AvApiFamily) $($rowArg.AvApiVersion))"
+                                }
+                                else {
+                                    $rEdid = Set-CrestronGlobalEdid `
+                                        -Session $sess `
+                                        -EdidName $edidArg.EdidName `
+                                        -EdidType $edidArg.EdidType
+
+                                    if (-not $rEdid.Success) {
+                                        $allOk = $false
+                                    }
+
+                                    if (Test-ResultNeedsReboot $rEdid) {
+                                        $needsReboot = $true
+                                    }
+
+                                    $sections += 'GlobalEdid'
+                                    $stepResults += Get-StepResultDetail `
+                                        -Name 'GlobalEdid' `
+                                        -Result $rEdid `
+                                        -Target "$($edidArg.EdidType):$($edidArg.EdidName)"
+                                }
+                            }
+                            catch {
+                                $allOk = $false
+                                $stepResults += "GlobalEdid=ERR: $($_.Exception.Message)"
                             }
                         }
 
@@ -2702,6 +3459,13 @@ function Start-BlanketApply {
             $ok = ($Script:BlanketState.Rows | Where-Object Status -eq 'OK').Count
             $Script:UI.BlanketProgressText.Text = "Done. $ok device(s) OK."
             Update-Status "Apply complete. $ok device(s) OK. Saved $($Script:AppState.SettingsCsv)"
+
+            Invoke-RebootNeededRows `
+                -Rows @($Script:BlanketState.Rows) `
+                -RowsByIP $Script:BlanketState.RowsByIP `
+                -Grid $Script:UI.BlanketGrid `
+                -UpdateSummary { Update-BlanketSummary } `
+                -AreaName 'Blanket Settings'
         }
     })
 
@@ -2776,7 +3540,26 @@ $Script:UI.SettingsSaveButton.Add_Click({
     $Script:GuiSettings.ProtectedDefaultPassword = Protect-GuiSettingPassword $Script:UI.SettingsDefaultPasswordBox.Password
     $Script:GuiSettings.DarkMode = $false
 
+    $subnets = @($Script:UI.SettingsMostUsedSubnetsBox.Text -split "`r?`n" | ForEach-Object {
+        $_.Trim()
+    } | Where-Object {
+        $_ -match '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$'
+    })
+
+    if ($subnets.Count -eq 0) {
+        [System.Windows.MessageBox]::Show(
+            "Enter at least one valid CIDR subnet, for example 192.168.20.0/24.",
+            "Invalid subnets",
+            'OK',
+            'Warning'
+        ) | Out-Null
+        return
+    }
+
+    $Script:GuiSettings.MostUsedSubnets = $subnets
+
     Save-GuiSettings
+    Initialize-ScanCidrs
 
     $Script:UI.SettingsStatusText.Text = "Saved."
     Update-Status "GUI settings saved."
@@ -2815,11 +3598,18 @@ $Script:PerDeviceState = [pscustomobject]@{
 }
 $Script:UI.PerDeviceGrid.ItemsSource = $Script:PerDeviceState.Rows
 
+function Test-PerDeviceValue {
+    param($Value)
+
+    $text = "$Value"
+    return (-not [string]::IsNullOrWhiteSpace($text)) -and ($text -ne 'N/A')
+}
+
 function Update-PerDeviceSummary {
     $count = $Script:PerDeviceState.Rows.Count
 
     $edited = ($Script:PerDeviceState.Rows | Where-Object {
-        $hostnameChanged = -not [string]::IsNullOrWhiteSpace($_.NewHostname) -and
+        $hostnameChanged = (Test-PerDeviceValue $_.NewHostname) -and
                            "$($_.NewHostname)" -ne "$($_.CurrentHostname)"
 
         $ipModeChanged = $false
@@ -2838,18 +3628,21 @@ function Update-PerDeviceSummary {
             $deviceModeChanged = "$($_.DeviceMode)" -ne "$($_.CurrentDeviceMode)"
         }
 
-        $ipTableChanged = ($_.NewIpId -and "$($_.NewIpId)" -ne "$($_.CurrentIpId)") -or
-                          ($_.NewControlSystemAddr -and "$($_.NewControlSystemAddr)" -ne "$($_.CurrentControlSystemAddr)")
+        $ipTableChanged = ((Test-PerDeviceValue $_.NewIpId) -and "$($_.NewIpId)" -ne "$($_.CurrentIpId)") -or
+                          ((Test-PerDeviceValue $_.NewControlSystemAddr) -and "$($_.NewControlSystemAddr)" -ne "$($_.CurrentControlSystemAddr)")
 
-        $networkValueChanged = ($_.NewIP -and "$($_.NewIP)" -ne "$($_.CurrentIP)") -or
-                               ($_.SubnetMask -and "$($_.SubnetMask)" -ne "$($_.CurrentSubnet)") -or
-                               ($_.Gateway -and "$($_.Gateway)" -ne "$($_.CurrentGateway)") -or
-                               ($_.PrimaryDns -and "$($_.PrimaryDns)" -ne "$($_.CurrentDns1)") -or
-                               ($_.SecondaryDns -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
+        $networkValueChanged = ((Test-PerDeviceValue $_.NewIP) -and "$($_.NewIP)" -ne "$($_.CurrentIP)") -or
+                               ((Test-PerDeviceValue $_.SubnetMask) -and "$($_.SubnetMask)" -ne "$($_.CurrentSubnet)") -or
+                               ((Test-PerDeviceValue $_.Gateway) -and "$($_.Gateway)" -ne "$($_.CurrentGateway)") -or
+                               ((Test-PerDeviceValue $_.PrimaryDns) -and "$($_.PrimaryDns)" -ne "$($_.CurrentDns1)") -or
+                               ((Test-PerDeviceValue $_.SecondaryDns) -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
+
+        $multicastChanged = Test-PerDeviceValue $_.NewMulticastAddress
 
         $hostnameChanged -or
         $ipModeChanged -or
         $deviceModeChanged -or
+        $multicastChanged -or
         $ipTableChanged -or
         $networkValueChanged -or
         $_.DisableWifi
@@ -2904,7 +3697,9 @@ function Load-PerDeviceFromProvision {
             CurrentHostname          = ''
             CurrentDhcp              = $null
             CurrentWifi              = $null
-            HasWifi                  = $true
+            SupportsNetwork          = $false
+            SupportsIpTable          = $false
+            HasWifi                  = $false
             CurrentIP                = ''
             CurrentSubnet            = ''
             CurrentGateway           = ''
@@ -2915,18 +3710,23 @@ function Load-PerDeviceFromProvision {
             CurrentRoomId            = ''
             CurrentDeviceMode        = ''
             SupportsModeChange       = $false
+            SupportsAvMulticast      = $false
+            CurrentTransmitMulticast = ''
+            CurrentReceiveMulticast  = ''
 
-            NewHostname              = ''
-            IPMode                   = 'Keep'
-            DeviceMode               = 'Keep'
-            NewIP                    = ''
-            SubnetMask               = ''
-            Gateway                  = ''
-            PrimaryDns               = ''
-            SecondaryDns             = ''
+            NewHostname              = 'N/A'
+            IPMode                   = 'N/A'
+            DeviceMode               = 'N/A'
+            NewMulticastAddress      = 'N/A'
+            MulticastStreamIndex     = 'N/A'
+            NewIP                    = 'N/A'
+            SubnetMask               = 'N/A'
+            Gateway                  = 'N/A'
+            PrimaryDns               = 'N/A'
+            SecondaryDns             = 'N/A'
             DisableWifi              = $false
-            NewIpId                  = ''
-            NewControlSystemAddr     = ''
+            NewIpId                  = 'N/A'
+            NewControlSystemAddr     = 'N/A'
             NewRoomId                = ''
 
             Status                   = ''
@@ -2947,7 +3747,10 @@ function Save-PerDeviceCsv {
     $Script:PerDeviceState.Rows |
         Where-Object Status -ne '' |
         Select-Object IP, Model, CurrentHostname, CurrentDeviceMode, SupportsModeChange,
-                    NewHostname, IPMode, DeviceMode, NewIP, SubnetMask, Gateway,
+                    SupportsNetwork, SupportsIpTable, HasWifi,
+                    SupportsAvMulticast, CurrentTransmitMulticast, CurrentReceiveMulticast,
+                    NewHostname, IPMode, DeviceMode, NewMulticastAddress, MulticastStreamIndex,
+                    NewIP, SubnetMask, Gateway,
                     PrimaryDns, SecondaryDns, DisableWifi,
                     NewIpId, NewControlSystemAddr, NewRoomId,
                     Status, Detail, NeedsReboot, Timestamp |
@@ -3041,17 +3844,53 @@ function Start-PerDeviceFetch {
 
                     try {
                         $state = Get-CrestronDeviceState -Session $sess
+                        $av = $null
+
+                        try {
+                            $av = Get-CrestronAvSettings -Session $sess
+                        }
+                        catch {
+                            $av = $null
+                        }
 
                         $dnsArr = @($state.DnsServers)
                         $dns1 = if ($dnsArr.Count -ge 1) { $dnsArr[0] } else { '' }
                         $dns2 = if ($dnsArr.Count -ge 2) { $dnsArr[1] } else { '' }
+                        $txMulticast = ''
+                        $rxMulticast = ''
+                        $supportsAvMulticast = $false
+                        $modelText = "$($sess.Model)"
+                        if ([string]::IsNullOrWhiteSpace($modelText)) {
+                            $modelText = "$($state.Model)"
+                        }
+
+                        if ($av) {
+                            if ([string]::IsNullOrWhiteSpace($modelText)) {
+                                $modelText = "$($av.Model)"
+                            }
+
+                            $isNvx = $modelText -match '^DM-NVX'
+                            $supportsAvMulticast = $isNvx -and ([bool]$av.SupportsStreamTransmit -or [bool]$av.SupportsStreamReceive)
+
+                            $txStreams = @($av.TransmitMulticastAddresses)
+                            if ($txStreams.Count -gt 0) {
+                                $txMulticast = "$($txStreams[0].MulticastAddress)"
+                            }
+
+                            $rxStreams = @($av.ReceiveMulticastAddresses)
+                            if ($rxStreams.Count -gt 0) {
+                                $rxMulticast = "$($rxStreams[0].MulticastAddress)"
+                            }
+                        }
 
                         $q.Enqueue([pscustomobject]@{
                             IP                       = $ip
-                            Model                    = $sess.Model
+                            Model                    = $modelText
                             CurrentHostname          = $state.Hostname
                             CurrentDhcp              = $state.EthernetLanDhcp
                             CurrentWifi              = $state.WifiEnabled
+                            SupportsNetwork          = if ($null -ne $state.SupportsNetwork) { [bool]$state.SupportsNetwork } else { $true }
+                            SupportsIpTable          = [bool]$state.SupportsIpTable
                             HasWifi                  = $state.HasWifi
                             CurrentIP                = $state.EthernetLanIP
                             CurrentSubnet            = $state.EthernetLanSubnet
@@ -3063,6 +3902,9 @@ function Start-PerDeviceFetch {
                             CurrentRoomId            = $state.CurrentRoomId
                             CurrentDeviceMode        = $state.CurrentDeviceMode
                             SupportsModeChange       = $state.SupportsModeChange
+                            SupportsAvMulticast      = $supportsAvMulticast
+                            CurrentTransmitMulticast = $txMulticast
+                            CurrentReceiveMulticast  = $rxMulticast
                             Detail                   = "OK"
                         })
                     } finally {
@@ -3115,7 +3957,16 @@ function Start-PerDeviceFetch {
                 'CurrentDns1',
                 'CurrentDns2',
                 'CurrentDeviceMode',
+                'SupportsNetwork',
+                'SupportsIpTable',
                 'SupportsModeChange',
+                'SupportsAvMulticast',
+                'CurrentTransmitMulticast',
+                'CurrentReceiveMulticast',
+                'NewHostname',
+                'IPMode',
+                'NewMulticastAddress',
+                'MulticastStreamIndex',
                 'DeviceMode',
                 'NeedsReboot'
             )) {
@@ -3127,8 +3978,17 @@ function Start-PerDeviceFetch {
                         'CurrentDns1'        { '' }
                         'CurrentDns2'        { '' }
                         'CurrentDeviceMode'  { '' }
+                        'SupportsNetwork'    { $false }
+                        'SupportsIpTable'    { $false }
                         'SupportsModeChange' { $false }
-                        'DeviceMode'         { 'Keep' }
+                        'SupportsAvMulticast' { $false }
+                        'CurrentTransmitMulticast' { '' }
+                        'CurrentReceiveMulticast' { '' }
+                        'NewHostname' { 'N/A' }
+                        'IPMode' { 'N/A' }
+                        'NewMulticastAddress' { 'N/A' }
+                        'MulticastStreamIndex' { 'N/A' }
+                        'DeviceMode'         { 'N/A' }
                         'NeedsReboot'        { $false }
                     }
 
@@ -3141,6 +4001,8 @@ function Start-PerDeviceFetch {
                 $row.CurrentHostname          = "$($item.CurrentHostname)"
                 $row.CurrentDhcp              = $item.CurrentDhcp
                 $row.CurrentWifi              = $item.CurrentWifi
+                $row.SupportsNetwork          = [bool]$item.SupportsNetwork
+                $row.SupportsIpTable          = [bool]$item.SupportsIpTable
                 $row.HasWifi                  = [bool]$item.HasWifi
                 $row.CurrentIP                = "$($item.CurrentIP)"
                 $row.CurrentSubnet            = "$($item.CurrentSubnet)"
@@ -3152,36 +4014,68 @@ function Start-PerDeviceFetch {
                 $row.CurrentRoomId            = "$($item.CurrentRoomId)"
                 $row.CurrentDeviceMode        = "$($item.CurrentDeviceMode)"
                 $row.SupportsModeChange       = [bool]$item.SupportsModeChange
+                $row.SupportsAvMulticast      = [bool]$item.SupportsAvMulticast
 
-                $row.NewHostname = "$($item.CurrentHostname)"
+                if ([bool]$item.SupportsNetwork) {
+                    $row.NewHostname = "$($item.CurrentHostname)"
 
-                $row.IPMode = if ([bool]$item.CurrentDhcp) {
-                    'DHCP'
-                } else {
-                    'Static'
+                    $row.IPMode = if ([bool]$item.CurrentDhcp) {
+                        'DHCP'
+                    } else {
+                        'Static'
+                    }
+
+                    $row.NewIP        = "$($item.CurrentIP)"
+                    $row.SubnetMask   = "$($item.CurrentSubnet)"
+                    $row.Gateway      = "$($item.CurrentGateway)"
+                    $row.PrimaryDns   = "$($item.CurrentDns1)"
+                    $row.SecondaryDns = "$($item.CurrentDns2)"
+                }
+                else {
+                    $row.NewHostname  = 'N/A'
+                    $row.IPMode       = 'N/A'
+                    $row.NewIP        = 'N/A'
+                    $row.SubnetMask   = 'N/A'
+                    $row.Gateway      = 'N/A'
+                    $row.PrimaryDns   = 'N/A'
+                    $row.SecondaryDns = 'N/A'
                 }
 
-                $row.DeviceMode = if ([bool]$item.SupportsModeChange -and -not [string]::IsNullOrWhiteSpace("$($item.CurrentDeviceMode)")) {
-                    "$($item.CurrentDeviceMode)"
+                $row.DeviceMode = if ([bool]$item.SupportsModeChange) {
+                    if (-not [string]::IsNullOrWhiteSpace("$($item.CurrentDeviceMode)")) {
+                        "$($item.CurrentDeviceMode)"
+                    } else {
+                        'Keep'
+                    }
                 } else {
-                    'Keep'
+                    'N/A'
                 }
 
-                if (-not [bool]$item.SupportsModeChange) {
-                    $row.DeviceMode = 'Keep'
+                if (-not [bool]$item.SupportsAvMulticast) {
+                    $row.CurrentTransmitMulticast = 'N/A'
+                    $row.CurrentReceiveMulticast  = 'N/A'
+                    $row.NewMulticastAddress      = 'N/A'
+                    $row.MulticastStreamIndex     = 'N/A'
+                }
+                else {
+                    $row.CurrentTransmitMulticast = "$($item.CurrentTransmitMulticast)"
+                    $row.CurrentReceiveMulticast  = "$($item.CurrentReceiveMulticast)"
+                    $row.NewMulticastAddress      = ''
+                    $row.MulticastStreamIndex     = '0'
                 }
 
                 if (-not [bool]$item.HasWifi) {
                     $row.DisableWifi = $false
                 }
 
-                $row.NewIpId              = "$($item.CurrentIpId)"
-                $row.NewControlSystemAddr = "$($item.CurrentControlSystemAddr)"
-                $row.NewIP                = "$($item.CurrentIP)"
-                $row.SubnetMask           = "$($item.CurrentSubnet)"
-                $row.Gateway              = "$($item.CurrentGateway)"
-                $row.PrimaryDns           = "$($item.CurrentDns1)"
-                $row.SecondaryDns         = "$($item.CurrentDns2)"
+                if ([bool]$item.SupportsIpTable) {
+                    $row.NewIpId              = "$($item.CurrentIpId)"
+                    $row.NewControlSystemAddr = "$($item.CurrentControlSystemAddr)"
+                }
+                else {
+                    $row.NewIpId              = 'N/A'
+                    $row.NewControlSystemAddr = 'N/A'
+                }
 
                 if (-not $row.Status) {
                     $row.Status = ''
@@ -3208,28 +4102,41 @@ function Start-PerDeviceFetch {
 
 # Validate a row before apply
 function Test-PerDeviceRow ($row) {
-    if ($row.NewHostname -and ($row.NewHostname -notmatch '^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$')) {
+    if ((Test-PerDeviceValue $row.NewHostname) -and -not [bool]$row.SupportsNetwork) {
+        return "Network/hostname settings selected, but this device does not expose network settings"
+    }
+
+    if ((Test-PerDeviceValue $row.NewHostname) -and ($row.NewHostname -notmatch '^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$')) {
         return "Invalid hostname '$($row.NewHostname)'"
     }
+    if (($row.IPMode -in 'DHCP','Static') -and -not [bool]$row.SupportsNetwork) {
+        return "IP address settings selected, but this device does not expose network settings"
+    }
+
     if ($row.IPMode -eq 'Static') {
+        if (-not [bool]$row.SupportsNetwork) {
+            return "IP address settings selected, but this device does not expose network settings"
+        }
+
         $ipPattern = '^(\d{1,3}\.){3}\d{1,3}$'
-        if ($row.NewIP      -notmatch $ipPattern) { return "Invalid NewIP" }
+        if ($row.NewIP      -notmatch $ipPattern) { return "Invalid IP Address" }
         if ($row.SubnetMask -notmatch $ipPattern) { return "Invalid SubnetMask" }
         if ($row.Gateway    -notmatch $ipPattern) { return "Invalid Gateway" }
-        if ($row.PrimaryDns   -and $row.PrimaryDns   -notmatch $ipPattern) { return "Invalid DNS1" }
-        if ($row.SecondaryDns -and $row.SecondaryDns -notmatch $ipPattern) { return "Invalid DNS2" }
+        if ((Test-PerDeviceValue $row.PrimaryDns) -and $row.PrimaryDns -notmatch $ipPattern) { return "Invalid DNS1" }
+        if ((Test-PerDeviceValue $row.SecondaryDns) -and $row.SecondaryDns -notmatch $ipPattern) { return "Invalid DNS2" }
     }
     if ($row.DisableWifi -and -not $row.HasWifi) {
         return "This device has no WiFi adapter (uncheck 'WiFi Off')"
     }
     # IP-table validation: if any of the three IP-table fields are set, require all three
-    $ipAny = $row.NewIpId -or $row.NewControlSystemAddr
+    $ipAny = (Test-PerDeviceValue $row.NewIpId) -or (Test-PerDeviceValue $row.NewControlSystemAddr)
     if ($ipAny) {
-        if (-not $row.NewIpId)            { return "IPID is required when setting Control System fields" }
+        if (-not [bool]$row.SupportsIpTable) { return "Control System fields selected, but this device does not expose IP table settings" }
+        if (-not (Test-PerDeviceValue $row.NewIpId)) { return "IPID is required when setting Control System fields" }
         if ($row.NewIpId -notmatch '^[0-9A-Fa-f]{1,2}$') { return "IPID '$($row.NewIpId)' must be 1-2 hex digits (1..FE)" }
         $ipIdInt = [Convert]::ToInt32($row.NewIpId, 16)
         if ($ipIdInt -lt 1 -or $ipIdInt -gt 254) { return "IPID '$($row.NewIpId)' is out of range (1..FE)" }
-        if (-not $row.NewControlSystemAddr) { return "Control System IP is required when setting Control System fields" }
+        if (-not (Test-PerDeviceValue $row.NewControlSystemAddr)) { return "Control System IP is required when setting Control System fields" }
         $addr = $row.NewControlSystemAddr
         $isIpv4 = $addr -match '^(\d{1,3}\.){3}\d{1,3}$'
         $isHost = $addr -match '^[A-Za-z0-9]([A-Za-z0-9\-\.]{0,253}[A-Za-z0-9])?$'
@@ -3238,6 +4145,37 @@ function Test-PerDeviceRow ($row) {
     if ($row.DeviceMode -in 'Transmitter','Receiver') {
         if (-not $row.SupportsModeChange) {
             return "Device mode change selected, but this device does not expose DeviceSpecific.DeviceMode"
+        }
+    }
+
+    if (Test-PerDeviceValue $row.NewMulticastAddress) {
+        if (-not [bool]$row.SupportsAvMulticast) {
+            return "Multicast selected, but this device does not expose stream multicast settings"
+        }
+
+        $modeForMulticast = "$($row.DeviceMode)"
+        if ([string]::IsNullOrWhiteSpace($modeForMulticast) -or @('Keep','N/A') -contains $modeForMulticast) {
+            $modeForMulticast = "$($row.CurrentDeviceMode)"
+        }
+
+        if ($modeForMulticast -notin 'Transmitter','Receiver') {
+            return "Multicast address requires TX/RX Mode Transmitter or Receiver"
+        }
+
+        if ("$($row.NewMulticastAddress)" -notmatch '^239\.(\d{1,3}\.){2}\d{1,3}$') {
+            return "Multicast address '$($row.NewMulticastAddress)' must be in the 239.x.x.x range"
+        }
+
+        foreach ($octet in ("$($row.NewMulticastAddress)" -split '\.')) {
+            $n = [int]$octet
+            if ($n -lt 0 -or $n -gt 255) {
+                return "Multicast address '$($row.NewMulticastAddress)' has an octet outside 0-255"
+            }
+        }
+
+        $streamIndex = 0
+        if (-not [int]::TryParse("$($row.MulticastStreamIndex)", [ref]$streamIndex) -or $streamIndex -lt 0) {
+            return "Multicast stream index must be 0 or greater"
         }
     }
 
@@ -3251,7 +4189,7 @@ function Start-PerDeviceApply {
     # Only treat IPID/CS-IP as a "change" if the new value differs from current
     # (otherwise every fetched row would trigger a pointless rewrite).
     $rowsToApply = @($Script:PerDeviceState.Rows | Where-Object {
-        $hostnameChanged = -not [string]::IsNullOrWhiteSpace($_.NewHostname) -and
+        $hostnameChanged = (Test-PerDeviceValue $_.NewHostname) -and
                         "$($_.NewHostname)" -ne "$($_.CurrentHostname)"
 
         $ipModeChanged = $false
@@ -3270,18 +4208,21 @@ function Start-PerDeviceApply {
             $deviceModeChanged = $_.DeviceMode -ne $_.CurrentDeviceMode
         }
 
-        $ipTableChanged = ($_.NewIpId -and "$($_.NewIpId)" -ne "$($_.CurrentIpId)") -or
-                        ($_.NewControlSystemAddr -and "$($_.NewControlSystemAddr)" -ne "$($_.CurrentControlSystemAddr)")
+        $ipTableChanged = ((Test-PerDeviceValue $_.NewIpId) -and "$($_.NewIpId)" -ne "$($_.CurrentIpId)") -or
+                        ((Test-PerDeviceValue $_.NewControlSystemAddr) -and "$($_.NewControlSystemAddr)" -ne "$($_.CurrentControlSystemAddr)")
 
-        $networkValueChanged = ($_.NewIP -and "$($_.NewIP)" -ne "$($_.CurrentIP)") -or
-                            ($_.SubnetMask -and "$($_.SubnetMask)" -ne "$($_.CurrentSubnet)") -or
-                            ($_.Gateway -and "$($_.Gateway)" -ne "$($_.CurrentGateway)") -or
-                            ($_.PrimaryDns -and "$($_.PrimaryDns)" -ne "$($_.CurrentDns1)") -or
-                            ($_.SecondaryDns -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
+        $networkValueChanged = ((Test-PerDeviceValue $_.NewIP) -and "$($_.NewIP)" -ne "$($_.CurrentIP)") -or
+                            ((Test-PerDeviceValue $_.SubnetMask) -and "$($_.SubnetMask)" -ne "$($_.CurrentSubnet)") -or
+                            ((Test-PerDeviceValue $_.Gateway) -and "$($_.Gateway)" -ne "$($_.CurrentGateway)") -or
+                            ((Test-PerDeviceValue $_.PrimaryDns) -and "$($_.PrimaryDns)" -ne "$($_.CurrentDns1)") -or
+                            ((Test-PerDeviceValue $_.SecondaryDns) -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
+
+        $multicastChanged = Test-PerDeviceValue $_.NewMulticastAddress
 
         $hostnameChanged -or
         $ipModeChanged -or
         $deviceModeChanged -or
+        $multicastChanged -or
         $ipTableChanged -or
         $networkValueChanged -or
         $_.DisableWifi
@@ -3356,9 +4297,13 @@ function Start-PerDeviceApply {
             CurrentHostname          = $_.CurrentHostname
             IPMode                   = $_.IPMode
             CurrentDhcp              = $_.CurrentDhcp
+            SupportsNetwork          = [bool]$_.SupportsNetwork
             DeviceMode               = $_.DeviceMode
             SupportsModeChange       = [bool]$_.SupportsModeChange
             CurrentDeviceMode        = $_.CurrentDeviceMode
+            SupportsAvMulticast      = [bool]$_.SupportsAvMulticast
+            NewMulticastAddress      = $_.NewMulticastAddress
+            MulticastStreamIndex     = $_.MulticastStreamIndex
             NewIP                    = $_.NewIP
             CurrentIP                = $_.CurrentIP
             SubnetMask               = $_.SubnetMask
@@ -3372,6 +4317,7 @@ function Start-PerDeviceApply {
             DisableWifi              = [bool]$_.DisableWifi
             NewIpId                  = $_.NewIpId
             NewControlSystemAddr     = $_.NewControlSystemAddr
+            SupportsIpTable          = [bool]$_.SupportsIpTable
             CurrentIpId              = $_.CurrentIpId
             CurrentControlSystemAddr = $_.CurrentControlSystemAddr
         }
@@ -3428,6 +4374,13 @@ function Start-PerDeviceApply {
                     $allOk = $true
                     $needsReboot = $false
 
+                    function Test-PerDeviceValue {
+                        param($Value)
+
+                        $text = "$Value"
+                        return (-not [string]::IsNullOrWhiteSpace($text)) -and ($text -ne 'N/A')
+                    }
+
                     function Test-ResultNeedsReboot {
                         param(
                             $Result
@@ -3476,37 +4429,49 @@ function Start-PerDeviceApply {
                     }
 
                     try {
-                            if ($row.NewHostname -and "$($row.NewHostname)" -ne "$($row.CurrentHostname)") {
-                            $r1 = Set-CrestronHostname -Session $sess -Hostname $row.NewHostname
-                            $stepResults += "Hostname=$(if($r1.Success){'OK'}else{$r1.Status})"
-
-                            if (Test-ResultNeedsReboot $r1) {
-                                $needsReboot = $true
-                            }
-
-                            if (-not $r1.Success) {
+                        if ((Test-PerDeviceValue $row.NewHostname) -and "$($row.NewHostname)" -ne "$($row.CurrentHostname)") {
+                            if (-not [bool]$row.SupportsNetwork) {
+                                $stepResults += "Hostname=skipped; unsupported"
                                 $allOk = $false
                             }
-                        }
+                            else {
+                                $r1 = Set-CrestronHostname -Session $sess -Hostname $row.NewHostname
+                                $stepResults += "Hostname=$(if($r1.Success){'OK'}else{$r1.Status})"
 
-                        $ipChanged = ($row.NewIpId             -and $row.NewIpId             -ne $row.CurrentIpId) -or
-                                     ($row.NewControlSystemAddr -and $row.NewControlSystemAddr -ne $row.CurrentControlSystemAddr)
-
-                        if ($ipChanged) {
-                            try {
-                                $r3 = Set-CrestronIpTable -Session $sess `
-                                    -IpId $row.NewIpId `
-                                    -ControlSystemAddress $row.NewControlSystemAddr `
-                                    -EncryptConnection $false
-
-                                $stepResults += "IpTable=$(if($r3.Success){'OK'}else{$r3.Status})"
-
-                                if (Test-ResultNeedsReboot $r3) {
+                                if (Test-ResultNeedsReboot $r1) {
                                     $needsReboot = $true
                                 }
 
-                                if (-not $r3.Success) {
+                                if (-not $r1.Success) {
                                     $allOk = $false
+                                }
+                            }
+                        }
+
+                        $ipChanged = ((Test-PerDeviceValue $row.NewIpId) -and $row.NewIpId -ne $row.CurrentIpId) -or
+                                     ((Test-PerDeviceValue $row.NewControlSystemAddr) -and $row.NewControlSystemAddr -ne $row.CurrentControlSystemAddr)
+
+                        if ($ipChanged) {
+                            try {
+                                if (-not [bool]$row.SupportsIpTable) {
+                                    $stepResults += "IpTable=skipped; unsupported"
+                                    $allOk = $false
+                                }
+                                else {
+                                    $r3 = Set-CrestronIpTable -Session $sess `
+                                        -IpId $row.NewIpId `
+                                        -ControlSystemAddress $row.NewControlSystemAddr `
+                                        -EncryptConnection $false
+
+                                    $stepResults += "IpTable=$(if($r3.Success){'OK'}else{$r3.Status})"
+
+                                    if (Test-ResultNeedsReboot $r3) {
+                                        $needsReboot = $true
+                                    }
+
+                                    if (-not $r3.Success) {
+                                        $allOk = $false
+                                    }
                                 }
                             } catch {
                                 $stepResults += "IpTable=ERR: $($_.Exception.Message)"
@@ -3523,44 +4488,50 @@ function Start-PerDeviceApply {
                         $ipModeChanged = ($row.IPMode -in 'DHCP','Static') -and
                                          ($row.IPMode -ne $currentIpMode)
 
-                        $networkValueChanged = ($row.NewIP -and "$($row.NewIP)" -ne "$($row.CurrentIP)") -or
-                                               ($row.SubnetMask -and "$($row.SubnetMask)" -ne "$($row.CurrentSubnet)") -or
-                                               ($row.Gateway -and "$($row.Gateway)" -ne "$($row.CurrentGateway)") -or
-                                               ($row.PrimaryDns -and "$($row.PrimaryDns)" -ne "$($row.CurrentDns1)") -or
-                                               ($row.SecondaryDns -and "$($row.SecondaryDns)" -ne "$($row.CurrentDns2)")
+                        $networkValueChanged = ((Test-PerDeviceValue $row.NewIP) -and "$($row.NewIP)" -ne "$($row.CurrentIP)") -or
+                                               ((Test-PerDeviceValue $row.SubnetMask) -and "$($row.SubnetMask)" -ne "$($row.CurrentSubnet)") -or
+                                               ((Test-PerDeviceValue $row.Gateway) -and "$($row.Gateway)" -ne "$($row.CurrentGateway)") -or
+                                               ((Test-PerDeviceValue $row.PrimaryDns) -and "$($row.PrimaryDns)" -ne "$($row.CurrentDns1)") -or
+                                               ((Test-PerDeviceValue $row.SecondaryDns) -and "$($row.SecondaryDns)" -ne "$($row.CurrentDns2)")
                         if ($ipModeChanged -or $networkValueChanged -or $row.DisableWifi) {
-                            $netArgs = @{
-                                Session = $sess
-                                IPMode  = $row.IPMode
-                            }
-
-                            if ($row.IPMode -eq 'Static') {
-                                $netArgs.NewIP      = $row.NewIP
-                                $netArgs.SubnetMask = $row.SubnetMask
-                                $netArgs.Gateway    = $row.Gateway
-
-                                if ($row.PrimaryDns) {
-                                    $netArgs.PrimaryDns = $row.PrimaryDns
-                                }
-
-                                if ($row.SecondaryDns) {
-                                    $netArgs.SecondaryDns = $row.SecondaryDns
-                                }
-                            }
-
-                            if ($row.DisableWifi) {
-                                $netArgs.DisableWifi = $true
-                            }
-
-                            $r2 = Set-CrestronNetwork @netArgs
-                            $stepResults += "Network=$(if($r2.Success){'OK'}else{$r2.Status})"
-
-                            if (Test-ResultNeedsReboot $r2) {
-                                $needsReboot = $true
-                            }
-
-                            if (-not $r2.Success) {
+                            if (-not [bool]$row.SupportsNetwork) {
+                                $stepResults += "Network=skipped; unsupported"
                                 $allOk = $false
+                            }
+                            else {
+                                $netArgs = @{
+                                    Session = $sess
+                                    IPMode  = $row.IPMode
+                                }
+
+                                if ($row.IPMode -eq 'Static') {
+                                    $netArgs.NewIP      = $row.NewIP
+                                    $netArgs.SubnetMask = $row.SubnetMask
+                                    $netArgs.Gateway    = $row.Gateway
+
+                                    if (Test-PerDeviceValue $row.PrimaryDns) {
+                                        $netArgs.PrimaryDns = $row.PrimaryDns
+                                    }
+
+                                    if (Test-PerDeviceValue $row.SecondaryDns) {
+                                        $netArgs.SecondaryDns = $row.SecondaryDns
+                                    }
+                                }
+
+                                if ($row.DisableWifi) {
+                                    $netArgs.DisableWifi = $true
+                                }
+
+                                $r2 = Set-CrestronNetwork @netArgs
+                                $stepResults += "Network=$(if($r2.Success){'OK'}else{$r2.Status})"
+
+                                if (Test-ResultNeedsReboot $r2) {
+                                    $needsReboot = $true
+                                }
+
+                                if (-not $r2.Success) {
+                                    $allOk = $false
+                                }
                             }
                         } elseif ($row.DisableWifi) {
                             # WiFi-off only, no IP change. Need a payload — use IPMode=Keep semantics:
@@ -3596,6 +4567,54 @@ function Start-PerDeviceApply {
                                 }
                             } catch {
                                 $stepResults += "DeviceMode=ERR: $($_.Exception.Message)"
+                                $allOk = $false
+                            }
+                        }
+
+                        if (Test-PerDeviceValue $row.NewMulticastAddress) {
+                            try {
+                                if (-not [bool]$row.SupportsAvMulticast) {
+                                    $stepResults += "Multicast=skipped; unsupported"
+                                    $allOk = $false
+                                }
+                                else {
+                                    $modeForMulticast = "$($row.DeviceMode)"
+                                    if ([string]::IsNullOrWhiteSpace($modeForMulticast) -or @('Keep','N/A') -contains $modeForMulticast) {
+                                        $modeForMulticast = "$($row.CurrentDeviceMode)"
+                                    }
+
+                                    $multicastDirection = switch ($modeForMulticast) {
+                                        'Transmitter' { 'Transmit'; break }
+                                        'Receiver'    { 'Receive'; break }
+                                        default       { '' }
+                                    }
+
+                                    if (-not $multicastDirection) {
+                                        $stepResults += "Multicast=skipped; TX/RX mode unavailable"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $streamIndex = [int]$row.MulticastStreamIndex
+                                        $rMc = Set-CrestronMulticastAddress `
+                                            -Session $sess `
+                                            -Direction $multicastDirection `
+                                            -MulticastAddress $row.NewMulticastAddress `
+                                            -StreamIndex $streamIndex
+
+                                        $stepResults += "Multicast=$(if($rMc.Success){'OK'}else{$rMc.Status}) -> $multicastDirection $($row.NewMulticastAddress)[$streamIndex]"
+
+                                        if (Test-ResultNeedsReboot $rMc) {
+                                            $needsReboot = $true
+                                        }
+
+                                        if (-not $rMc.Success) {
+                                            $allOk = $false
+                                        }
+                                    }
+                                }
+                            }
+                            catch {
+                                $stepResults += "Multicast=ERR: $($_.Exception.Message)"
                                 $allOk = $false
                             }
                         }
@@ -3676,6 +4695,13 @@ function Start-PerDeviceApply {
             $ok = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
             $Script:UI.PerDeviceProgressText.Text = "Done. $ok device(s) OK."
             Update-Status "Per-device apply complete. $ok OK. Saved $($Script:AppState.PerDeviceCsv)"
+
+            Invoke-RebootNeededRows `
+                -Rows @($Script:PerDeviceState.Rows) `
+                -RowsByIP $Script:PerDeviceState.RowsByIP `
+                -Grid $Script:UI.PerDeviceGrid `
+                -UpdateSummary { Update-PerDeviceSummary } `
+                -AreaName 'Per-Device'
         }
     })
 
@@ -3706,6 +4732,20 @@ $Script:UI.PerDeviceTab.Add_GotFocus({
 $Script:UI.PerDeviceRefreshButton.Add_Click({ Start-PerDeviceFetch })
 $Script:UI.PerDeviceApplyButton.Add_Click({ Start-PerDeviceApply })
 $Script:UI.PerDeviceCancelButton.Add_Click({ Stop-PerDeviceApply })
+
+$Script:UI.PerDeviceGrid.Add_BeginningEdit({
+    param($sender, $e)
+
+    $header = "$($e.Column.Header)"
+
+    if ($header -in @('MC Address','MC Stream')) {
+        $row = $e.Row.Item
+
+        if (-not $row -or -not [bool]$row.SupportsAvMulticast) {
+            $e.Cancel = $true
+        }
+    }
+})
 
 $Script:UI.PerDeviceGrid.Add_CellEditEnding({
     $Script:UI.PerDeviceGrid.Dispatcher.BeginInvoke([Action]{
@@ -3750,8 +4790,177 @@ function Stop-RebootRunspace {
     }
 }
 
-function Invoke-RebootBulk ($ips, $statusCallback) {
-    if ($ips.Count -eq 0) {
+function Show-RebootWaitDialog {
+    param(
+        [int]$Seconds = 240,
+        [string]$Title = 'Waiting for devices to reboot',
+        [string]$Message = 'Devices are rebooting. Please wait before continuing.'
+    )
+
+    if ($Seconds -lt 1) {
+        $Seconds = 240
+    }
+
+    [xml]$dxaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Waiting for reboot"
+        Width="500"
+        Height="250"
+        MinHeight="250"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="ToolWindow">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock x:Name="WaitMessage"
+                   Grid.Row="0"
+                   Text="Devices are rebooting. Please wait before continuing."
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,12" />
+
+        <ProgressBar x:Name="WaitProgress"
+                     Grid.Row="1"
+                     Height="22"
+                     Minimum="0"
+                     Maximum="100"
+                     Value="0"
+                     Margin="0,0,0,8" />
+
+        <TextBlock x:Name="WaitCountdown"
+                   Grid.Row="2"
+                   Text="Starting..."
+                   FontFamily="Consolas"
+                   Foreground="#0066CC"
+                   Margin="0,0,0,10" />
+
+        <TextBlock Grid.Row="3"
+                   Text="You can skip this wait if the devices are already back online. Cancel exits this wait screen."
+                   Foreground="#666"
+                   FontSize="11"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,10" />
+
+        <StackPanel Grid.Row="4"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom">
+            <Button x:Name="SkipButton"
+                    Content="Skip Wait"
+                    Width="100"
+                    Padding="12,4"
+                    Margin="0,0,8,0" />
+            <Button x:Name="CancelButton"
+                    Content="Cancel"
+                    Width="90"
+                    Padding="12,4" />
+        </StackPanel>
+    </Grid>
+</Window>
+'@
+
+    $reader = [System.Xml.XmlNodeReader]::new($dxaml)
+    $dlg = [Windows.Markup.XamlReader]::Load($reader)
+
+    $dlg.Owner = $window
+    $dlg.Title = $Title
+
+    $messageText  = $dlg.FindName('WaitMessage')
+    $bar          = $dlg.FindName('WaitProgress')
+    $countdown    = $dlg.FindName('WaitCountdown')
+    $skipButton   = $dlg.FindName('SkipButton')
+    $cancelButton = $dlg.FindName('CancelButton')
+
+    $messageText.Text = $Message
+
+    $script:_rebootWaitResult = 'Completed'
+    $startTime = Get-Date
+
+    $timer = New-Object System.Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(250)
+
+    $timer.Add_Tick({
+        $elapsed = [int]((Get-Date) - $startTime).TotalSeconds
+
+        if ($elapsed -lt 0) {
+            $elapsed = 0
+        }
+
+        if ($elapsed -gt $Seconds) {
+            $elapsed = $Seconds
+        }
+
+        $remaining = $Seconds - $elapsed
+
+        $percent = if ($Seconds -gt 0) {
+            [Math]::Min(100, [Math]::Round(($elapsed / $Seconds) * 100, 0))
+        }
+        else {
+            100
+        }
+
+        $bar.Value = $percent
+
+        $mm = [Math]::Floor($remaining / 60)
+        $ss = $remaining % 60
+
+        $countdown.Text = ("Waiting: {0}:{1:D2} remaining ({2}% complete)" -f $mm, $ss, $percent)
+
+        if ($elapsed -ge $Seconds) {
+            $timer.Stop()
+            $script:_rebootWaitResult = 'Completed'
+            $dlg.DialogResult = $true
+            $dlg.Close()
+        }
+    })
+
+    $skipButton.Add_Click({
+        $timer.Stop()
+        $script:_rebootWaitResult = 'Skipped'
+        $dlg.DialogResult = $true
+        $dlg.Close()
+    })
+
+    $cancelButton.Add_Click({
+        $timer.Stop()
+        $script:_rebootWaitResult = 'Cancelled'
+        $dlg.DialogResult = $false
+        $dlg.Close()
+    })
+
+    $dlg.Add_ContentRendered({
+        $timer.Start()
+    })
+
+    [void]$dlg.ShowDialog()
+
+    if ($timer) {
+        try { $timer.Stop() } catch { }
+    }
+
+    return $script:_rebootWaitResult
+}
+
+function Invoke-RebootBulk {
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Ips,
+
+        [scriptblock]$StatusCallback,
+
+        [switch]$SkipConfirm,
+
+        [switch]$SkipWait
+    )
+
+    if ($Ips.Count -eq 0) {
         [System.Windows.MessageBox]::Show("No devices to reboot.", "Nothing selected", 'OK', 'Warning') | Out-Null
         return
     }
@@ -3759,11 +4968,16 @@ function Invoke-RebootBulk ($ips, $statusCallback) {
     $cred = Get-CachedCredential
     if (-not $cred) { Update-Status 'Reboot cancelled (no credentials).'; return }
 
-    $msg = "Reboot $($ips.Count) device(s)?`n`nThis will disconnect each device immediately. Pending settings changes will take effect after the reboot."
-    $ans = [System.Windows.MessageBox]::Show($msg, "Confirm reboot", 'YesNo', 'Warning')
-    if ($ans -ne 'Yes') { Update-Status 'Reboot cancelled.'; return }
+    if (-not $SkipConfirm) {
+        $msg = "Reboot $($Ips.Count) device(s)?`n`nThis will disconnect each device immediately. Pending settings changes will take effect after the reboot."
+        $ans = [System.Windows.MessageBox]::Show($msg, "Confirm reboot", 'YesNo', 'Warning')
+        if ($ans -ne 'Yes') { Update-Status 'Reboot cancelled.'; return }
+    }
 
-    Update-Status "Rebooting $($ips.Count) device(s)..."
+    $Script:RebootWaitDeviceCount = @($Ips).Count
+    $Script:RebootWaitAcceptedCount = 0
+
+    Update-Status "Rebooting $($Ips.Count) device(s)..."
 
     $modManifest = (Get-Module CrestronAdminBootstrap).Path
     if (-not $modManifest) {
@@ -3777,7 +4991,7 @@ function Invoke-RebootBulk ($ips, $statusCallback) {
     $rs.ApartmentState = 'STA'; $rs.Open()
     $rs.SessionStateProxy.SetVariable('queue',    $queue)
     $rs.SessionStateProxy.SetVariable('doneRef',  $doneRef)
-    $rs.SessionStateProxy.SetVariable('ips',      $ips)
+    $rs.SessionStateProxy.SetVariable('ips',      $Ips)
     $rs.SessionStateProxy.SetVariable('userName', $cred.UserName)
     $rs.SessionStateProxy.SetVariable('userPass', $cred.GetNetworkCredential().Password)
     $rs.SessionStateProxy.SetVariable('manifest', $modManifest)
@@ -3832,18 +5046,50 @@ function Invoke-RebootBulk ($ips, $statusCallback) {
     $timer.Interval = [TimeSpan]::FromMilliseconds(250)
     $timer.Add_Tick({
         $item = $null
+
         while ($Script:RebootState.Queue.TryDequeue([ref]$item)) {
             if ($item.__error) {
                 [System.Windows.MessageBox]::Show("Reboot failed: $($item.__error)", "Error", 'OK', 'Error') | Out-Null
                 continue
             }
-            if ($statusCallback) { & $statusCallback $item }
+
+            if ($item.Success -eq 'True') {
+                $Script:RebootWaitAcceptedCount++
+            }
+
+            if ($StatusCallback) {
+                & $StatusCallback $item
+            }
         }
+
         if ($Script:RebootState.DoneRef.Value -and $Script:RebootState.Queue.IsEmpty) {
             Stop-RebootRunspace
             Update-Status "Reboot Command Sent."
+
+            if (-not $SkipWait -and $Script:RebootWaitAcceptedCount -gt 0) {
+                $waitResult = Show-RebootWaitDialog `
+                    -Seconds 240 `
+                    -Title "Waiting for reboot" `
+                    -Message "Reboot commands have been sent to $($Script:RebootWaitAcceptedCount) device(s). Wait up to 4 minutes before continuing."
+
+                if ($waitResult -eq 'Cancelled') {
+                    Update-Status 'Reboot wait cancelled by user.'
+                }
+                elseif ($waitResult -eq 'Skipped') {
+                    Update-Status 'Reboot wait skipped by user.'
+                }
+                else {
+                    Update-Status 'Reboot wait complete.'
+                }
+            }
+            elseif (-not $SkipWait) {
+                Update-Status 'No reboot commands were accepted; skipping reboot wait.'
+            }
+            else {
+                Update-Status 'Reboot wait skipped for workflow.'
+            }
         }
-    })
+    }.GetNewClosure())
     $timer.Start()
     $Script:RebootState.Timer = $timer
 }
@@ -4082,6 +5328,8 @@ function Start-FullWorkflow {
         Set-WorkflowStep 0 '⏸' 'Confirm or edit Subnets (CIDR) on the Scan tab, then click OK to start scanning.'
         $Script:UI.MainTabs.SelectedIndex = 1  # Scan tab
 
+        Sync-ScanStateFromCheckedCidrs
+
         $cidrText = if ($Script:ScanState.Cidrs.Count -gt 0) {
             ($Script:ScanState.Cidrs -join "`n")
         } else {
@@ -4100,6 +5348,7 @@ function Start-FullWorkflow {
             return
         }
 
+        Sync-ScanStateFromCheckedCidrs
         Save-ScanCidrs
         Set-WorkflowStep 0 '🔄' 'Scanning Network...'
         Start-Scan
@@ -4196,7 +5445,7 @@ function Start-FullWorkflow {
             Set-WorkflowStep 4 'ℹ️' 'No devices to reboot.'
         } else {
             # Use the shared reboot helper. It pops its own confirm dialog.
-            Invoke-RebootBulk $rebootIps { param($item) }
+            Invoke-RebootBulk -Ips $rebootIps -StatusCallback { param($item) } -SkipWait
             # Wait for reboot runspace to drain
             Wait-ForInnerTab { $null -ne $Script:RebootState.PowerShell }
             if ($Script:WorkflowState.Cancelled) { throw 'Cancelled by user.' }
@@ -4278,18 +5527,25 @@ function Start-FullWorkflow {
             Set-WorkflowStep 5 'ℹ️' "$online of $total back online ($offline still booting after 4 min). Verifying anyway."
         }
 
-        # Verify
+        # --- Step 6: Verify --------------------------------------------------
+        $Script:WorkflowState.CurrentStep = 5
+        Set-WorkflowStep 5 '🔄' 'Verifying after reboot wait...'
         $Script:UI.WorkflowStatusText.Text = 'Verifying...'
+
         $Script:UI.MainTabs.SelectedIndex = 5  # Verify
         Load-VerifyFromProvision
         Start-Verify
         Wait-ForInnerTab { $Script:VerifyState.IsRunning }
-        if ($Script:WorkflowState.Cancelled) { throw 'Cancelled by user.' }
-        $verified = ($Script:VerifyState.Rows | Where-Object Verified -eq 'True').Count
-        Set-WorkflowStep 5 '✅' "Wait: $online/$total online. Verify: $verified/$total past bootup."
 
-        # Hide the reboot panel
-        $Script:UI.WorkflowRebootPanel.Visibility = 'Collapsed'
+        if ($Script:WorkflowState.Cancelled) {
+            throw 'Cancelled by user.'
+        }
+
+        $verified = ($Script:VerifyState.Rows | Where-Object Verified -eq 'True').Count
+        $total = $Script:VerifyState.Rows.Count
+
+        Set-WorkflowStep 5 '✅' "Verify: $verified/$total past bootup."
+
     }
     catch {
         $Script:UI.WorkflowStatusText.Text = "Workflow stopped: $($_.Exception.Message)"
@@ -4464,7 +5720,9 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 CurrentHostname          = ''
                 CurrentDhcp              = $null
                 CurrentWifi              = $null
-                HasWifi                  = $true
+                SupportsNetwork          = $false
+                SupportsIpTable          = $false
+                HasWifi                  = $false
                 CurrentIP                = ''
                 CurrentSubnet            = ''
                 CurrentGateway           = ''
@@ -4475,17 +5733,22 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 CurrentRoomId            = ''
                 CurrentDeviceMode        = ''
                 SupportsModeChange       = $false
-                NewHostname              = ''
-                IPMode                   = 'Keep'
-                DeviceMode               = 'Keep'
-                NewIP                    = ''
-                SubnetMask               = ''
-                Gateway                  = ''
-                PrimaryDns               = ''
-                SecondaryDns             = ''
+                SupportsAvMulticast      = $false
+                CurrentTransmitMulticast = ''
+                CurrentReceiveMulticast  = ''
+                NewHostname              = 'N/A'
+                IPMode                   = 'N/A'
+                DeviceMode               = 'N/A'
+                NewMulticastAddress      = 'N/A'
+                MulticastStreamIndex     = 'N/A'
+                NewIP                    = 'N/A'
+                SubnetMask               = 'N/A'
+                Gateway                  = 'N/A'
+                PrimaryDns               = 'N/A'
+                SecondaryDns             = 'N/A'
                 DisableWifi              = $false
-                NewIpId                  = ''
-                NewControlSystemAddr     = ''
+                NewIpId                  = 'N/A'
+                NewControlSystemAddr     = 'N/A'
                 NewRoomId                = ''
                 Status                   = ''
                 Detail                   = ''
@@ -4534,6 +5797,12 @@ $Script:UI.BlanketReloadButton.Add_Click({
                 IP                  = $ip
                 Model               = ''
                 CurrentDeviceMode   = ''
+                AvApiFamily         = ''
+                AvApiVersion        = ''
+                SupportsAvSettings  = $false
+                SupportsAvMulticast = $false
+                SupportsGlobalEdid  = $false
+                EdidNames           = ''
                 SupportsModeChange  = $false
                 SupportsNtp         = $false
                 SupportsCloud       = $false
@@ -4677,10 +5946,15 @@ function Show-AddDevicesDialog {
         <TabControl x:Name="AddTabs">
             <TabItem Header="CIDR Scan">
                 <DockPanel Margin="8">
-                    <TextBlock DockPanel.Dock="Top" Text="Enter one or more CIDR ranges (one per line)." Foreground="#666" Margin="0,0,0,4" />
-                    <TextBox x:Name="AddCidrBox" AcceptsReturn="True" TextWrapping="NoWrap"
-                             VerticalScrollBarVisibility="Auto" FontFamily="Consolas"
-                             Text="172.22.0.0/24" />
+                    <TextBlock DockPanel.Dock="Top"
+                            Text="Select subnet(s) to scan. Subnets come from Settings → Most Used Subnets."
+                            Foreground="#666"
+                            Margin="0,0,0,4"
+                            TextWrapping="Wrap" />
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="AddCidrCheckList" />
+                    </ScrollViewer>
                 </DockPanel>
             </TabItem>
             <TabItem Header="IP List">
@@ -4706,12 +5980,35 @@ function Show-AddDevicesDialog {
     $dlg.Owner = $window
 
     $tabs       = $dlg.FindName('AddTabs')
-    $cidrBox    = $dlg.FindName('AddCidrBox')
+    $cidrList   = $dlg.FindName('AddCidrCheckList')
     $ipsBox     = $dlg.FindName('AddIpsBox')
     $csvSummary = $dlg.FindName('AddCsvSummary')
     $okBtn      = $dlg.FindName('AddOkBtn')
     $cancelBtn  = $dlg.FindName('AddCancelBtn')
+    $defaultCidrs = @()
 
+    if ($Script:GuiSettings -and
+        $Script:GuiSettings.PSObject.Properties.Name -contains 'MostUsedSubnets' -and
+        $Script:GuiSettings.MostUsedSubnets) {
+
+        $defaultCidrs = @($Script:GuiSettings.MostUsedSubnets | Where-Object {
+            $_ -match '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$'
+        })
+    }
+
+    if ($defaultCidrs.Count -eq 0 -and $Script:ScanState -and $Script:ScanState.Cidrs.Count -gt 0) {
+        $defaultCidrs = @($Script:ScanState.Cidrs | Where-Object {
+            $_ -match '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$'
+        })
+    }
+
+    foreach ($cidr in $defaultCidrs) {
+        $check = New-Object System.Windows.Controls.CheckBox
+        $check.Content = $cidr
+        $check.IsChecked = $true
+        $check.Margin = '2,2,2,2'
+        [void]$cidrList.Children.Add($check)
+    }
     # Pre-compute CSV summary
     if (Test-Path $Script:AppState.ProvisionCsv) {
         try {
@@ -4731,13 +6028,25 @@ function Show-AddDevicesDialog {
         $result = @()
         switch ($idx) {
             0 {  # CIDR
-                $lines = $cidrBox.Text -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^\d+\.\d+\.\d+\.\d+/\d+$' }
-                if ($lines.Count -eq 0) {
-                    [System.Windows.MessageBox]::Show("No valid CIDR ranges entered.", "Invalid input", 'OK', 'Warning') | Out-Null
+                $cidrs = @()
+
+                foreach ($item in $cidrList.Children) {
+                    if ([bool]$item.IsChecked) {
+                        $cidrs += "$($item.Content)"
+                    }
+                }
+
+                if ($cidrs.Count -eq 0) {
+                    [System.Windows.MessageBox]::Show(
+                        "Select at least one subnet to scan.",
+                        "No subnet selected",
+                        'OK',
+                        'Warning'
+                    ) | Out-Null
                     return
                 }
-                # Expand CIDRs to individual IPs
-                foreach ($cidr in $lines) {
+
+                foreach ($cidr in $cidrs) {
                     $result += Expand-CidrToIps $cidr
                 }
             }

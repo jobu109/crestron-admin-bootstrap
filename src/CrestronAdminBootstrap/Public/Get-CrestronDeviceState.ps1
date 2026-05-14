@@ -257,6 +257,9 @@ function Get-CrestronDeviceState {
 
         CurrentDeviceMode        = $currentDeviceMode
         SupportsModeChange       = $supportsModeChange
+        SupportsNetwork          = $true
+        SupportsIpTable          = [bool]$ipTableJson
+        SupportsWifi             = $hasWifi
 
         RawJson                  = $api.BodyJson
         FetchedAt                = (Get-Date).ToString('s')
