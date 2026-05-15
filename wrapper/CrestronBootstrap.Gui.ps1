@@ -351,6 +351,7 @@ Load-GuiSettings
                                   HeadersVisibility="Column"
                                   GridLinesVisibility="Horizontal"
                                   SelectionMode="Extended"
+                                  HorizontalScrollBarVisibility="Visible"
                                   AlternatingRowBackground="#F8F8F8">
                             <DataGrid.Columns>
                                 <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" />
@@ -398,6 +399,7 @@ Load-GuiSettings
                               HeadersVisibility="Column"
                               GridLinesVisibility="Horizontal"
                               SelectionMode="Extended"
+                              HorizontalScrollBarVisibility="Visible"
                               AlternatingRowBackground="#F8F8F8">
                         <DataGrid.Columns>
                             <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" />
@@ -430,35 +432,40 @@ Load-GuiSettings
                                 <Button    x:Name="BlanketReloadButton"     Grid.Column="3" Content="Add Devices..." Padding="10,2" Margin="8,0,0,0" />
                             </Grid>
 
-                            <DataGrid x:Name="BlanketGrid"
-                                      AutoGenerateColumns="False"
-                                      CanUserAddRows="False"
-                                      CanUserDeleteRows="False"
-                                      HeadersVisibility="Column"
-                                      GridLinesVisibility="Horizontal"
-                                      SelectionMode="Extended"
-                                      AlternatingRowBackground="#F8F8F8">
-                            <DataGrid.Columns>
-                                <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" />
-                                <DataGridTextColumn     Header="IP"            Binding="{Binding IP}"                  Width="140" IsReadOnly="True" />
-                                <DataGridTextColumn     Header="Model"         Binding="{Binding Model}"               Width="120" IsReadOnly="True" />
-                                <DataGridTextColumn     Header="Current Mode"  Binding="{Binding CurrentDeviceMode}"   Width="110" IsReadOnly="True" />
-                                <DataGridTextColumn     Header="AV API"        Binding="{Binding AvApiFamily}"         Width="120" IsReadOnly="True" />
-                                <DataGridCheckBoxColumn Header="AV?"           Binding="{Binding SupportsAvSettings}"  Width="55"  IsReadOnly="True" />
-                                <DataGridCheckBoxColumn Header="EDID?"         Binding="{Binding SupportsGlobalEdid}"  Width="60"  IsReadOnly="True" />
-                                <DataGridCheckBoxColumn Header="NTP?"          Binding="{Binding SupportsNtp}"         Width="55"  IsReadOnly="True" />
-                                <DataGridCheckBoxColumn Header="Cloud?"        Binding="{Binding SupportsCloud}"       Width="65"  IsReadOnly="True" />
-                                <DataGridCheckBoxColumn Header="Fusion?"       Binding="{Binding SupportsFusion}"      Width="65"  IsReadOnly="True" />
-                                <DataGridCheckBoxColumn Header="Auto?"         Binding="{Binding SupportsAutoUpdate}"  Width="60"  IsReadOnly="True" />
-                                <DataGridCheckBoxColumn Header="TX/RX Mode?"         Binding="{Binding SupportsModeChange}"  Width="70"  IsReadOnly="True" />
-                                <DataGridCheckBoxColumn Header="Fetched?"      Binding="{Binding CapabilitiesFetched}" Width="75"  IsReadOnly="True" />
-                                <DataGridTextColumn     Header="Status"        Binding="{Binding Status}"              Width="90"  IsReadOnly="True" />
-                                <DataGridCheckBoxColumn Header="Reboot?"       Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
-                                <DataGridTextColumn     Header="Sections"      Binding="{Binding Sections}"            Width="200" IsReadOnly="True" />
-                                <DataGridTextColumn     Header="Detail"        Binding="{Binding Detail}"              Width="*"   IsReadOnly="True" />
-                                <DataGridTextColumn     Header="Time"          Binding="{Binding Timestamp}"           Width="160" IsReadOnly="True" />
-                            </DataGrid.Columns>
-                            </DataGrid>
+                            <ScrollViewer HorizontalScrollBarVisibility="Visible"
+                                          VerticalScrollBarVisibility="Disabled">
+                                <DataGrid x:Name="BlanketGrid"
+                                          Width="1640"
+                                          HorizontalAlignment="Left"
+                                          AutoGenerateColumns="False"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          HeadersVisibility="Column"
+                                          GridLinesVisibility="Horizontal"
+                                          SelectionMode="Extended"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          AlternatingRowBackground="#F8F8F8">
+                                <DataGrid.Columns>
+                                    <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" />
+                                    <DataGridTextColumn     Header="IP"            Binding="{Binding IP}"                  Width="140" IsReadOnly="True" />
+                                    <DataGridTextColumn     Header="Model"         Binding="{Binding Model}"               Width="120" IsReadOnly="True" />
+                                    <DataGridTextColumn     Header="Current Mode"  Binding="{Binding CurrentDeviceMode}"   Width="110" IsReadOnly="True" />
+                                    <DataGridCheckBoxColumn Header="AV?"           Binding="{Binding SupportsAvSettings}"  Width="55"  IsReadOnly="True" />
+                                    <DataGridCheckBoxColumn Header="EDID?"         Binding="{Binding SupportsGlobalEdid}"  Width="60"  IsReadOnly="True" />
+                                    <DataGridCheckBoxColumn Header="NTP?"          Binding="{Binding SupportsNtp}"         Width="55"  IsReadOnly="True" />
+                                    <DataGridCheckBoxColumn Header="Cloud?"        Binding="{Binding SupportsCloud}"       Width="65"  IsReadOnly="True" />
+                                    <DataGridCheckBoxColumn Header="Fusion?"       Binding="{Binding SupportsFusion}"      Width="65"  IsReadOnly="True" />
+                                    <DataGridCheckBoxColumn Header="Auto?"         Binding="{Binding SupportsAutoUpdate}"  Width="60"  IsReadOnly="True" />
+                                    <DataGridCheckBoxColumn Header="TX/RX Mode?"   Binding="{Binding SupportsModeChange}"  Width="70"  IsReadOnly="True" />
+                                    <DataGridCheckBoxColumn Header="Fetched?"      Binding="{Binding CapabilitiesFetched}" Width="75"  IsReadOnly="True" />
+                                    <DataGridTextColumn     Header="Status"        Binding="{Binding Status}"              Width="90"  IsReadOnly="True" />
+                                    <DataGridCheckBoxColumn Header="Reboot?"       Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
+                                    <DataGridTextColumn     Header="Sections"      Binding="{Binding Sections}"            Width="200" IsReadOnly="True" />
+                                    <DataGridTextColumn     Header="Detail"        Binding="{Binding Detail}"              Width="260" IsReadOnly="True" />
+                                    <DataGridTextColumn     Header="Time"          Binding="{Binding Timestamp}"           Width="160" IsReadOnly="True" />
+                                </DataGrid.Columns>
+                                </DataGrid>
+                            </ScrollViewer>
                         </DockPanel>
                     </Border>
 
@@ -479,7 +486,8 @@ Load-GuiSettings
                     </Grid>
 
                     <!-- Middle (fills): settings sections -->
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto">
                         <StackPanel Margin="0,0,0,8">
 
                             <!-- NTP / Time Zone -->
@@ -699,14 +707,22 @@ Load-GuiSettings
                         <TextBlock x:Name="PerDeviceSummaryText" Text="No devices loaded." Foreground="#666" VerticalAlignment="Center" />
                     </Grid>
 
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                    <GroupBox Header="Device Settings" Padding="8" Margin="0,0,0,8">
+                    <ScrollViewer HorizontalScrollBarVisibility="Visible"
+                                  VerticalScrollBarVisibility="Disabled">
                     <DataGrid x:Name="PerDeviceGrid"
+                              Width="1580"
+                              HorizontalAlignment="Left"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
                               HeadersVisibility="Column"
                               GridLinesVisibility="Horizontal"
                               SelectionMode="Extended"
-                              HorizontalScrollBarVisibility="Visible"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                               AlternatingRowBackground="#F8F8F8">
                         <DataGrid.Columns>
                             <DataGridTextColumn      Header="IP"          Binding="{Binding IP}"          Width="120" IsReadOnly="True" />
@@ -736,39 +752,10 @@ Load-GuiSettings
                                                 IsEnabled="{Binding SupportsModeChange}">
                                             <ComboBox.Items>
                                                 <sys:String>N/A</sys:String>
-                                                <sys:String>Keep</sys:String>
                                                 <sys:String>Transmitter</sys:String>
                                                 <sys:String>Receiver</sys:String>
                                             </ComboBox.Items>
                                         </ComboBox>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Current TX MC" Binding="{Binding CurrentTransmitMulticast}" Width="130" IsReadOnly="True" />
-                            <DataGridTextColumn Header="Current RX MC" Binding="{Binding CurrentReceiveMulticast}" Width="130" IsReadOnly="True" />
-                            <DataGridTemplateColumn Header="MC Address" Width="130">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding NewMulticastAddress}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <TextBox Text="{Binding NewMulticastAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                 IsEnabled="{Binding SupportsAvMulticast}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="MC Stream" Width="80">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding MulticastStreamIndex}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <TextBox Text="{Binding MulticastStreamIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                 IsEnabled="{Binding SupportsAvMulticast}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
@@ -903,6 +890,175 @@ Load-GuiSettings
                             <DataGridTextColumn      Header="Detail"      Binding="{Binding Detail}"     Width="*"   IsReadOnly="True" />
                         </DataGrid.Columns>
                     </DataGrid>
+                    </ScrollViewer>
+                    </GroupBox>
+
+                    <GroupBox Header="AV Inputs" Padding="8" Margin="0,0,0,8">
+                    <ScrollViewer HorizontalScrollBarVisibility="Visible"
+                                  VerticalScrollBarVisibility="Disabled">
+                    <DataGrid x:Name="PerDeviceAvInputGrid"
+                              Width="980"
+                              HorizontalAlignment="Left"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              SelectionMode="Extended"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                              AlternatingRowBackground="#F8F8F8">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="IP"       Binding="{Binding IP}"        Width="120" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Input"    Binding="{Binding InputLabel}" Width="150" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Port"     Binding="{Binding PortType}"  Width="90"  IsReadOnly="True" />
+                            <DataGridTextColumn Header="Cur EDID" Binding="{Binding CurrentEdid}" Width="190" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="EDID" Width="200">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewEdidName}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Text="{Binding NewEdidName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  ItemsSource="{Binding EdidNameOptions}"
+                                                  IsEditable="True"
+                                                  IsTextSearchEnabled="True"
+                                                  IsEnabled="{Binding SupportsEdidEdit}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Cur HDCP" Binding="{Binding CurrentInputHdcp}" Width="110" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="Input HDCP" Width="125">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewInputHdcp}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewInputHdcp, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsAvSettings}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Auto</sys:String>
+                                                <sys:String>HDCP 1.4</sys:String>
+                                                <sys:String>HDCP 2.x</sys:String>
+                                                <sys:String>Never Authenticate</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    </ScrollViewer>
+                    </GroupBox>
+
+                    <GroupBox Header="AV Outputs" Padding="8" Margin="0,0,0,8">
+                    <ScrollViewer HorizontalScrollBarVisibility="Visible"
+                                  VerticalScrollBarVisibility="Disabled">
+                    <DataGrid x:Name="PerDeviceAvOutputGrid"
+                              Width="830"
+                              HorizontalAlignment="Left"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              SelectionMode="Extended"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                              AlternatingRowBackground="#F8F8F8">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="IP"        Binding="{Binding IP}"          Width="120" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Output"    Binding="{Binding OutputLabel}" Width="150" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Cur HDCP"  Binding="{Binding CurrentOutputHdcp}" Width="120" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="Output HDCP" Width="135">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewOutputHdcp}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewOutputHdcp, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsAvSettings}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Auto</sys:String>
+                                                <sys:String>FollowInput</sys:String>
+                                                <sys:String>ForceHighest</sys:String>
+                                                <sys:String>NeverAuthenticate</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Cur Resolution" Binding="{Binding CurrentOutputResolution}" Width="130" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="Output Resolution" Width="150">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewOutputResolution}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewOutputResolution, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsAvSettings}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Auto</sys:String>
+                                                <sys:String>1920x1080@60</sys:String>
+                                                <sys:String>3840x2160@30</sys:String>
+                                                <sys:String>3840x2160@60</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    </ScrollViewer>
+                    </GroupBox>
+
+                    <GroupBox Header="Multicast" Padding="8">
+                    <ScrollViewer HorizontalScrollBarVisibility="Visible"
+                                  VerticalScrollBarVisibility="Disabled">
+                    <DataGrid x:Name="PerDeviceMulticastGrid"
+                              Width="560"
+                              HorizontalAlignment="Left"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              SelectionMode="Extended"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                              AlternatingRowBackground="#F8F8F8">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="IP"         Binding="{Binding IP}"        Width="120" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Direction"  Binding="{Binding Direction}" Width="100" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Current MC" Binding="{Binding CurrentMulticastAddress}" Width="150" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="MC Address" Width="150">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewMulticastAddress}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewMulticastAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsAvMulticast}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    </ScrollViewer>
+                    </GroupBox>
+
+                    </StackPanel>
+                    </ScrollViewer>
 
                 </DockPanel>
             </TabItem>
@@ -941,6 +1097,7 @@ Load-GuiSettings
                               HeadersVisibility="Column"
                               GridLinesVisibility="Horizontal"
                               SelectionMode="Extended"
+                              HorizontalScrollBarVisibility="Visible"
                               AlternatingRowBackground="#F8F8F8">
                         <DataGrid.Columns>
                             <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" />
@@ -1051,7 +1208,7 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'AvOutputHdcpEnableBox','AvOutputHdcpModeBox',
                   'AvOutputResolutionEnableBox','AvOutputResolutionBox',
                   'AvGlobalEdidEnableBox','AvGlobalEdidNameBox','AvGlobalEdidTypeBox',
-                  'PerDeviceTab','PerDeviceGrid','PerDeviceSummaryText',
+                  'PerDeviceTab','PerDeviceGrid','PerDeviceAvInputGrid','PerDeviceAvOutputGrid','PerDeviceMulticastGrid','PerDeviceSummaryText',
                   'PerDeviceApplyButton','PerDeviceRefreshButton','PerDeviceAddButton','PerDeviceClearButton',
                   'PerDeviceCancelButton','PerDeviceProgressText',
                   'ProvisionRebootButton','BlanketRebootButton','PerDeviceRebootButton',
@@ -2281,7 +2438,7 @@ $defaultTz = $tzList | Where-Object { $_.Code -eq '010' } | Select-Object -First
 if ($defaultTz) { $Script:UI.NtpTimeZoneBox.SelectedItem = $defaultTz }
 elseif ($tzList.Count -gt 0) { $Script:UI.NtpTimeZoneBox.SelectedIndex = 0 }
 
-$Script:UI.AvInputHdcpModeBox.ItemsSource = @('Auto', 'Disabled', 'Enabled')
+$Script:UI.AvInputHdcpModeBox.ItemsSource = @('Auto', 'HDCP 1.4', 'HDCP 2.x', 'Never Authenticate')
 $Script:UI.AvInputHdcpModeBox.SelectedIndex = 0
 
 $Script:UI.AvOutputHdcpModeBox.ItemsSource = @('Auto', 'FollowInput', 'ForceHighest', 'NeverAuthenticate')
@@ -3484,7 +3641,6 @@ function Stop-BlanketApply {
 $Script:UI.BlanketTab.Add_GotFocus({
     if ($Script:BlanketState.Rows.Count -eq 0) { Load-BlanketFromProvision }
 })
-$Script:UI.BlanketReloadButton.Add_Click({ Load-BlanketFromProvision })
 
 $Script:UI.BlanketCapabilityButton.Add_Click({
     Start-BlanketCapabilityFetch
@@ -3586,23 +3742,144 @@ $window.Add_Closed({ Stop-BlanketRunspace })
 # =============================================================================
 
 $Script:PerDeviceState = [pscustomobject]@{
-    Rows         = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-    RowsByIP     = @{}
-    Runspace     = $null
-    PowerShell   = $null
-    AsyncHandle  = $null
-    Timer        = $null
-    Queue        = $null
-    DoneRef      = $null
-    IsRunning    = $false
+    Rows          = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+    RowsByIP      = @{}
+    AvInputRows   = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+    AvOutputRows  = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+    MulticastRows = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+    Runspace      = $null
+    PowerShell    = $null
+    AsyncHandle   = $null
+    Timer         = $null
+    Queue         = $null
+    DoneRef       = $null
+    IsRunning     = $false
 }
 $Script:UI.PerDeviceGrid.ItemsSource = $Script:PerDeviceState.Rows
+$Script:UI.PerDeviceAvInputGrid.ItemsSource = $Script:PerDeviceState.AvInputRows
+$Script:UI.PerDeviceAvOutputGrid.ItemsSource = $Script:PerDeviceState.AvOutputRows
+$Script:UI.PerDeviceMulticastGrid.ItemsSource = $Script:PerDeviceState.MulticastRows
 
 function Test-PerDeviceValue {
     param($Value)
 
     $text = "$Value"
     return (-not [string]::IsNullOrWhiteSpace($text)) -and ($text -ne 'N/A')
+}
+
+function ConvertTo-PerDeviceInputHdcpMode {
+    param($Value)
+
+    switch -Regex ("$Value".Trim()) {
+        '^(Disabled|Never\s*Authenticate|NeverAuthenticate)$' { 'Never Authenticate'; break }
+        '^Enabled$'                                           { 'Auto'; break }
+        '^HDCP\s*1(\.x|\.4)?$'                                { 'HDCP 1.4'; break }
+        '^HDCP\s*2(\.x|\.0|\.2)?$'                            { 'HDCP 2.x'; break }
+        default                                               { "$Value" }
+    }
+}
+
+function Test-PerDeviceInputHdcpMode {
+    param($Value)
+
+    return "$Value" -in @(
+        'Auto',
+        'HDCP 1.4',
+        'HDCP 2.x',
+        'Never Authenticate',
+        'Disabled',
+        'Enabled',
+        'HDCP 1.x',
+        'HDCP 2.0',
+        'HDCP 2.2',
+        'NeverAuthenticate'
+    )
+}
+
+function ConvertTo-PerDeviceOutputHdcpMode {
+    param($Value)
+
+    switch -Regex ("$Value".Trim()) {
+        '^Follow\s*Input$'        { 'FollowInput'; break }
+        '^Force\s*Highest$'       { 'ForceHighest'; break }
+        '^Never\s*Authenticate$'  { 'NeverAuthenticate'; break }
+        default                   { "$Value" }
+    }
+}
+
+function Get-PerDeviceCurrentMulticastAddress {
+    param($Row)
+
+    if (-not $Row) {
+        return ''
+    }
+
+    $mode = "$($Row.CurrentDeviceMode)"
+
+    if ($mode -eq 'Receiver') {
+        return "$($Row.CurrentReceiveMulticast)"
+    }
+
+    if ($mode -eq 'Transmitter') {
+        return "$($Row.CurrentTransmitMulticast)"
+    }
+
+    if (Test-PerDeviceValue $Row.CurrentTransmitMulticast) {
+        return "$($Row.CurrentTransmitMulticast)"
+    }
+
+    return "$($Row.CurrentReceiveMulticast)"
+}
+
+function Remove-PerDeviceSectionRowsByIP {
+    param(
+        [Parameter(Mandatory)]
+        $Collection,
+
+        [Parameter(Mandatory)]
+        [string]$IP
+    )
+
+    for ($i = $Collection.Count - 1; $i -ge 0; $i--) {
+        if ("$($Collection[$i].IP)" -eq $IP) {
+            $Collection.RemoveAt($i)
+        }
+    }
+}
+
+function Test-PerDeviceAvInputChanged {
+    param($Row)
+
+    if (-not $Row) { return $false }
+
+    $hdcpChanged = (Test-PerDeviceInputHdcpMode $Row.NewInputHdcp) -and
+                   "$($Row.NewInputHdcp)" -ne "$($Row.CurrentInputHdcp)"
+    $edidChanged = (Test-PerDeviceValue $Row.NewEdidName) -and
+                   "$($Row.NewEdidName)" -ne "$($Row.CurrentEdid)"
+
+    return ($hdcpChanged -or $edidChanged)
+}
+
+function Test-PerDeviceAvOutputChanged {
+    param($Row)
+
+    if (-not $Row) { return $false }
+
+    $hdcpChanged = ($Row.NewOutputHdcp -in 'Auto','FollowInput','ForceHighest','NeverAuthenticate') -and
+                   "$($Row.NewOutputHdcp)" -ne "$($Row.CurrentOutputHdcp)"
+    $resolutionChanged = (Test-PerDeviceValue $Row.NewOutputResolution) -and
+                         "$($Row.NewOutputResolution)" -ne "$($Row.CurrentOutputResolution)"
+
+    return ($hdcpChanged -or $resolutionChanged)
+}
+
+function Test-PerDeviceMulticastChanged {
+    param($Row)
+
+    if (-not $Row) { return $false }
+
+    return (Test-PerDeviceValue $Row.NewMulticastAddress) -and
+           "$($Row.NewMulticastAddress)" -ne "$($Row.CurrentMulticastAddress)"
 }
 
 function Update-PerDeviceSummary {
@@ -3637,16 +3914,17 @@ function Update-PerDeviceSummary {
                                ((Test-PerDeviceValue $_.PrimaryDns) -and "$($_.PrimaryDns)" -ne "$($_.CurrentDns1)") -or
                                ((Test-PerDeviceValue $_.SecondaryDns) -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
 
-        $multicastChanged = Test-PerDeviceValue $_.NewMulticastAddress
-
         $hostnameChanged -or
         $ipModeChanged -or
         $deviceModeChanged -or
-        $multicastChanged -or
         $ipTableChanged -or
         $networkValueChanged -or
         $_.DisableWifi
     }).Count
+
+    $edited += (@($Script:PerDeviceState.AvInputRows | Where-Object { Test-PerDeviceAvInputChanged $_ })).Count
+    $edited += (@($Script:PerDeviceState.AvOutputRows | Where-Object { Test-PerDeviceAvOutputChanged $_ })).Count
+    $edited += (@($Script:PerDeviceState.MulticastRows | Where-Object { Test-PerDeviceMulticastChanged $_ })).Count
 
     $ok = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
     $fail = ($Script:PerDeviceState.Rows | Where-Object { $_.Status -and $_.Status -notin 'OK','Pending','Working' }).Count
@@ -3669,6 +3947,9 @@ function Set-PerDeviceControls ($isRunning) {
 function Load-PerDeviceFromProvision {
     $Script:PerDeviceState.Rows.Clear()
     $Script:PerDeviceState.RowsByIP.Clear()
+    $Script:PerDeviceState.AvInputRows.Clear()
+    $Script:PerDeviceState.AvOutputRows.Clear()
+    $Script:PerDeviceState.MulticastRows.Clear()
 
     $source = @()
     if ($Script:ProvisionState.Rows.Count -gt 0) {
@@ -3710,13 +3991,29 @@ function Load-PerDeviceFromProvision {
             CurrentRoomId            = ''
             CurrentDeviceMode        = ''
             SupportsModeChange       = $false
+            AvApiFamily              = ''
+            AvApiVersion             = ''
+            SupportsAvSettings       = $false
+            SupportsGlobalEdid       = $false
+            SupportsInputEdid        = $false
+            SupportsEdidEdit         = $false
+            EdidNameOptions          = @()
+            EdidNames                = ''
             SupportsAvMulticast      = $false
             CurrentTransmitMulticast = ''
             CurrentReceiveMulticast  = ''
+            CurrentInputHdcp         = ''
+            CurrentOutputHdcp        = ''
+            CurrentOutputResolution  = ''
+            CurrentGlobalEdid        = ''
 
             NewHostname              = 'N/A'
             IPMode                   = 'N/A'
             DeviceMode               = 'N/A'
+            NewInputHdcp             = 'N/A'
+            NewOutputHdcp            = 'N/A'
+            NewOutputResolution      = 'N/A'
+            NewGlobalEdidName        = 'N/A'
             NewMulticastAddress      = 'N/A'
             MulticastStreamIndex     = 'N/A'
             NewIP                    = 'N/A'
@@ -3748,8 +4045,13 @@ function Save-PerDeviceCsv {
         Where-Object Status -ne '' |
         Select-Object IP, Model, CurrentHostname, CurrentDeviceMode, SupportsModeChange,
                     SupportsNetwork, SupportsIpTable, HasWifi,
+                    AvApiFamily, AvApiVersion, SupportsAvSettings, SupportsGlobalEdid,
+                    SupportsInputEdid, SupportsEdidEdit, EdidNames,
                     SupportsAvMulticast, CurrentTransmitMulticast, CurrentReceiveMulticast,
-                    NewHostname, IPMode, DeviceMode, NewMulticastAddress, MulticastStreamIndex,
+                    CurrentInputHdcp, CurrentOutputHdcp, CurrentOutputResolution, CurrentGlobalEdid,
+                    NewHostname, IPMode, DeviceMode,
+                    NewInputHdcp, NewOutputHdcp, NewOutputResolution, NewGlobalEdidName,
+                    NewMulticastAddress, MulticastStreamIndex,
                     NewIP, SubnetMask, Gateway,
                     PrimaryDns, SecondaryDns, DisableWifi,
                     NewIpId, NewControlSystemAddr, NewRoomId,
@@ -3859,6 +4161,19 @@ function Start-PerDeviceFetch {
                         $txMulticast = ''
                         $rxMulticast = ''
                         $supportsAvMulticast = $false
+                        $supportsAvSettings = $false
+                        $supportsGlobalEdid = $false
+                        $supportsInputEdid = $false
+                        $edidNames = @()
+                        $avApiFamily = ''
+                        $avApiVersion = ''
+                        $currentInputHdcp = ''
+                        $currentOutputHdcp = ''
+                        $currentOutputResolution = ''
+                        $currentGlobalEdid = ''
+                        $avInputRows = @()
+                        $avOutputRows = @()
+                        $multicastRows = @()
                         $modelText = "$($sess.Model)"
                         if ([string]::IsNullOrWhiteSpace($modelText)) {
                             $modelText = "$($state.Model)"
@@ -3871,15 +4186,103 @@ function Start-PerDeviceFetch {
 
                             $isNvx = $modelText -match '^DM-NVX'
                             $supportsAvMulticast = $isNvx -and ([bool]$av.SupportsStreamTransmit -or [bool]$av.SupportsStreamReceive)
+                            $avApiFamily = "$($av.AvApiFamily)"
+                            $avApiVersion = "$($av.AvApiVersion)"
+                            $supportsAvSettings = -not [string]::IsNullOrWhiteSpace($avApiFamily) -and $avApiFamily -ne 'None'
+                            $supportsGlobalEdid = [bool]$av.SupportsGlobalEdid
+                            $edidNames = @($av.EdidNames | Where-Object {
+                                -not [string]::IsNullOrWhiteSpace("$_")
+                            } | Sort-Object -Unique)
 
                             $txStreams = @($av.TransmitMulticastAddresses)
                             if ($txStreams.Count -gt 0) {
                                 $txMulticast = "$($txStreams[0].MulticastAddress)"
+                                $multicastRows += [pscustomobject]@{
+                                    IP                      = $ip
+                                    Direction               = 'Transmit'
+                                    StreamIndex             = 0
+                                    CurrentMulticastAddress = "$($txStreams[0].MulticastAddress)"
+                                    NewMulticastAddress     = "$($txStreams[0].MulticastAddress)"
+                                    SupportsAvMulticast     = $supportsAvMulticast
+                                }
                             }
 
                             $rxStreams = @($av.ReceiveMulticastAddresses)
                             if ($rxStreams.Count -gt 0) {
                                 $rxMulticast = "$($rxStreams[0].MulticastAddress)"
+                                $multicastRows += [pscustomobject]@{
+                                    IP                      = $ip
+                                    Direction               = 'Receive'
+                                    StreamIndex             = 0
+                                    CurrentMulticastAddress = "$($rxStreams[0].MulticastAddress)"
+                                    NewMulticastAddress     = "$($rxStreams[0].MulticastAddress)"
+                                    SupportsAvMulticast     = $supportsAvMulticast
+                                }
+                            }
+
+                            $inputs = @($av.Inputs)
+                            if ($inputs.Count -gt 0) {
+                                $currentInputHdcp = "$($inputs[0].HdcpReceiverCapability)"
+                                $currentGlobalEdid = "$($inputs[0].CurrentEdid)"
+                            }
+
+                            $supportsInputEdid = $supportsAvSettings -and
+                                                 ($inputs.Count -gt 0) -and
+                                                 (($edidNames.Count -gt 0) -or -not [string]::IsNullOrWhiteSpace($currentGlobalEdid))
+
+                            for ($i = 0; $i -lt $inputs.Count; $i++) {
+                                $inputItem = $inputs[$i]
+                                $inputEdidNames = @($inputItem.EdidOptions | Where-Object {
+                                    -not [string]::IsNullOrWhiteSpace("$_")
+                                } | Sort-Object -Unique)
+
+                                if ($inputEdidNames.Count -eq 0) {
+                                    $inputEdidNames = $edidNames
+                                }
+
+                                $inputLabel = "$($inputItem.InputName)"
+                                if ([string]::IsNullOrWhiteSpace($inputLabel)) {
+                                    $inputLabel = "Input $i"
+                                }
+
+                                $avInputRows += [pscustomobject]@{
+                                    IP               = $ip
+                                    InputIndex       = $i
+                                    InputLabel       = $inputLabel
+                                    PortType         = "$($inputItem.PortType)"
+                                    CurrentEdid      = "$($inputItem.CurrentEdid)"
+                                    NewEdidName      = "$($inputItem.CurrentEdid)"
+                                    EdidNameOptions  = $inputEdidNames
+                                    CurrentInputHdcp = "$($inputItem.HdcpReceiverCapability)"
+                                    NewInputHdcp     = "$($inputItem.HdcpReceiverCapability)"
+                                    SupportsAvSettings = $supportsAvSettings
+                                    SupportsEdidEdit = (($inputEdidNames.Count -gt 0) -or -not [string]::IsNullOrWhiteSpace("$($inputItem.CurrentEdid)"))
+                                }
+                            }
+
+                            $outputs = @($av.Outputs)
+                            if ($outputs.Count -gt 0) {
+                                $currentOutputHdcp = "$($outputs[0].HdcpTransmitterMode)"
+                                $currentOutputResolution = "$($outputs[0].Resolution)"
+                            }
+
+                            for ($i = 0; $i -lt $outputs.Count; $i++) {
+                                $outputItem = $outputs[$i]
+                                $outputLabel = "$($outputItem.OutputName)"
+                                if ([string]::IsNullOrWhiteSpace($outputLabel)) {
+                                    $outputLabel = "Output $i"
+                                }
+
+                                $avOutputRows += [pscustomobject]@{
+                                    IP                      = $ip
+                                    OutputIndex             = $i
+                                    OutputLabel             = $outputLabel
+                                    CurrentOutputHdcp       = "$($outputItem.HdcpTransmitterMode)"
+                                    NewOutputHdcp           = "$($outputItem.HdcpTransmitterMode)"
+                                    CurrentOutputResolution = "$($outputItem.Resolution)"
+                                    NewOutputResolution     = "$($outputItem.Resolution)"
+                                    SupportsAvSettings      = $supportsAvSettings
+                                }
                             }
                         }
 
@@ -3902,9 +4305,24 @@ function Start-PerDeviceFetch {
                             CurrentRoomId            = $state.CurrentRoomId
                             CurrentDeviceMode        = $state.CurrentDeviceMode
                             SupportsModeChange       = $state.SupportsModeChange
+                            AvApiFamily              = $avApiFamily
+                            AvApiVersion             = $avApiVersion
+                            SupportsAvSettings       = $supportsAvSettings
+                            SupportsGlobalEdid       = $supportsGlobalEdid
+                            SupportsInputEdid        = $supportsInputEdid
+                            SupportsEdidEdit         = ($supportsGlobalEdid -or $supportsInputEdid)
+                            EdidNameOptions          = $edidNames
+                            EdidNames                = ($edidNames -join '|')
                             SupportsAvMulticast      = $supportsAvMulticast
                             CurrentTransmitMulticast = $txMulticast
                             CurrentReceiveMulticast  = $rxMulticast
+                            CurrentInputHdcp         = $currentInputHdcp
+                            CurrentOutputHdcp        = $currentOutputHdcp
+                            CurrentOutputResolution  = $currentOutputResolution
+                            CurrentGlobalEdid        = $currentGlobalEdid
+                            AvInputRows              = $avInputRows
+                            AvOutputRows             = $avOutputRows
+                            MulticastRows            = $multicastRows
                             Detail                   = "OK"
                         })
                     } finally {
@@ -3960,11 +4378,27 @@ function Start-PerDeviceFetch {
                 'SupportsNetwork',
                 'SupportsIpTable',
                 'SupportsModeChange',
+                'AvApiFamily',
+                'AvApiVersion',
+                'SupportsAvSettings',
+                'SupportsGlobalEdid',
+                'SupportsInputEdid',
+                'SupportsEdidEdit',
+                'EdidNameOptions',
+                'EdidNames',
                 'SupportsAvMulticast',
                 'CurrentTransmitMulticast',
                 'CurrentReceiveMulticast',
+                'CurrentInputHdcp',
+                'CurrentOutputHdcp',
+                'CurrentOutputResolution',
+                'CurrentGlobalEdid',
                 'NewHostname',
                 'IPMode',
+                'NewInputHdcp',
+                'NewOutputHdcp',
+                'NewOutputResolution',
+                'NewGlobalEdidName',
                 'NewMulticastAddress',
                 'MulticastStreamIndex',
                 'DeviceMode',
@@ -3981,11 +4415,27 @@ function Start-PerDeviceFetch {
                         'SupportsNetwork'    { $false }
                         'SupportsIpTable'    { $false }
                         'SupportsModeChange' { $false }
+                        'AvApiFamily'        { '' }
+                        'AvApiVersion'       { '' }
+                        'SupportsAvSettings' { $false }
+                        'SupportsGlobalEdid' { $false }
+                        'SupportsInputEdid' { $false }
+                        'SupportsEdidEdit' { $false }
+                        'EdidNameOptions' { @() }
+                        'EdidNames' { '' }
                         'SupportsAvMulticast' { $false }
                         'CurrentTransmitMulticast' { '' }
                         'CurrentReceiveMulticast' { '' }
+                        'CurrentInputHdcp' { '' }
+                        'CurrentOutputHdcp' { '' }
+                        'CurrentOutputResolution' { '' }
+                        'CurrentGlobalEdid' { '' }
                         'NewHostname' { 'N/A' }
                         'IPMode' { 'N/A' }
+                        'NewInputHdcp' { 'N/A' }
+                        'NewOutputHdcp' { 'N/A' }
+                        'NewOutputResolution' { 'N/A' }
+                        'NewGlobalEdidName' { 'N/A' }
                         'NewMulticastAddress' { 'N/A' }
                         'MulticastStreamIndex' { 'N/A' }
                         'DeviceMode'         { 'N/A' }
@@ -4014,7 +4464,19 @@ function Start-PerDeviceFetch {
                 $row.CurrentRoomId            = "$($item.CurrentRoomId)"
                 $row.CurrentDeviceMode        = "$($item.CurrentDeviceMode)"
                 $row.SupportsModeChange       = [bool]$item.SupportsModeChange
+                $row.AvApiFamily              = "$($item.AvApiFamily)"
+                $row.AvApiVersion             = "$($item.AvApiVersion)"
+                $row.SupportsAvSettings       = [bool]$item.SupportsAvSettings
+                $row.SupportsGlobalEdid       = [bool]$item.SupportsGlobalEdid
+                $row.SupportsInputEdid        = [bool]$item.SupportsInputEdid
+                $row.SupportsEdidEdit         = [bool]$item.SupportsEdidEdit
+                $row.EdidNameOptions          = @($item.EdidNameOptions)
+                $row.EdidNames                = "$($item.EdidNames)"
                 $row.SupportsAvMulticast      = [bool]$item.SupportsAvMulticast
+                $row.CurrentInputHdcp         = ConvertTo-PerDeviceInputHdcpMode $item.CurrentInputHdcp
+                $row.CurrentOutputHdcp        = ConvertTo-PerDeviceOutputHdcpMode $item.CurrentOutputHdcp
+                $row.CurrentOutputResolution  = "$($item.CurrentOutputResolution)"
+                $row.CurrentGlobalEdid        = "$($item.CurrentGlobalEdid)"
 
                 if ([bool]$item.SupportsNetwork) {
                     $row.NewHostname = "$($item.CurrentHostname)"
@@ -4045,10 +4507,52 @@ function Start-PerDeviceFetch {
                     if (-not [string]::IsNullOrWhiteSpace("$($item.CurrentDeviceMode)")) {
                         "$($item.CurrentDeviceMode)"
                     } else {
-                        'Keep'
+                        'N/A'
                     }
                 } else {
                     'N/A'
+                }
+
+                if (-not [bool]$item.SupportsAvSettings) {
+                    $row.CurrentInputHdcp        = 'N/A'
+                    $row.CurrentOutputHdcp       = 'N/A'
+                    $row.CurrentOutputResolution = 'N/A'
+                    $row.CurrentGlobalEdid       = 'N/A'
+                    $row.SupportsInputEdid       = $false
+                    $row.SupportsEdidEdit        = $false
+                    $row.NewInputHdcp            = 'N/A'
+                    $row.NewOutputHdcp           = 'N/A'
+                    $row.NewOutputResolution     = 'N/A'
+                    $row.NewGlobalEdidName       = 'N/A'
+                }
+                else {
+                    $row.CurrentInputHdcp        = ConvertTo-PerDeviceInputHdcpMode $item.CurrentInputHdcp
+                    $row.CurrentOutputHdcp       = ConvertTo-PerDeviceOutputHdcpMode $item.CurrentOutputHdcp
+                    $row.CurrentOutputResolution = "$($item.CurrentOutputResolution)"
+                    $row.CurrentGlobalEdid = "$($item.CurrentGlobalEdid)"
+                    if (-not $row.SupportsEdidEdit) {
+                        $row.SupportsEdidEdit = [bool]$row.SupportsGlobalEdid -or [bool]$row.SupportsInputEdid
+                    }
+                    $row.NewInputHdcp = if (Test-PerDeviceValue $row.CurrentInputHdcp) {
+                        "$($row.CurrentInputHdcp)"
+                    } else {
+                        'N/A'
+                    }
+                    $row.NewOutputHdcp = if (Test-PerDeviceValue $row.CurrentOutputHdcp) {
+                        "$($row.CurrentOutputHdcp)"
+                    } else {
+                        'N/A'
+                    }
+                    $row.NewOutputResolution = if (Test-PerDeviceValue $row.CurrentOutputResolution) {
+                        "$($row.CurrentOutputResolution)"
+                    } else {
+                        'N/A'
+                    }
+                    $row.NewGlobalEdidName = if (Test-PerDeviceValue $row.CurrentGlobalEdid) {
+                        "$($row.CurrentGlobalEdid)"
+                    } else {
+                        ''
+                    }
                 }
 
                 if (-not [bool]$item.SupportsAvMulticast) {
@@ -4060,8 +4564,62 @@ function Start-PerDeviceFetch {
                 else {
                     $row.CurrentTransmitMulticast = "$($item.CurrentTransmitMulticast)"
                     $row.CurrentReceiveMulticast  = "$($item.CurrentReceiveMulticast)"
-                    $row.NewMulticastAddress      = ''
+                    $row.NewMulticastAddress      = Get-PerDeviceCurrentMulticastAddress $row
                     $row.MulticastStreamIndex     = '0'
+                }
+
+                Remove-PerDeviceSectionRowsByIP -Collection $Script:PerDeviceState.AvInputRows -IP $item.IP
+                Remove-PerDeviceSectionRowsByIP -Collection $Script:PerDeviceState.AvOutputRows -IP $item.IP
+                Remove-PerDeviceSectionRowsByIP -Collection $Script:PerDeviceState.MulticastRows -IP $item.IP
+
+                foreach ($inputRow in @($item.AvInputRows)) {
+                    $currentInputHdcp = ConvertTo-PerDeviceInputHdcpMode $inputRow.CurrentInputHdcp
+                    $newInputHdcp = if (Test-PerDeviceValue $currentInputHdcp) { "$currentInputHdcp" } else { 'N/A' }
+                    $currentEdid = "$($inputRow.CurrentEdid)"
+
+                    [void]$Script:PerDeviceState.AvInputRows.Add([pscustomobject]@{
+                        IP                 = "$($inputRow.IP)"
+                        InputIndex         = [int]$inputRow.InputIndex
+                        InputLabel         = "$($inputRow.InputLabel)"
+                        PortType           = "$($inputRow.PortType)"
+                        CurrentEdid        = $currentEdid
+                        NewEdidName        = if (Test-PerDeviceValue $currentEdid) { $currentEdid } else { '' }
+                        EdidNameOptions    = @($inputRow.EdidNameOptions)
+                        CurrentInputHdcp   = $currentInputHdcp
+                        NewInputHdcp       = $newInputHdcp
+                        SupportsAvSettings = [bool]$inputRow.SupportsAvSettings
+                        SupportsEdidEdit   = [bool]$inputRow.SupportsEdidEdit
+                    })
+                }
+
+                foreach ($outputRow in @($item.AvOutputRows)) {
+                    $currentOutputHdcp = ConvertTo-PerDeviceOutputHdcpMode $outputRow.CurrentOutputHdcp
+                    $newOutputHdcp = if (Test-PerDeviceValue $currentOutputHdcp) { "$currentOutputHdcp" } else { 'N/A' }
+                    $currentOutputResolution = "$($outputRow.CurrentOutputResolution)"
+
+                    [void]$Script:PerDeviceState.AvOutputRows.Add([pscustomobject]@{
+                        IP                      = "$($outputRow.IP)"
+                        OutputIndex             = [int]$outputRow.OutputIndex
+                        OutputLabel             = "$($outputRow.OutputLabel)"
+                        CurrentOutputHdcp       = $currentOutputHdcp
+                        NewOutputHdcp           = $newOutputHdcp
+                        CurrentOutputResolution = $currentOutputResolution
+                        NewOutputResolution     = if (Test-PerDeviceValue $currentOutputResolution) { $currentOutputResolution } else { 'N/A' }
+                        SupportsAvSettings      = [bool]$outputRow.SupportsAvSettings
+                    })
+                }
+
+                foreach ($mcRow in @($item.MulticastRows)) {
+                    $currentMc = "$($mcRow.CurrentMulticastAddress)"
+
+                    [void]$Script:PerDeviceState.MulticastRows.Add([pscustomobject]@{
+                        IP                      = "$($mcRow.IP)"
+                        Direction               = "$($mcRow.Direction)"
+                        StreamIndex             = 0
+                        CurrentMulticastAddress = $currentMc
+                        NewMulticastAddress     = if (Test-PerDeviceValue $currentMc) { $currentMc } else { 'N/A' }
+                        SupportsAvMulticast     = [bool]$mcRow.SupportsAvMulticast
+                    })
                 }
 
                 if (-not [bool]$item.HasWifi) {
@@ -4086,6 +4644,9 @@ function Start-PerDeviceFetch {
         }
 
         $Script:UI.PerDeviceGrid.Items.Refresh()
+        $Script:UI.PerDeviceAvInputGrid.Items.Refresh()
+        $Script:UI.PerDeviceAvOutputGrid.Items.Refresh()
+        $Script:UI.PerDeviceMulticastGrid.Items.Refresh()
         Update-PerDeviceSummary
 
         if ($Script:PerDeviceState.DoneRef.Value -and $Script:PerDeviceState.Queue.IsEmpty) {
@@ -4148,34 +4709,49 @@ function Test-PerDeviceRow ($row) {
         }
     }
 
-    if (Test-PerDeviceValue $row.NewMulticastAddress) {
-        if (-not [bool]$row.SupportsAvMulticast) {
-            return "Multicast selected, but this device does not expose stream multicast settings"
-        }
+    return $null
+}
 
-        $modeForMulticast = "$($row.DeviceMode)"
-        if ([string]::IsNullOrWhiteSpace($modeForMulticast) -or @('Keep','N/A') -contains $modeForMulticast) {
-            $modeForMulticast = "$($row.CurrentDeviceMode)"
-        }
+function Test-PerDeviceAvInputRow ($row) {
+    if ((Test-PerDeviceInputHdcpMode $row.NewInputHdcp) -and -not [bool]$row.SupportsAvSettings) {
+        return "Input HDCP selected, but this input does not expose AV settings"
+    }
 
-        if ($modeForMulticast -notin 'Transmitter','Receiver') {
-            return "Multicast address requires TX/RX Mode Transmitter or Receiver"
-        }
+    if ((Test-PerDeviceValue $row.NewEdidName) -and "$($row.NewEdidName)" -ne "$($row.CurrentEdid)" -and -not [bool]$row.SupportsEdidEdit) {
+        return "EDID selected, but this input does not expose editable EDID settings"
+    }
 
-        if ("$($row.NewMulticastAddress)" -notmatch '^239\.(\d{1,3}\.){2}\d{1,3}$') {
-            return "Multicast address '$($row.NewMulticastAddress)' must be in the 239.x.x.x range"
-        }
+    return $null
+}
 
-        foreach ($octet in ("$($row.NewMulticastAddress)" -split '\.')) {
-            $n = [int]$octet
-            if ($n -lt 0 -or $n -gt 255) {
-                return "Multicast address '$($row.NewMulticastAddress)' has an octet outside 0-255"
-            }
-        }
+function Test-PerDeviceAvOutputRow ($row) {
+    $hdcpSelected = $row.NewOutputHdcp -in 'Auto','FollowInput','ForceHighest','NeverAuthenticate'
+    $resolutionSelected = Test-PerDeviceValue $row.NewOutputResolution
 
-        $streamIndex = 0
-        if (-not [int]::TryParse("$($row.MulticastStreamIndex)", [ref]$streamIndex) -or $streamIndex -lt 0) {
-            return "Multicast stream index must be 0 or greater"
+    if (($hdcpSelected -or $resolutionSelected) -and -not [bool]$row.SupportsAvSettings) {
+        return "Output AV settings selected, but this output does not expose AV settings"
+    }
+
+    return $null
+}
+
+function Test-PerDeviceMulticastRow ($row) {
+    if (-not (Test-PerDeviceMulticastChanged $row)) {
+        return $null
+    }
+
+    if (-not [bool]$row.SupportsAvMulticast) {
+        return "Multicast selected, but this device does not expose stream multicast settings"
+    }
+
+    if ("$($row.NewMulticastAddress)" -notmatch '^239\.(\d{1,3}\.){2}\d{1,3}$') {
+        return "Multicast address '$($row.NewMulticastAddress)' must be in the 239.x.x.x range"
+    }
+
+    foreach ($octet in ("$($row.NewMulticastAddress)" -split '\.')) {
+        $n = [int]$octet
+        if ($n -lt 0 -or $n -gt 255) {
+            return "Multicast address '$($row.NewMulticastAddress)' has an octet outside 0-255"
         }
     }
 
@@ -4217,27 +4793,52 @@ function Start-PerDeviceApply {
                             ((Test-PerDeviceValue $_.PrimaryDns) -and "$($_.PrimaryDns)" -ne "$($_.CurrentDns1)") -or
                             ((Test-PerDeviceValue $_.SecondaryDns) -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
 
-        $multicastChanged = Test-PerDeviceValue $_.NewMulticastAddress
-
         $hostnameChanged -or
         $ipModeChanged -or
         $deviceModeChanged -or
-        $multicastChanged -or
         $ipTableChanged -or
         $networkValueChanged -or
         $_.DisableWifi
     })
 
-    if ($rowsToApply.Count -eq 0) {
+    $inputRowsToApply = @($Script:PerDeviceState.AvInputRows | Where-Object { Test-PerDeviceAvInputChanged $_ })
+    $outputRowsToApply = @($Script:PerDeviceState.AvOutputRows | Where-Object { Test-PerDeviceAvOutputChanged $_ })
+    $multicastRowsToApply = @($Script:PerDeviceState.MulticastRows | Where-Object { Test-PerDeviceMulticastChanged $_ })
+    $applyIps = @()
+    $applyIps += @($rowsToApply | ForEach-Object { "$($_.IP)" })
+    $applyIps += @($inputRowsToApply | ForEach-Object { "$($_.IP)" })
+    $applyIps += @($outputRowsToApply | ForEach-Object { "$($_.IP)" })
+    $applyIps += @($multicastRowsToApply | ForEach-Object { "$($_.IP)" })
+    $applyIps = @($applyIps |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Sort-Object -Unique)
+
+    if ($applyIps.Count -eq 0) {
         [System.Windows.MessageBox]::Show("No rows have any pending changes.", "Nothing to apply", 'OK', 'Warning') | Out-Null
         return
     }
+
+    $rowsForApply = @($applyIps | ForEach-Object {
+        $Script:PerDeviceState.RowsByIP[$_]
+    } | Where-Object { $_ })
 
     # Validate
     $errors = @()
     foreach ($r in $rowsToApply) {
         $err = Test-PerDeviceRow $r
         if ($err) { $errors += "$($r.IP): $err" }
+    }
+    foreach ($r in $inputRowsToApply) {
+        $err = Test-PerDeviceAvInputRow $r
+        if ($err) { $errors += "$($r.IP) $($r.InputLabel): $err" }
+    }
+    foreach ($r in $outputRowsToApply) {
+        $err = Test-PerDeviceAvOutputRow $r
+        if ($err) { $errors += "$($r.IP) $($r.OutputLabel): $err" }
+    }
+    foreach ($r in $multicastRowsToApply) {
+        $err = Test-PerDeviceMulticastRow $r
+        if ($err) { $errors += "$($r.IP) $($r.Direction): $err" }
     }
 
     if ($errors.Count -gt 0) {
@@ -4270,14 +4871,14 @@ function Start-PerDeviceApply {
         }
     }
 
-    $msg = "Apply changes to $($rowsToApply.Count) device(s) as '$($cred.UserName)'?`n`nIP changes are fire-and-forget — Success means the device acknowledged the change, not that it came back on the new IP."
+    $msg = "Apply changes to $($applyIps.Count) device(s) as '$($cred.UserName)'?`n`nIP changes are fire-and-forget — Success means the device acknowledged the change, not that it came back on the new IP."
     $ans = [System.Windows.MessageBox]::Show($msg, "Confirm per-device apply", 'YesNo', 'Warning')
     if ($ans -ne 'Yes') {
         Update-Status 'Apply cancelled.'
         return
     }
 
-    foreach ($r in $rowsToApply) {
+    foreach ($r in $rowsForApply) {
         $r.Status      = 'Pending'
         $r.Detail      = ''
         $r.NeedsReboot = $false
@@ -4285,12 +4886,13 @@ function Start-PerDeviceApply {
     }
 
     $Script:UI.PerDeviceGrid.Items.Refresh()
-    $Script:UI.PerDeviceProgressText.Text = "Applying to $($rowsToApply.Count) device(s)..."
+    $Script:UI.PerDeviceProgressText.Text = "Applying to $($applyIps.Count) device(s)..."
     Set-PerDeviceControls $true
-    Update-Status "Applying per-device changes to $($rowsToApply.Count) device(s)..."
+    Update-Status "Applying per-device changes to $($applyIps.Count) device(s)..."
 
     # Serialize rows as plain hashtables so they cross the runspace boundary
-    $rowData = $rowsToApply | ForEach-Object {
+    $rowData = $rowsForApply | ForEach-Object {
+        $rowIp = "$($_.IP)"
         @{
             IP                       = $_.IP
             NewHostname              = $_.NewHostname
@@ -4301,7 +4903,21 @@ function Start-PerDeviceApply {
             DeviceMode               = $_.DeviceMode
             SupportsModeChange       = [bool]$_.SupportsModeChange
             CurrentDeviceMode        = $_.CurrentDeviceMode
+            SupportsAvSettings       = [bool]$_.SupportsAvSettings
+            SupportsGlobalEdid       = [bool]$_.SupportsGlobalEdid
+            SupportsInputEdid        = [bool]$_.SupportsInputEdid
+            SupportsEdidEdit         = [bool]$_.SupportsEdidEdit
+            NewInputHdcp             = $_.NewInputHdcp
+            CurrentInputHdcp         = $_.CurrentInputHdcp
+            NewOutputHdcp            = $_.NewOutputHdcp
+            CurrentOutputHdcp        = $_.CurrentOutputHdcp
+            NewOutputResolution      = $_.NewOutputResolution
+            CurrentOutputResolution  = $_.CurrentOutputResolution
+            NewGlobalEdidName        = $_.NewGlobalEdidName
+            CurrentGlobalEdid        = $_.CurrentGlobalEdid
             SupportsAvMulticast      = [bool]$_.SupportsAvMulticast
+            CurrentTransmitMulticast = $_.CurrentTransmitMulticast
+            CurrentReceiveMulticast  = $_.CurrentReceiveMulticast
             NewMulticastAddress      = $_.NewMulticastAddress
             MulticastStreamIndex     = $_.MulticastStreamIndex
             NewIP                    = $_.NewIP
@@ -4320,6 +4936,41 @@ function Start-PerDeviceApply {
             SupportsIpTable          = [bool]$_.SupportsIpTable
             CurrentIpId              = $_.CurrentIpId
             CurrentControlSystemAddr = $_.CurrentControlSystemAddr
+            AvInputRows              = @($inputRowsToApply | Where-Object { "$($_.IP)" -eq $rowIp } | ForEach-Object {
+                @{
+                    IP                 = $_.IP
+                    InputIndex         = [int]$_.InputIndex
+                    InputLabel         = $_.InputLabel
+                    CurrentEdid        = $_.CurrentEdid
+                    NewEdidName        = $_.NewEdidName
+                    CurrentInputHdcp   = $_.CurrentInputHdcp
+                    NewInputHdcp       = $_.NewInputHdcp
+                    SupportsAvSettings = [bool]$_.SupportsAvSettings
+                    SupportsEdidEdit   = [bool]$_.SupportsEdidEdit
+                }
+            })
+            AvOutputRows             = @($outputRowsToApply | Where-Object { "$($_.IP)" -eq $rowIp } | ForEach-Object {
+                @{
+                    IP                      = $_.IP
+                    OutputIndex             = [int]$_.OutputIndex
+                    OutputLabel             = $_.OutputLabel
+                    CurrentOutputHdcp       = $_.CurrentOutputHdcp
+                    NewOutputHdcp           = $_.NewOutputHdcp
+                    CurrentOutputResolution = $_.CurrentOutputResolution
+                    NewOutputResolution     = $_.NewOutputResolution
+                    SupportsAvSettings      = [bool]$_.SupportsAvSettings
+                }
+            })
+            MulticastRows            = @($multicastRowsToApply | Where-Object { "$($_.IP)" -eq $rowIp } | ForEach-Object {
+                @{
+                    IP                      = $_.IP
+                    Direction               = $_.Direction
+                    StreamIndex             = 0
+                    CurrentMulticastAddress = $_.CurrentMulticastAddress
+                    NewMulticastAddress     = $_.NewMulticastAddress
+                    SupportsAvMulticast     = [bool]$_.SupportsAvMulticast
+                }
+            })
         }
     }
 
@@ -4379,6 +5030,23 @@ function Start-PerDeviceApply {
 
                         $text = "$Value"
                         return (-not [string]::IsNullOrWhiteSpace($text)) -and ($text -ne 'N/A')
+                    }
+
+                    function Test-PerDeviceInputHdcpMode {
+                        param($Value)
+
+                        return "$Value" -in @(
+                            'Auto',
+                            'HDCP 1.4',
+                            'HDCP 2.x',
+                            'Never Authenticate',
+                            'Disabled',
+                            'Enabled',
+                            'HDCP 1.x',
+                            'HDCP 2.0',
+                            'HDCP 2.2',
+                            'NeverAuthenticate'
+                        )
                     }
 
                     function Test-ResultNeedsReboot {
@@ -4571,7 +5239,275 @@ function Start-PerDeviceApply {
                             }
                         }
 
-                        if (Test-PerDeviceValue $row.NewMulticastAddress) {
+                        if (Test-PerDeviceInputHdcpMode $row.NewInputHdcp) {
+                            try {
+                                if (-not [bool]$row.SupportsAvSettings) {
+                                    $stepResults += "InputHdcp=skipped; unsupported"
+                                    $allOk = $false
+                                }
+                                elseif ("$($row.NewInputHdcp)" -eq "$($row.CurrentInputHdcp)") {
+                                    $stepResults += "InputHdcp=already $($row.NewInputHdcp)"
+                                }
+                                else {
+                                    $rInHdcp = Set-CrestronInputHdcp -Session $sess -Mode $row.NewInputHdcp
+                                    $stepResults += "InputHdcp=$(if($rInHdcp.Success){'OK'}else{$rInHdcp.Status}) -> $($row.NewInputHdcp)"
+
+                                    if (Test-ResultNeedsReboot $rInHdcp) {
+                                        $needsReboot = $true
+                                    }
+
+                                    if (-not $rInHdcp.Success) {
+                                        $allOk = $false
+                                    }
+                                }
+                            } catch {
+                                $stepResults += "InputHdcp=ERR: $($_.Exception.Message)"
+                                $allOk = $false
+                            }
+                        }
+
+                        if ($row.NewOutputHdcp -in 'Auto','FollowInput','ForceHighest','NeverAuthenticate') {
+                            try {
+                                if (-not [bool]$row.SupportsAvSettings) {
+                                    $stepResults += "OutputHdcp=skipped; unsupported"
+                                    $allOk = $false
+                                }
+                                elseif ("$($row.NewOutputHdcp)" -eq "$($row.CurrentOutputHdcp)") {
+                                    $stepResults += "OutputHdcp=already $($row.NewOutputHdcp)"
+                                }
+                                else {
+                                    $rOutHdcp = Set-CrestronOutputHdcp -Session $sess -Mode $row.NewOutputHdcp
+                                    $stepResults += "OutputHdcp=$(if($rOutHdcp.Success){'OK'}else{$rOutHdcp.Status}) -> $($row.NewOutputHdcp)"
+
+                                    if (Test-ResultNeedsReboot $rOutHdcp) {
+                                        $needsReboot = $true
+                                    }
+
+                                    if (-not $rOutHdcp.Success) {
+                                        $allOk = $false
+                                    }
+                                }
+                            } catch {
+                                $stepResults += "OutputHdcp=ERR: $($_.Exception.Message)"
+                                $allOk = $false
+                            }
+                        }
+
+                        if (Test-PerDeviceValue $row.NewOutputResolution) {
+                            try {
+                                if (-not [bool]$row.SupportsAvSettings) {
+                                    $stepResults += "OutputResolution=skipped; unsupported"
+                                    $allOk = $false
+                                }
+                                elseif ("$($row.NewOutputResolution)" -eq "$($row.CurrentOutputResolution)") {
+                                    $stepResults += "OutputResolution=already $($row.NewOutputResolution)"
+                                }
+                                else {
+                                    $rOutRes = Set-CrestronOutputResolution -Session $sess -Resolution $row.NewOutputResolution
+                                    $stepResults += "OutputResolution=$(if($rOutRes.Success){'OK'}else{$rOutRes.Status}) -> $($row.NewOutputResolution)"
+
+                                    if (Test-ResultNeedsReboot $rOutRes) {
+                                        $needsReboot = $true
+                                    }
+
+                                    if (-not $rOutRes.Success) {
+                                        $allOk = $false
+                                    }
+                                }
+                            } catch {
+                                $stepResults += "OutputResolution=ERR: $($_.Exception.Message)"
+                                $allOk = $false
+                            }
+                        }
+
+                        if ((Test-PerDeviceValue $row.NewGlobalEdidName) -and "$($row.NewGlobalEdidName)" -ne "$($row.CurrentGlobalEdid)") {
+                            try {
+                                if (-not [bool]$row.SupportsEdidEdit) {
+                                    $stepResults += "EDID=skipped; unsupported"
+                                    $allOk = $false
+                                }
+                                else {
+                                    $rEdid = Set-CrestronInputEdid `
+                                        -Session $sess `
+                                        -EdidName $row.NewGlobalEdidName `
+                                        -EdidType 'System'
+
+                                    $stepResults += "EDID=$(if($rEdid.Success){'OK'}else{$rEdid.Status}) -> $($row.NewGlobalEdidName)"
+
+                                    if (Test-ResultNeedsReboot $rEdid) {
+                                        $needsReboot = $true
+                                    }
+
+                                    if (-not $rEdid.Success) {
+                                        $allOk = $false
+                                    }
+                                }
+                            } catch {
+                                $stepResults += "EDID=ERR: $($_.Exception.Message)"
+                                $allOk = $false
+                            }
+                        }
+
+                        foreach ($inputRow in @($row.AvInputRows)) {
+                            if ((Test-PerDeviceInputHdcpMode $inputRow.NewInputHdcp) -and "$($inputRow.NewInputHdcp)" -ne "$($inputRow.CurrentInputHdcp)") {
+                                try {
+                                    if (-not [bool]$inputRow.SupportsAvSettings) {
+                                        $stepResults += "InputHdcp[$($inputRow.InputIndex)]=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $rInHdcp = Set-CrestronInputHdcp `
+                                            -Session $sess `
+                                            -Mode $inputRow.NewInputHdcp `
+                                            -InputIndex ([int]$inputRow.InputIndex)
+
+                                        $stepResults += "InputHdcp[$($inputRow.InputIndex)]=$(if($rInHdcp.Success){'OK'}else{$rInHdcp.Status}) -> $($inputRow.NewInputHdcp)"
+
+                                        if (Test-ResultNeedsReboot $rInHdcp) {
+                                            $needsReboot = $true
+                                        }
+
+                                        if (-not $rInHdcp.Success) {
+                                            $allOk = $false
+                                        }
+                                    }
+                                } catch {
+                                    $stepResults += "InputHdcp[$($inputRow.InputIndex)]=ERR: $($_.Exception.Message)"
+                                    $allOk = $false
+                                }
+                            }
+
+                            if ((Test-PerDeviceValue $inputRow.NewEdidName) -and "$($inputRow.NewEdidName)" -ne "$($inputRow.CurrentEdid)") {
+                                try {
+                                    if (-not [bool]$inputRow.SupportsEdidEdit) {
+                                        $stepResults += "EDID[$($inputRow.InputIndex)]=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $rEdid = Set-CrestronInputEdid `
+                                            -Session $sess `
+                                            -EdidName $inputRow.NewEdidName `
+                                            -EdidType 'System' `
+                                            -InputIndex ([int]$inputRow.InputIndex)
+
+                                        $stepResults += "EDID[$($inputRow.InputIndex)]=$(if($rEdid.Success){'OK'}else{$rEdid.Status}) -> $($inputRow.NewEdidName)"
+
+                                        if (Test-ResultNeedsReboot $rEdid) {
+                                            $needsReboot = $true
+                                        }
+
+                                        if (-not $rEdid.Success) {
+                                            $allOk = $false
+                                        }
+                                    }
+                                } catch {
+                                    $stepResults += "EDID[$($inputRow.InputIndex)]=ERR: $($_.Exception.Message)"
+                                    $allOk = $false
+                                }
+                            }
+                        }
+
+                        foreach ($outputRow in @($row.AvOutputRows)) {
+                            if (($outputRow.NewOutputHdcp -in 'Auto','FollowInput','ForceHighest','NeverAuthenticate') -and "$($outputRow.NewOutputHdcp)" -ne "$($outputRow.CurrentOutputHdcp)") {
+                                try {
+                                    if (-not [bool]$outputRow.SupportsAvSettings) {
+                                        $stepResults += "OutputHdcp[$($outputRow.OutputIndex)]=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $rOutHdcp = Set-CrestronOutputHdcp `
+                                            -Session $sess `
+                                            -Mode $outputRow.NewOutputHdcp `
+                                            -OutputIndex ([int]$outputRow.OutputIndex)
+
+                                        $stepResults += "OutputHdcp[$($outputRow.OutputIndex)]=$(if($rOutHdcp.Success){'OK'}else{$rOutHdcp.Status}) -> $($outputRow.NewOutputHdcp)"
+
+                                        if (Test-ResultNeedsReboot $rOutHdcp) {
+                                            $needsReboot = $true
+                                        }
+
+                                        if (-not $rOutHdcp.Success) {
+                                            $allOk = $false
+                                        }
+                                    }
+                                } catch {
+                                    $stepResults += "OutputHdcp[$($outputRow.OutputIndex)]=ERR: $($_.Exception.Message)"
+                                    $allOk = $false
+                                }
+                            }
+
+                            if ((Test-PerDeviceValue $outputRow.NewOutputResolution) -and "$($outputRow.NewOutputResolution)" -ne "$($outputRow.CurrentOutputResolution)") {
+                                try {
+                                    if (-not [bool]$outputRow.SupportsAvSettings) {
+                                        $stepResults += "OutputResolution[$($outputRow.OutputIndex)]=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $rOutRes = Set-CrestronOutputResolution `
+                                            -Session $sess `
+                                            -Resolution $outputRow.NewOutputResolution `
+                                            -OutputIndex ([int]$outputRow.OutputIndex)
+
+                                        $stepResults += "OutputResolution[$($outputRow.OutputIndex)]=$(if($rOutRes.Success){'OK'}else{$rOutRes.Status}) -> $($outputRow.NewOutputResolution)"
+
+                                        if (Test-ResultNeedsReboot $rOutRes) {
+                                            $needsReboot = $true
+                                        }
+
+                                        if (-not $rOutRes.Success) {
+                                            $allOk = $false
+                                        }
+                                    }
+                                } catch {
+                                    $stepResults += "OutputResolution[$($outputRow.OutputIndex)]=ERR: $($_.Exception.Message)"
+                                    $allOk = $false
+                                }
+                            }
+                        }
+
+                        foreach ($mcRow in @($row.MulticastRows)) {
+                            if ((Test-PerDeviceValue $mcRow.NewMulticastAddress) -and "$($mcRow.NewMulticastAddress)" -ne "$($mcRow.CurrentMulticastAddress)") {
+                                try {
+                                    if (-not [bool]$mcRow.SupportsAvMulticast) {
+                                        $stepResults += "Multicast[$($mcRow.Direction)]=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $rMc = Set-CrestronMulticastAddress `
+                                            -Session $sess `
+                                            -Direction $mcRow.Direction `
+                                            -MulticastAddress $mcRow.NewMulticastAddress `
+                                            -StreamIndex 0
+
+                                        $stepResults += "Multicast=$(if($rMc.Success){'OK'}else{$rMc.Status}) -> $($mcRow.Direction) $($mcRow.NewMulticastAddress)[0]"
+
+                                        if (Test-ResultNeedsReboot $rMc) {
+                                            $needsReboot = $true
+                                        }
+
+                                        if (-not $rMc.Success) {
+                                            $allOk = $false
+                                        }
+                                    }
+                                }
+                                catch {
+                                    $stepResults += "Multicast[$($mcRow.Direction)]=ERR: $($_.Exception.Message)"
+                                    $allOk = $false
+                                }
+                            }
+                        }
+
+                        $currentMulticastAddress = ''
+                        $modeForCurrentMulticast = "$($row.CurrentDeviceMode)"
+
+                        if ($modeForCurrentMulticast -eq 'Receiver') {
+                            $currentMulticastAddress = "$($row.CurrentReceiveMulticast)"
+                        }
+                        elseif ($modeForCurrentMulticast -eq 'Transmitter') {
+                            $currentMulticastAddress = "$($row.CurrentTransmitMulticast)"
+                        }
+
+                        if ((Test-PerDeviceValue $row.NewMulticastAddress) -and "$($row.NewMulticastAddress)" -ne "$currentMulticastAddress") {
                             try {
                                 if (-not [bool]$row.SupportsAvMulticast) {
                                     $stepResults += "Multicast=skipped; unsupported"
@@ -4685,6 +5621,9 @@ function Start-PerDeviceApply {
         }
 
         $Script:UI.PerDeviceGrid.Items.Refresh()
+        $Script:UI.PerDeviceAvInputGrid.Items.Refresh()
+        $Script:UI.PerDeviceAvOutputGrid.Items.Refresh()
+        $Script:UI.PerDeviceMulticastGrid.Items.Refresh()
         Update-PerDeviceSummary
 
         if ($Script:PerDeviceState.DoneRef.Value -and $Script:PerDeviceState.Queue.IsEmpty) {
@@ -4745,6 +5684,23 @@ $Script:UI.PerDeviceGrid.Add_BeginningEdit({
             $e.Cancel = $true
         }
     }
+
+    if ($header -in @('Input HDCP','Output HDCP','Output Resolution')) {
+        $row = $e.Row.Item
+
+        if (-not $row -or -not [bool]$row.SupportsAvSettings) {
+            $e.Cancel = $true
+        }
+    }
+
+    if ($header -eq 'EDID') {
+        $row = $e.Row.Item
+
+        if (-not $row -or -not [bool]$row.SupportsEdidEdit) {
+            $e.Cancel = $true
+        }
+    }
+
 })
 
 $Script:UI.PerDeviceGrid.Add_CellEditEnding({
@@ -4756,6 +5712,18 @@ $Script:UI.PerDeviceGrid.Add_CellEditEnding({
 $Script:UI.PerDeviceGrid.Add_CurrentCellChanged({
     Update-PerDeviceSummary
 })
+
+foreach ($grid in @($Script:UI.PerDeviceAvInputGrid, $Script:UI.PerDeviceAvOutputGrid, $Script:UI.PerDeviceMulticastGrid)) {
+    $grid.Add_CellEditEnding({
+        $Script:UI.PerDeviceGrid.Dispatcher.BeginInvoke([Action]{
+            Update-PerDeviceSummary
+        }, [System.Windows.Threading.DispatcherPriority]::Background) | Out-Null
+    })
+
+    $grid.Add_CurrentCellChanged({
+        Update-PerDeviceSummary
+    })
+}
 
 $window.Add_Closed({ Stop-PerDeviceRunspace })
 
@@ -5733,12 +6701,28 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 CurrentRoomId            = ''
                 CurrentDeviceMode        = ''
                 SupportsModeChange       = $false
+                AvApiFamily              = ''
+                AvApiVersion             = ''
+                SupportsAvSettings       = $false
+                SupportsGlobalEdid       = $false
+                SupportsInputEdid        = $false
+                SupportsEdidEdit         = $false
+                EdidNameOptions          = @()
+                EdidNames                = ''
                 SupportsAvMulticast      = $false
                 CurrentTransmitMulticast = ''
                 CurrentReceiveMulticast  = ''
+                CurrentInputHdcp         = ''
+                CurrentOutputHdcp        = ''
+                CurrentOutputResolution  = ''
+                CurrentGlobalEdid        = ''
                 NewHostname              = 'N/A'
                 IPMode                   = 'N/A'
                 DeviceMode               = 'N/A'
+                NewInputHdcp             = 'N/A'
+                NewOutputHdcp            = 'N/A'
+                NewOutputResolution      = 'N/A'
+                NewGlobalEdidName        = 'N/A'
                 NewMulticastAddress      = 'N/A'
                 MulticastStreamIndex     = 'N/A'
                 NewIP                    = 'N/A'
@@ -5778,14 +6762,15 @@ $Script:UI.PerDeviceClearButton.Add_Click({
     if ($r -eq 'Yes') {
         $Script:PerDeviceState.Rows.Clear()
         $Script:PerDeviceState.RowsByIP.Clear()
+        $Script:PerDeviceState.AvInputRows.Clear()
+        $Script:PerDeviceState.AvOutputRows.Clear()
+        $Script:PerDeviceState.MulticastRows.Clear()
         Update-PerDeviceSummary
         Update-Status "Cleared $count device(s) from Per-Device tab."
     }
 })
-# Repurpose the existing Blanket "Reload" button to open the same dialog.
-# We swap the click handler at runtime — replaces the previous "reload from CSV" behavior.
-# (cannot remove the old Click handler at runtime; the previous Load-BlanketFromProvision call fires too, which is harmless)
-
+# Blanket Settings uses the shared add-device dialog while still auto-loading
+# provisioned devices the first time the tab is focused.
 $Script:UI.BlanketReloadButton.Add_Click({
     Add-DevicesToGrid `
         -Rows $Script:BlanketState.Rows `
@@ -5935,7 +6920,7 @@ function Show-AddDevicesDialog {
     [xml]$dxaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Add Devices" Width="540" Height="430"
+        Title="Add Devices" Width="580" Height="460"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
     <DockPanel Margin="12">
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
@@ -5952,7 +6937,30 @@ function Show-AddDevicesDialog {
                             Margin="0,0,0,4"
                             TextWrapping="Wrap" />
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="AddCidrManualBox"
+                                 Grid.Column="0"
+                                 Padding="4,2"
+                                 VerticalContentAlignment="Center" />
+                        <Button x:Name="AddCidrManualButton"
+                                Grid.Column="1"
+                                Content="Add Subnet"
+                                Margin="6,0,0,0"
+                                Padding="10,2" />
+                    </Grid>
+
+                    <TextBlock x:Name="AddCidrStatusText"
+                               DockPanel.Dock="Bottom"
+                               Foreground="#666"
+                               FontSize="11"
+                               Margin="0,6,0,0" />
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto">
                         <StackPanel x:Name="AddCidrCheckList" />
                     </ScrollViewer>
                 </DockPanel>
@@ -5981,34 +6989,97 @@ function Show-AddDevicesDialog {
 
     $tabs       = $dlg.FindName('AddTabs')
     $cidrList   = $dlg.FindName('AddCidrCheckList')
+    $cidrBox    = $dlg.FindName('AddCidrManualBox')
+    $cidrAddBtn = $dlg.FindName('AddCidrManualButton')
+    $cidrStatus = $dlg.FindName('AddCidrStatusText')
     $ipsBox     = $dlg.FindName('AddIpsBox')
     $csvSummary = $dlg.FindName('AddCsvSummary')
     $okBtn      = $dlg.FindName('AddOkBtn')
     $cancelBtn  = $dlg.FindName('AddCancelBtn')
+    $cidrRegex  = '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$'
     $defaultCidrs = @()
+
+    $addCidrCheckbox = {
+        param(
+            [string]$Cidr,
+            [bool]$Checked = $true
+        )
+
+        $trimmed = "$Cidr".Trim()
+
+        if ($trimmed -notmatch $cidrRegex) {
+            return $false
+        }
+
+        foreach ($child in $cidrList.Children) {
+            if ("$($child.Content)" -eq $trimmed) {
+                $child.IsChecked = $Checked
+                return $true
+            }
+        }
+
+        $check = New-Object System.Windows.Controls.CheckBox
+        $check.Content = $trimmed
+        $check.IsChecked = $Checked
+        $check.Margin = '2,2,2,2'
+        [void]$cidrList.Children.Add($check)
+
+        return $true
+    }
+
+    $addManualCidr = {
+        $entry = $cidrBox.Text.Trim()
+
+        if ([string]::IsNullOrWhiteSpace($entry)) {
+            $cidrStatus.Text = 'Enter a CIDR subnet to add.'
+            return
+        }
+
+        if ($entry -notmatch $cidrRegex) {
+            [System.Windows.MessageBox]::Show(
+                "Invalid CIDR. Example: 192.168.20.0/24",
+                "Invalid input",
+                'OK',
+                'Warning'
+            ) | Out-Null
+            return
+        }
+
+        if (& $addCidrCheckbox $entry $true) {
+            $cidrBox.Clear()
+            $cidrStatus.Text = "Added $entry to this scan."
+        }
+    }
 
     if ($Script:GuiSettings -and
         $Script:GuiSettings.PSObject.Properties.Name -contains 'MostUsedSubnets' -and
         $Script:GuiSettings.MostUsedSubnets) {
 
         $defaultCidrs = @($Script:GuiSettings.MostUsedSubnets | Where-Object {
-            $_ -match '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$'
+            $_ -match $cidrRegex
         })
     }
 
     if ($defaultCidrs.Count -eq 0 -and $Script:ScanState -and $Script:ScanState.Cidrs.Count -gt 0) {
         $defaultCidrs = @($Script:ScanState.Cidrs | Where-Object {
-            $_ -match '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$'
+            $_ -match $cidrRegex
         })
     }
 
     foreach ($cidr in $defaultCidrs) {
-        $check = New-Object System.Windows.Controls.CheckBox
-        $check.Content = $cidr
-        $check.IsChecked = $true
-        $check.Margin = '2,2,2,2'
-        [void]$cidrList.Children.Add($check)
+        & $addCidrCheckbox $cidr $true | Out-Null
     }
+
+    $cidrAddBtn.Add_Click({ & $addManualCidr })
+    $cidrBox.Add_KeyDown({
+        param($sender, $e)
+
+        if ($e.Key -eq 'Return') {
+            & $addManualCidr
+            $e.Handled = $true
+        }
+    })
+
     # Pre-compute CSV summary
     if (Test-Path $Script:AppState.ProvisionCsv) {
         try {

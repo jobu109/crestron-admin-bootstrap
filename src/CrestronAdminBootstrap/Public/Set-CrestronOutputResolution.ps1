@@ -15,6 +15,10 @@ function Set-CrestronOutputResolution {
         )]
         [string]$Resolution,
 
+        [int]$OutputIndex = 0,
+
+        [int]$PortIndex = 0,
+
         [int]$TimeoutSec = 30
     )
 
@@ -24,19 +28,51 @@ function Set-CrestronOutputResolution {
         throw "Device $($Session.IP) does not expose a supported AV API object."
     }
 
+    if ($OutputIndex -lt 0) {
+        throw "OutputIndex must be 0 or greater."
+    }
+
+    if ($PortIndex -lt 0) {
+        throw "PortIndex must be 0 or greater."
+    }
+
+    $portObject = @{
+        Resolution = $Resolution
+    }
+
+    $ports = @()
+    for ($i = 0; $i -le $PortIndex; $i++) {
+        if ($i -eq $PortIndex) {
+            $ports += $portObject
+        }
+        else {
+            $ports += @{}
+        }
+    }
+
+    $outputObject = @{
+        Ports = $ports
+    }
+
+    if ($family.Family -ne 'AvioV2') {
+        $outputObject['Name'] = "output$OutputIndex"
+    }
+
+    $outputs = @()
+    for ($i = 0; $i -le $OutputIndex; $i++) {
+        if ($i -eq $OutputIndex) {
+            $outputs += $outputObject
+        }
+        else {
+            $outputs += @{}
+        }
+    }
+
     if ($family.Family -eq 'AvioV2') {
         $payload = @{
             Device = @{
                 AvioV2 = @{
-                    Outputs = @(
-                        @{
-                            Ports = @(
-                                @{
-                                    Resolution = $Resolution
-                                }
-                            )
-                        }
-                    )
+                    Outputs = $outputs
                 }
             }
         }
@@ -45,16 +81,7 @@ function Set-CrestronOutputResolution {
         $payload = @{
             Device = @{
                 AudioVideoInputOutput = @{
-                    Outputs = @(
-                        @{
-                            Name = 'output0'
-                            Ports = @(
-                                @{
-                                    Resolution = $Resolution
-                                }
-                            )
-                        }
-                    )
+                    Outputs = $outputs
                 }
             }
         }
@@ -118,6 +145,8 @@ function Set-CrestronOutputResolution {
         Setting        = 'OutputResolution'
         AvApiFamily    = $family.Family
         Resolution     = $Resolution
+        OutputIndex    = $OutputIndex
+        PortIndex      = $PortIndex
         NeedsReboot    = $needsReboot
         SectionResults = $sectionResults
         Response       = $bodyPreview

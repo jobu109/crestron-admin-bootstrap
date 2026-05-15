@@ -5,8 +5,12 @@ function Set-CrestronInputHdcp {
         [pscustomobject]$Session,
 
         [Parameter(Mandatory)]
-        [ValidateSet('Auto','Disabled','Enabled')]
+        [ValidateSet('Auto','Disabled','Enabled','HDCP 1.4','HDCP 1.x','HDCP 2.x','HDCP 2.0','HDCP 2.2','Never Authenticate','NeverAuthenticate')]
         [string]$Mode,
+
+        [int]$InputIndex = 0,
+
+        [int]$PortIndex = 0,
 
         [int]$TimeoutSec = 30
     )
@@ -17,21 +21,70 @@ function Set-CrestronInputHdcp {
         throw "Device $($Session.IP) does not expose a supported AV API object."
     }
 
+    $deviceMode = switch -Regex ($Mode) {
+        '^Never\s*Authenticate$' { 'Disabled'; break }
+        '^NeverAuthenticate$'    { 'Disabled'; break }
+        '^Enabled$'              { 'Auto'; break }
+        '^HDCP\s*1(\.x|\.4)?$'  { 'HDCP 1.4'; break }
+        '^HDCP\s*2(\.x|\.0|\.2)?$' { 'HDCP 2.x'; break }
+        default                  { $Mode }
+    }
+
+    if ($InputIndex -lt 0) {
+        throw "InputIndex must be 0 or greater."
+    }
+
+    if ($PortIndex -lt 0) {
+        throw "PortIndex must be 0 or greater."
+    }
+
+    $portObject = @{
+        Digital = @{
+            HdcpReceiverCapability = $deviceMode
+        }
+    }
+
+    if ($family.Family -ne 'AvioV2') {
+        $portObject = @{
+            Hdmi = @{
+                HdcpReceiverCapability = $deviceMode
+            }
+        }
+    }
+
+    $ports = @()
+    for ($i = 0; $i -le $PortIndex; $i++) {
+        if ($i -eq $PortIndex) {
+            $ports += $portObject
+        }
+        else {
+            $ports += @{}
+        }
+    }
+
+    $inputObject = @{
+        Ports = $ports
+    }
+
+    if ($family.Family -ne 'AvioV2') {
+        $inputObject['Name'] = "input$InputIndex"
+    }
+
+    $inputs = @()
+    for ($i = 0; $i -le $InputIndex; $i++) {
+        if ($i -eq $InputIndex) {
+            $inputs += $inputObject
+        }
+        else {
+            $inputs += @{}
+        }
+    }
+
     if ($family.Family -eq 'AvioV2') {
         $payload = @{
             Device = @{
                 AvioV2 = @{
-                    Inputs = @(
-                        @{
-                            Ports = @(
-                                @{
-                                    Digital = @{
-                                        HdcpReceiverCapability = $Mode
-                                    }
-                                }
-                            )
-                        }
-                    )
+                    Inputs = $inputs
                 }
             }
         }
@@ -40,18 +93,7 @@ function Set-CrestronInputHdcp {
         $payload = @{
             Device = @{
                 AudioVideoInputOutput = @{
-                    Inputs = @(
-                        @{
-                            Name = 'input0'
-                            Ports = @(
-                                @{
-                                    Hdmi = @{
-                                        HdcpReceiverCapability = $Mode
-                                    }
-                                }
-                            )
-                        }
-                    )
+                    Inputs = $inputs
                 }
             }
         }
@@ -115,6 +157,9 @@ function Set-CrestronInputHdcp {
         Setting        = 'InputHdcp'
         AvApiFamily    = $family.Family
         Mode           = $Mode
+        DeviceMode     = $deviceMode
+        InputIndex     = $InputIndex
+        PortIndex      = $PortIndex
         NeedsReboot    = $needsReboot
         SectionResults = $sectionResults
         Response       = $bodyPreview

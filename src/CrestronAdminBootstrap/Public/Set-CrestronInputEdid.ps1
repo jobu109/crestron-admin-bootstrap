@@ -1,14 +1,16 @@
-function Set-CrestronOutputHdcp {
+function Set-CrestronInputEdid {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         [pscustomobject]$Session,
 
         [Parameter(Mandatory)]
-        [ValidateSet('Auto','FollowInput','ForceHighest','NeverAuthenticate')]
-        [string]$Mode,
+        [string]$EdidName,
 
-        [int]$OutputIndex = 0,
+        [ValidateSet('Copy','System','Custom')]
+        [string]$EdidType = 'System',
+
+        [int]$InputIndex = 0,
 
         [int]$PortIndex = 0,
 
@@ -21,16 +23,8 @@ function Set-CrestronOutputHdcp {
         throw "Device $($Session.IP) does not expose a supported AV API object."
     }
 
-    # Friendly parameter names -> documented / device-facing values.
-    $deviceMode = switch ($Mode) {
-        'Auto'              { 'Auto' }
-        'FollowInput'       { 'Follow Input' }
-        'ForceHighest'      { 'Force Highest' }
-        'NeverAuthenticate' { 'Never Authenticate' }
-    }
-
-    if ($OutputIndex -lt 0) {
-        throw "OutputIndex must be 0 or greater."
+    if ($InputIndex -lt 0) {
+        throw "InputIndex must be 0 or greater."
     }
 
     if ($PortIndex -lt 0) {
@@ -38,15 +32,17 @@ function Set-CrestronOutputHdcp {
     }
 
     $portObject = @{
-        Digital = @{
-            HdcpTransmitterMode = $deviceMode
-        }
+        CurrentEdid     = $EdidName
+        CurrentEdidType = $EdidType
     }
 
     if ($family.Family -ne 'AvioV2') {
         $portObject = @{
-            Hdmi = @{
-                HdcpTransmitterMode = $deviceMode
+            Edid = @{
+                ApplyEdid = @{
+                    Name = $EdidName
+                    Type = $EdidType
+                }
             }
         }
     }
@@ -61,21 +57,21 @@ function Set-CrestronOutputHdcp {
         }
     }
 
-    $outputObject = @{
+    $inputObject = @{
         Ports = $ports
     }
 
     if ($family.Family -ne 'AvioV2') {
-        $outputObject['Name'] = "output$OutputIndex"
+        $inputObject['Name'] = "input$InputIndex"
     }
 
-    $outputs = @()
-    for ($i = 0; $i -le $OutputIndex; $i++) {
-        if ($i -eq $OutputIndex) {
-            $outputs += $outputObject
+    $inputs = @()
+    for ($i = 0; $i -le $InputIndex; $i++) {
+        if ($i -eq $InputIndex) {
+            $inputs += $inputObject
         }
         else {
-            $outputs += @{}
+            $inputs += @{}
         }
     }
 
@@ -83,7 +79,7 @@ function Set-CrestronOutputHdcp {
         $payload = @{
             Device = @{
                 AvioV2 = @{
-                    Outputs = $outputs
+                    Inputs = $inputs
                 }
             }
         }
@@ -92,7 +88,7 @@ function Set-CrestronOutputHdcp {
         $payload = @{
             Device = @{
                 AudioVideoInputOutput = @{
-                    Outputs = $outputs
+                    Inputs = $inputs
                 }
             }
         }
@@ -117,8 +113,8 @@ function Set-CrestronOutputHdcp {
 
                 $isParentArrayWarning =
                     (
-                        ($path -match 'AudioVideoInputOutput\.Outputs\.Outputs_0') -or
-                        ($path -match 'AvioV2\.Outputs\.Outputs_0')
+                        ($path -match 'AudioVideoInputOutput\.Inputs\.Inputs_0') -or
+                        ($path -match 'AvioV2\.Inputs\.Inputs_0')
                     ) -and
                     ($sid -eq 3)
 
@@ -153,11 +149,11 @@ function Set-CrestronOutputHdcp {
         IP             = $Session.IP
         Status         = $api.Status
         Success        = $overallSuccess
-        Setting        = 'OutputHdcp'
+        Setting        = 'InputEdid'
         AvApiFamily    = $family.Family
-        Mode           = $Mode
-        DeviceMode     = $deviceMode
-        OutputIndex    = $OutputIndex
+        EdidName       = $EdidName
+        EdidType       = $EdidType
+        InputIndex     = $InputIndex
         PortIndex      = $PortIndex
         NeedsReboot    = $needsReboot
         SectionResults = $sectionResults
