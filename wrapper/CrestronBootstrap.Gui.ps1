@@ -714,7 +714,7 @@ Load-GuiSettings
                     <ScrollViewer HorizontalScrollBarVisibility="Visible"
                                   VerticalScrollBarVisibility="Disabled">
                     <DataGrid x:Name="PerDeviceGrid"
-                              Width="1580"
+                              Width="1465"
                               HorizontalAlignment="Left"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
@@ -737,25 +737,6 @@ Load-GuiSettings
                                     <DataTemplate>
                                         <TextBox Text="{Binding NewHostname, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                  IsEnabled="{Binding SupportsNetwork}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="TX/RX Mode" Width="115">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding DeviceMode}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <ComboBox SelectedItem="{Binding DeviceMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                IsEnabled="{Binding SupportsModeChange}">
-                                            <ComboBox.Items>
-                                                <sys:String>N/A</sys:String>
-                                                <sys:String>Transmitter</sys:String>
-                                                <sys:String>Receiver</sys:String>
-                                            </ComboBox.Items>
-                                        </ComboBox>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
@@ -897,7 +878,7 @@ Load-GuiSettings
                     <ScrollViewer HorizontalScrollBarVisibility="Visible"
                                   VerticalScrollBarVisibility="Disabled">
                     <DataGrid x:Name="PerDeviceAvInputGrid"
-                              Width="980"
+                              Width="1040"
                               HorizontalAlignment="Left"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
@@ -909,9 +890,10 @@ Load-GuiSettings
                               AlternatingRowBackground="#F8F8F8">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="IP"       Binding="{Binding IP}"        Width="120" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Model"    Binding="{Binding Model}"     Width="110" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}"  Width="140" IsReadOnly="True" />
                             <DataGridTextColumn Header="Input"    Binding="{Binding InputLabel}" Width="150" IsReadOnly="True" />
                             <DataGridTextColumn Header="Port"     Binding="{Binding PortType}"  Width="90"  IsReadOnly="True" />
-                            <DataGridTextColumn Header="Cur EDID" Binding="{Binding CurrentEdid}" Width="190" IsReadOnly="True" />
                             <DataGridTemplateColumn Header="EDID" Width="200">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -928,7 +910,6 @@ Load-GuiSettings
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Cur HDCP" Binding="{Binding CurrentInputHdcp}" Width="110" IsReadOnly="True" />
                             <DataGridTemplateColumn Header="Input HDCP" Width="125">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -959,7 +940,7 @@ Load-GuiSettings
                     <ScrollViewer HorizontalScrollBarVisibility="Visible"
                                   VerticalScrollBarVisibility="Disabled">
                     <DataGrid x:Name="PerDeviceAvOutputGrid"
-                              Width="830"
+                              Width="960"
                               HorizontalAlignment="Left"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
@@ -971,8 +952,9 @@ Load-GuiSettings
                               AlternatingRowBackground="#F8F8F8">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="IP"        Binding="{Binding IP}"          Width="120" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Model"     Binding="{Binding Model}"       Width="110" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Hostname"  Binding="{Binding Hostname}"    Width="140" IsReadOnly="True" />
                             <DataGridTextColumn Header="Output"    Binding="{Binding OutputLabel}" Width="150" IsReadOnly="True" />
-                            <DataGridTextColumn Header="Cur HDCP"  Binding="{Binding CurrentOutputHdcp}" Width="120" IsReadOnly="True" />
                             <DataGridTemplateColumn Header="Output HDCP" Width="135">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -994,7 +976,6 @@ Load-GuiSettings
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Cur Resolution" Binding="{Binding CurrentOutputResolution}" Width="130" IsReadOnly="True" />
                             <DataGridTemplateColumn Header="Output Resolution" Width="150">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -1025,7 +1006,7 @@ Load-GuiSettings
                     <ScrollViewer HorizontalScrollBarVisibility="Visible"
                                   VerticalScrollBarVisibility="Disabled">
                     <DataGrid x:Name="PerDeviceMulticastGrid"
-                              Width="560"
+                              Width="800"
                               HorizontalAlignment="Left"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
@@ -1037,8 +1018,27 @@ Load-GuiSettings
                               AlternatingRowBackground="#F8F8F8">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="IP"         Binding="{Binding IP}"        Width="120" IsReadOnly="True" />
-                            <DataGridTextColumn Header="Direction"  Binding="{Binding Direction}" Width="100" IsReadOnly="True" />
-                            <DataGridTextColumn Header="Current MC" Binding="{Binding CurrentMulticastAddress}" Width="150" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Model"      Binding="{Binding Model}"     Width="110" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Hostname"   Binding="{Binding Hostname}"  Width="140" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="TX/RX Mode" Width="130">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DeviceMode}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding DeviceMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsModeChange}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Transmitter</sys:String>
+                                                <sys:String>Receiver</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="MC Address" Width="150">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -1380,6 +1380,41 @@ function Update-Status ($text) {
     $Script:UI.StatusText.Text = $text
 }
 
+function Show-GuiException {
+    param(
+        [Parameter(Mandatory)][string]$Title,
+        [Parameter(Mandatory)][System.Exception]$Exception,
+        $ErrorRecord = $null
+    )
+
+    $msg = "$($Exception.GetType().Name): $($Exception.Message)"
+
+    if ($Exception.InnerException) {
+        $msg += "`n`nInner: $($Exception.InnerException.Message)"
+    }
+
+    if ($ErrorRecord -and $ErrorRecord.InvocationInfo) {
+        $info = $ErrorRecord.InvocationInfo
+        if ($info.ScriptLineNumber) {
+            $msg += "`n`nLine $($info.ScriptLineNumber): $($info.Line.Trim())"
+        }
+    }
+
+    if ($ErrorRecord -and $ErrorRecord.ScriptStackTrace) {
+        $msg += "`n`nStack:`n$($ErrorRecord.ScriptStackTrace)"
+    }
+    elseif ($Exception.StackTrace) {
+        $msg += "`n`nStack:`n$($Exception.StackTrace)"
+    }
+
+    [System.Windows.MessageBox]::Show(
+        $msg,
+        $Title,
+        'OK',
+        'Error'
+    ) | Out-Null
+}
+
 function Update-CredentialDisplay {
     if ($null -eq $Script:AppState.Credential) {
         $Script:UI.CredText.Text       = 'not entered'
@@ -1488,6 +1523,10 @@ function Show-CredentialDialog {
     $passBox = $dlg.FindName('PassBox')
     $okBtn   = $dlg.FindName('OkBtn')
     $cancel  = $dlg.FindName('CancelBtn')
+
+    if (-not ($dlg -and $userBox -and $passBox -and $okBtn -and $cancel)) {
+        throw "Credential dialog failed to initialize one or more controls."
+    }
 
     if ($Script:GuiSettings) {
         if (-not [string]::IsNullOrWhiteSpace($Script:GuiSettings.DefaultUsername)) {
@@ -2842,10 +2881,10 @@ function Start-BlanketCapabilityFetch {
             }
         }
 
-        $Script:UI.BlanketGrid.Items.Refresh()
-        Update-BlanketSummary
+            $Script:UI.BlanketGrid.Items.Refresh()
+            Update-BlanketSummary
 
-        if ($Script:BlanketState.DoneRef.Value -and $Script:BlanketState.Queue.IsEmpty) {
+            if ($Script:BlanketState.DoneRef.Value -and $Script:BlanketState.Queue.IsEmpty) {
             Stop-BlanketRunspace
             Set-BlanketControls $false
             Save-BlanketCsv
@@ -2959,8 +2998,11 @@ function Invoke-RebootNeededRows {
     )
 
     $rebootNeeded = @($Rows | Where-Object { [bool]$_.NeedsReboot }).Count
+    $isWorkflowRebootPrompt = $Script:WorkflowState -and
+                              [bool]$Script:WorkflowState.IsRunning -and
+                              $AreaName -eq 'Per-Device'
 
-    if ($Script:WorkflowState -and [bool]$Script:WorkflowState.IsRunning) {
+    if ($Script:WorkflowState -and [bool]$Script:WorkflowState.IsRunning -and -not $isWorkflowRebootPrompt) {
         if ($rebootNeeded -gt 0) {
             Update-Status "$rebootNeeded device(s) in $AreaName require reboot. Full Workflow will reboot later."
         }
@@ -2972,6 +3014,10 @@ function Invoke-RebootNeededRows {
 
     if ($rebootChoice -ne 'RebootNow') {
         return
+    }
+
+    if ($isWorkflowRebootPrompt) {
+        $Script:WorkflowState.RebootAlreadyRequested = $true
     }
 
     $ipsToReboot = @($Rows |
@@ -2998,11 +3044,21 @@ function Invoke-RebootNeededRows {
             $row.Timestamp = (Get-Date).ToString('s')
         }
 
-        $Grid.Items.Refresh()
-        & $UpdateSummary
+        if ($Grid) {
+            $Grid.Items.Refresh()
+        }
+
+        if ($UpdateSummary) {
+            & $UpdateSummary
+        }
     }.GetNewClosure()
 
-    Invoke-RebootBulk -Ips $ipsToReboot -StatusCallback $statusCallback -SkipConfirm
+    if ($isWorkflowRebootPrompt) {
+        Invoke-RebootBulk -Ips $ipsToReboot -StatusCallback $statusCallback -SkipConfirm -SkipWait
+    }
+    else {
+        Invoke-RebootBulk -Ips $ipsToReboot -StatusCallback $statusCallback -SkipConfirm
+    }
 }
 function Start-BlanketApply {
     if ($Script:BlanketState.IsRunning) { return }
@@ -3136,6 +3192,15 @@ function Start-BlanketApply {
     $Script:UI.BlanketProgressText.Text = "Applying to $($selectedIPs.Count) device(s)..."
     Set-BlanketControls $true
     Update-Status "Applying blanket settings to $($selectedIPs.Count) device(s)..."
+
+    if ($Script:WorkflowState -and
+        $Script:WorkflowState.CurrentStep -eq 2 -and
+        [bool]$Script:WorkflowState.BlanketWait) {
+        $Script:WorkflowState.BlanketApplyStarted = $true
+        $Script:UI.WorkflowContinueButton.Content = 'Applying...'
+        $Script:UI.WorkflowContinueButton.IsEnabled = $false
+        Set-WorkflowStep 2 '🔄' 'Applying blanket settings...'
+    }
 
     $queue   = [System.Collections.Concurrent.ConcurrentQueue[object]]::new()
     $doneRef = [ref]$false
@@ -3623,6 +3688,13 @@ function Start-BlanketApply {
                 -Grid $Script:UI.BlanketGrid `
                 -UpdateSummary { Update-BlanketSummary } `
                 -AreaName 'Blanket Settings'
+
+            if ($Script:WorkflowState -and
+                $Script:WorkflowState.CurrentStep -eq 2 -and
+                [bool]$Script:WorkflowState.BlanketWait) {
+                $Script:WorkflowState.BlanketApplied = $true
+                $Script:WorkflowState.BlanketWait = $false
+            }
         }
     })
 
@@ -3636,6 +3708,15 @@ function Stop-BlanketApply {
     Set-BlanketControls $false
     $Script:UI.BlanketProgressText.Text = 'Cancelled.'
     Update-Status 'Apply cancelled.'
+
+    if ($Script:WorkflowState -and
+        $Script:WorkflowState.CurrentStep -eq 2 -and
+        [bool]$Script:WorkflowState.BlanketWait) {
+        $Script:WorkflowState.BlanketApplyStarted = $false
+        $Script:UI.WorkflowContinueButton.Content = 'Skip Blanket Settings'
+        $Script:UI.WorkflowContinueButton.IsEnabled = $true
+        Set-WorkflowStep 2 '⏸' 'Blanket apply cancelled. Adjust settings and apply again, or skip to Per-Device from the Full Workflow tab.'
+    }
 }
 
 $Script:UI.BlanketTab.Add_GotFocus({
@@ -3831,6 +3912,38 @@ function Get-PerDeviceCurrentMulticastAddress {
     return "$($Row.CurrentReceiveMulticast)"
 }
 
+function ConvertTo-PerDeviceMulticastMode {
+    param(
+        $CurrentDeviceMode,
+        [bool]$SupportsTransmit,
+        [bool]$SupportsReceive
+    )
+
+    if ("$CurrentDeviceMode" -in 'Transmitter','Receiver') {
+        return "$CurrentDeviceMode"
+    }
+
+    if ($SupportsTransmit -and -not $SupportsReceive) {
+        return 'Transmitter'
+    }
+
+    if ($SupportsReceive -and -not $SupportsTransmit) {
+        return 'Receiver'
+    }
+
+    return 'N/A'
+}
+
+function ConvertTo-PerDeviceMulticastDirection {
+    param($DeviceMode)
+
+    switch ("$DeviceMode") {
+        'Transmitter' { 'Transmit' }
+        'Receiver'    { 'Receive' }
+        default       { '' }
+    }
+}
+
 function Remove-PerDeviceSectionRowsByIP {
     param(
         [Parameter(Mandatory)]
@@ -3878,8 +3991,12 @@ function Test-PerDeviceMulticastChanged {
 
     if (-not $Row) { return $false }
 
-    return (Test-PerDeviceValue $Row.NewMulticastAddress) -and
-           "$($Row.NewMulticastAddress)" -ne "$($Row.CurrentMulticastAddress)"
+    $modeChanged = ($Row.DeviceMode -in 'Transmitter','Receiver') -and
+                   "$($Row.DeviceMode)" -ne "$($Row.CurrentDeviceMode)"
+    $addressChanged = (Test-PerDeviceValue $Row.NewMulticastAddress) -and
+                      "$($Row.NewMulticastAddress)" -ne "$($Row.CurrentMulticastAddress)"
+
+    return ($modeChanged -or $addressChanged)
 }
 
 function Update-PerDeviceSummary {
@@ -4184,12 +4301,20 @@ function Start-PerDeviceFetch {
                                 $modelText = "$($av.Model)"
                             }
 
-                            $isNvx = $modelText -match '^DM-NVX'
-                            $supportsAvMulticast = $isNvx -and ([bool]$av.SupportsStreamTransmit -or [bool]$av.SupportsStreamReceive)
+                            $modelKey = "$modelText".Trim().ToUpperInvariant()
+                            $isNvx = $modelKey -match '^DM-NVX'
+                            $showAvEndpointSections = $isNvx
+                            $modelIsDecoderOnly = $modelKey -match '^DM-NVX-D\d'
+                            $modelIsEncoderOnly = $modelKey -match '^DM-NVX-E\d'
+                            $effectiveSupportsTransmit = [bool]$av.SupportsStreamTransmit -and -not $modelIsDecoderOnly
+                            $effectiveSupportsReceive = [bool]$av.SupportsStreamReceive -and -not $modelIsEncoderOnly
+                            $supportsAvMulticast = $isNvx -and ($effectiveSupportsTransmit -or $effectiveSupportsReceive)
                             $avApiFamily = "$($av.AvApiFamily)"
                             $avApiVersion = "$($av.AvApiVersion)"
                             $supportsAvSettings = -not [string]::IsNullOrWhiteSpace($avApiFamily) -and $avApiFamily -ne 'None'
                             $supportsGlobalEdid = [bool]$av.SupportsGlobalEdid
+                            $isDecoderOnly = $isNvx -and ($modelIsDecoderOnly -or ($effectiveSupportsReceive -and -not $effectiveSupportsTransmit))
+                            $isEncoderOnly = $isNvx -and ($modelIsEncoderOnly -or ($effectiveSupportsTransmit -and -not $effectiveSupportsReceive))
                             $edidNames = @($av.EdidNames | Where-Object {
                                 -not [string]::IsNullOrWhiteSpace("$_")
                             } | Sort-Object -Unique)
@@ -4197,25 +4322,52 @@ function Start-PerDeviceFetch {
                             $txStreams = @($av.TransmitMulticastAddresses)
                             if ($txStreams.Count -gt 0) {
                                 $txMulticast = "$($txStreams[0].MulticastAddress)"
-                                $multicastRows += [pscustomobject]@{
-                                    IP                      = $ip
-                                    Direction               = 'Transmit'
-                                    StreamIndex             = 0
-                                    CurrentMulticastAddress = "$($txStreams[0].MulticastAddress)"
-                                    NewMulticastAddress     = "$($txStreams[0].MulticastAddress)"
-                                    SupportsAvMulticast     = $supportsAvMulticast
-                                }
                             }
 
                             $rxStreams = @($av.ReceiveMulticastAddresses)
                             if ($rxStreams.Count -gt 0) {
                                 $rxMulticast = "$($rxStreams[0].MulticastAddress)"
+                            }
+
+                            if ($supportsAvMulticast) {
+                                $multicastMode = "$($state.CurrentDeviceMode)"
+                                if ($multicastMode -notin 'Transmitter','Receiver') {
+                                    if ($effectiveSupportsTransmit -and -not $effectiveSupportsReceive) {
+                                        $multicastMode = 'Transmitter'
+                                    }
+                                    elseif ($effectiveSupportsReceive -and -not $effectiveSupportsTransmit) {
+                                        $multicastMode = 'Receiver'
+                                    }
+                                    else {
+                                        $multicastMode = 'N/A'
+                                    }
+                                }
+
+                                $multicastDirection = switch ($multicastMode) {
+                                    'Transmitter' { 'Transmit'; break }
+                                    'Receiver'    { 'Receive'; break }
+                                    default       { '' }
+                                }
+                                $currentMulticast = ''
+
+                                if ($multicastDirection -eq 'Transmit') {
+                                    $currentMulticast = $txMulticast
+                                }
+                                elseif ($multicastDirection -eq 'Receive') {
+                                    $currentMulticast = $rxMulticast
+                                }
+
                                 $multicastRows += [pscustomobject]@{
                                     IP                      = $ip
-                                    Direction               = 'Receive'
+                                    Model                   = $modelText
+                                    Hostname                = "$($state.Hostname)"
+                                    Direction               = $multicastDirection
+                                    CurrentDeviceMode       = $multicastMode
+                                    DeviceMode              = $multicastMode
+                                    SupportsModeChange      = [bool]$state.SupportsModeChange
                                     StreamIndex             = 0
-                                    CurrentMulticastAddress = "$($rxStreams[0].MulticastAddress)"
-                                    NewMulticastAddress     = "$($rxStreams[0].MulticastAddress)"
+                                    CurrentMulticastAddress = $currentMulticast
+                                    NewMulticastAddress     = $currentMulticast
                                     SupportsAvMulticast     = $supportsAvMulticast
                                 }
                             }
@@ -4230,33 +4382,37 @@ function Start-PerDeviceFetch {
                                                  ($inputs.Count -gt 0) -and
                                                  (($edidNames.Count -gt 0) -or -not [string]::IsNullOrWhiteSpace($currentGlobalEdid))
 
-                            for ($i = 0; $i -lt $inputs.Count; $i++) {
-                                $inputItem = $inputs[$i]
-                                $inputEdidNames = @($inputItem.EdidOptions | Where-Object {
-                                    -not [string]::IsNullOrWhiteSpace("$_")
-                                } | Sort-Object -Unique)
+                            if ($showAvEndpointSections -and -not $isDecoderOnly) {
+                                for ($i = 0; $i -lt $inputs.Count; $i++) {
+                                    $inputItem = $inputs[$i]
+                                    $inputEdidNames = @($inputItem.EdidOptions | Where-Object {
+                                        -not [string]::IsNullOrWhiteSpace("$_")
+                                    } | Sort-Object -Unique)
 
-                                if ($inputEdidNames.Count -eq 0) {
-                                    $inputEdidNames = $edidNames
-                                }
+                                    if ($inputEdidNames.Count -eq 0) {
+                                        $inputEdidNames = $edidNames
+                                    }
 
-                                $inputLabel = "$($inputItem.InputName)"
-                                if ([string]::IsNullOrWhiteSpace($inputLabel)) {
-                                    $inputLabel = "Input $i"
-                                }
+                                    $inputLabel = "$($inputItem.InputName)"
+                                    if ([string]::IsNullOrWhiteSpace($inputLabel)) {
+                                        $inputLabel = "Input $i"
+                                    }
 
-                                $avInputRows += [pscustomobject]@{
-                                    IP               = $ip
-                                    InputIndex       = $i
-                                    InputLabel       = $inputLabel
-                                    PortType         = "$($inputItem.PortType)"
-                                    CurrentEdid      = "$($inputItem.CurrentEdid)"
-                                    NewEdidName      = "$($inputItem.CurrentEdid)"
-                                    EdidNameOptions  = $inputEdidNames
-                                    CurrentInputHdcp = "$($inputItem.HdcpReceiverCapability)"
-                                    NewInputHdcp     = "$($inputItem.HdcpReceiverCapability)"
-                                    SupportsAvSettings = $supportsAvSettings
-                                    SupportsEdidEdit = (($inputEdidNames.Count -gt 0) -or -not [string]::IsNullOrWhiteSpace("$($inputItem.CurrentEdid)"))
+                                    $avInputRows += [pscustomobject]@{
+                                        IP               = $ip
+                                        Model            = $modelText
+                                        Hostname         = "$($state.Hostname)"
+                                        InputIndex       = $i
+                                        InputLabel       = $inputLabel
+                                        PortType         = "$($inputItem.PortType)"
+                                        CurrentEdid      = "$($inputItem.CurrentEdid)"
+                                        NewEdidName      = "$($inputItem.CurrentEdid)"
+                                        EdidNameOptions  = $inputEdidNames
+                                        CurrentInputHdcp = "$($inputItem.HdcpReceiverCapability)"
+                                        NewInputHdcp     = "$($inputItem.HdcpReceiverCapability)"
+                                        SupportsAvSettings = $supportsAvSettings
+                                        SupportsEdidEdit = (($inputEdidNames.Count -gt 0) -or -not [string]::IsNullOrWhiteSpace("$($inputItem.CurrentEdid)"))
+                                    }
                                 }
                             }
 
@@ -4266,22 +4422,26 @@ function Start-PerDeviceFetch {
                                 $currentOutputResolution = "$($outputs[0].Resolution)"
                             }
 
-                            for ($i = 0; $i -lt $outputs.Count; $i++) {
-                                $outputItem = $outputs[$i]
-                                $outputLabel = "$($outputItem.OutputName)"
-                                if ([string]::IsNullOrWhiteSpace($outputLabel)) {
-                                    $outputLabel = "Output $i"
-                                }
+                            if ($showAvEndpointSections -and -not $isEncoderOnly) {
+                                for ($i = 0; $i -lt $outputs.Count; $i++) {
+                                    $outputItem = $outputs[$i]
+                                    $outputLabel = "$($outputItem.OutputName)"
+                                    if ([string]::IsNullOrWhiteSpace($outputLabel)) {
+                                        $outputLabel = "Output $i"
+                                    }
 
-                                $avOutputRows += [pscustomobject]@{
-                                    IP                      = $ip
-                                    OutputIndex             = $i
-                                    OutputLabel             = $outputLabel
-                                    CurrentOutputHdcp       = "$($outputItem.HdcpTransmitterMode)"
-                                    NewOutputHdcp           = "$($outputItem.HdcpTransmitterMode)"
-                                    CurrentOutputResolution = "$($outputItem.Resolution)"
-                                    NewOutputResolution     = "$($outputItem.Resolution)"
-                                    SupportsAvSettings      = $supportsAvSettings
+                                    $avOutputRows += [pscustomobject]@{
+                                        IP                      = $ip
+                                        Model                   = $modelText
+                                        Hostname                = "$($state.Hostname)"
+                                        OutputIndex             = $i
+                                        OutputLabel             = $outputLabel
+                                        CurrentOutputHdcp       = "$($outputItem.HdcpTransmitterMode)"
+                                        NewOutputHdcp           = "$($outputItem.HdcpTransmitterMode)"
+                                        CurrentOutputResolution = "$($outputItem.Resolution)"
+                                        NewOutputResolution     = "$($outputItem.Resolution)"
+                                        SupportsAvSettings      = $supportsAvSettings
+                                    }
                                 }
                             }
                         }
@@ -4579,6 +4739,8 @@ function Start-PerDeviceFetch {
 
                     [void]$Script:PerDeviceState.AvInputRows.Add([pscustomobject]@{
                         IP                 = "$($inputRow.IP)"
+                        Model              = "$($inputRow.Model)"
+                        Hostname           = "$($inputRow.Hostname)"
                         InputIndex         = [int]$inputRow.InputIndex
                         InputLabel         = "$($inputRow.InputLabel)"
                         PortType           = "$($inputRow.PortType)"
@@ -4599,6 +4761,8 @@ function Start-PerDeviceFetch {
 
                     [void]$Script:PerDeviceState.AvOutputRows.Add([pscustomobject]@{
                         IP                      = "$($outputRow.IP)"
+                        Model                   = "$($outputRow.Model)"
+                        Hostname                = "$($outputRow.Hostname)"
                         OutputIndex             = [int]$outputRow.OutputIndex
                         OutputLabel             = "$($outputRow.OutputLabel)"
                         CurrentOutputHdcp       = $currentOutputHdcp
@@ -4614,7 +4778,12 @@ function Start-PerDeviceFetch {
 
                     [void]$Script:PerDeviceState.MulticastRows.Add([pscustomobject]@{
                         IP                      = "$($mcRow.IP)"
+                        Model                   = "$($mcRow.Model)"
+                        Hostname                = "$($mcRow.Hostname)"
                         Direction               = "$($mcRow.Direction)"
+                        CurrentDeviceMode       = "$($mcRow.CurrentDeviceMode)"
+                        DeviceMode              = "$($mcRow.DeviceMode)"
+                        SupportsModeChange      = [bool]$mcRow.SupportsModeChange
                         StreamIndex             = 0
                         CurrentMulticastAddress = $currentMc
                         NewMulticastAddress     = if (Test-PerDeviceValue $currentMc) { $currentMc } else { 'N/A' }
@@ -4742,6 +4911,21 @@ function Test-PerDeviceMulticastRow ($row) {
 
     if (-not [bool]$row.SupportsAvMulticast) {
         return "Multicast selected, but this device does not expose stream multicast settings"
+    }
+
+    if ($row.DeviceMode -notin 'Transmitter','Receiver') {
+        return "TX/RX Mode must be Transmitter or Receiver"
+    }
+
+    if ("$($row.DeviceMode)" -ne "$($row.CurrentDeviceMode)" -and -not [bool]$row.SupportsModeChange) {
+        return "TX/RX Mode change selected, but this device does not expose DeviceSpecific.DeviceMode"
+    }
+
+    $addressChanged = (Test-PerDeviceValue $row.NewMulticastAddress) -and
+                      "$($row.NewMulticastAddress)" -ne "$($row.CurrentMulticastAddress)"
+
+    if (-not $addressChanged) {
+        return $null
     }
 
     if ("$($row.NewMulticastAddress)" -notmatch '^239\.(\d{1,3}\.){2}\d{1,3}$') {
@@ -4939,6 +5123,8 @@ function Start-PerDeviceApply {
             AvInputRows              = @($inputRowsToApply | Where-Object { "$($_.IP)" -eq $rowIp } | ForEach-Object {
                 @{
                     IP                 = $_.IP
+                    Model              = $_.Model
+                    Hostname           = $_.Hostname
                     InputIndex         = [int]$_.InputIndex
                     InputLabel         = $_.InputLabel
                     CurrentEdid        = $_.CurrentEdid
@@ -4952,6 +5138,8 @@ function Start-PerDeviceApply {
             AvOutputRows             = @($outputRowsToApply | Where-Object { "$($_.IP)" -eq $rowIp } | ForEach-Object {
                 @{
                     IP                      = $_.IP
+                    Model                   = $_.Model
+                    Hostname                = $_.Hostname
                     OutputIndex             = [int]$_.OutputIndex
                     OutputLabel             = $_.OutputLabel
                     CurrentOutputHdcp       = $_.CurrentOutputHdcp
@@ -4964,7 +5152,12 @@ function Start-PerDeviceApply {
             MulticastRows            = @($multicastRowsToApply | Where-Object { "$($_.IP)" -eq $rowIp } | ForEach-Object {
                 @{
                     IP                      = $_.IP
+                    Model                   = $_.Model
+                    Hostname                = $_.Hostname
                     Direction               = $_.Direction
+                    CurrentDeviceMode       = $_.CurrentDeviceMode
+                    DeviceMode              = $_.DeviceMode
+                    SupportsModeChange      = [bool]$_.SupportsModeChange
                     StreamIndex             = 0
                     CurrentMulticastAddress = $_.CurrentMulticastAddress
                     NewMulticastAddress     = $_.NewMulticastAddress
@@ -5466,6 +5659,30 @@ function Start-PerDeviceApply {
                         }
 
                         foreach ($mcRow in @($row.MulticastRows)) {
+                            if (($mcRow.DeviceMode -in 'Transmitter','Receiver') -and "$($mcRow.DeviceMode)" -ne "$($mcRow.CurrentDeviceMode)") {
+                                try {
+                                    if (-not [bool]$mcRow.SupportsModeChange) {
+                                        $stepResults += "DeviceMode=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $rMode = Set-CrestronDeviceMode -Session $sess -Mode $mcRow.DeviceMode
+                                        $stepResults += "DeviceMode=$(if($rMode.Success){'OK'}else{$rMode.Status}) -> $($mcRow.DeviceMode)"
+
+                                        if (Test-ResultNeedsReboot $rMode) {
+                                            $needsReboot = $true
+                                        }
+
+                                        if (-not $rMode.Success) {
+                                            $allOk = $false
+                                        }
+                                    }
+                                } catch {
+                                    $stepResults += "DeviceMode=ERR: $($_.Exception.Message)"
+                                    $allOk = $false
+                                }
+                            }
+
                             if ((Test-PerDeviceValue $mcRow.NewMulticastAddress) -and "$($mcRow.NewMulticastAddress)" -ne "$($mcRow.CurrentMulticastAddress)") {
                                 try {
                                     if (-not [bool]$mcRow.SupportsAvMulticast) {
@@ -5473,13 +5690,19 @@ function Start-PerDeviceApply {
                                         $allOk = $false
                                     }
                                     else {
+                                        $mcDirection = switch ("$($mcRow.DeviceMode)") {
+                                            'Transmitter' { 'Transmit'; break }
+                                            'Receiver'    { 'Receive'; break }
+                                            default       { "$($mcRow.Direction)" }
+                                        }
+
                                         $rMc = Set-CrestronMulticastAddress `
                                             -Session $sess `
-                                            -Direction $mcRow.Direction `
+                                            -Direction $mcDirection `
                                             -MulticastAddress $mcRow.NewMulticastAddress `
                                             -StreamIndex 0
 
-                                        $stepResults += "Multicast=$(if($rMc.Success){'OK'}else{$rMc.Status}) -> $($mcRow.Direction) $($mcRow.NewMulticastAddress)[0]"
+                                        $stepResults += "Multicast=$(if($rMc.Success){'OK'}else{$rMc.Status}) -> $mcDirection $($mcRow.NewMulticastAddress)[0]"
 
                                         if (Test-ResultNeedsReboot $rMc) {
                                             $needsReboot = $true
@@ -5756,6 +5979,9 @@ function Stop-RebootRunspace {
         try { $Script:RebootState.Runspace.Dispose() } catch {}
         $Script:RebootState.Runspace = $null
     }
+
+    $Script:RebootState.Queue = $null
+    $Script:RebootState.DoneRef = $null
 }
 
 function Show-RebootWaitDialog {
@@ -5846,6 +6072,10 @@ function Show-RebootWaitDialog {
     $skipButton   = $dlg.FindName('SkipButton')
     $cancelButton = $dlg.FindName('CancelButton')
 
+    if (-not ($messageText -and $bar -and $countdown -and $skipButton -and $cancelButton)) {
+        throw "Reboot wait dialog failed to initialize one or more controls."
+    }
+
     $messageText.Text = $Message
 
     $script:_rebootWaitResult = 'Completed'
@@ -5928,8 +6158,17 @@ function Invoke-RebootBulk {
         [switch]$SkipWait
     )
 
-    if ($Ips.Count -eq 0) {
+    $targetIps = @($Ips | Where-Object {
+        -not [string]::IsNullOrWhiteSpace("$_")
+    } | Sort-Object -Unique)
+
+    if ($targetIps.Count -eq 0) {
         [System.Windows.MessageBox]::Show("No devices to reboot.", "Nothing selected", 'OK', 'Warning') | Out-Null
+        return
+    }
+
+    if ($Script:RebootState.PowerShell) {
+        [System.Windows.MessageBox]::Show("A reboot operation is already running.", "Reboot in progress", 'OK', 'Warning') | Out-Null
         return
     }
 
@@ -5937,15 +6176,15 @@ function Invoke-RebootBulk {
     if (-not $cred) { Update-Status 'Reboot cancelled (no credentials).'; return }
 
     if (-not $SkipConfirm) {
-        $msg = "Reboot $($Ips.Count) device(s)?`n`nThis will disconnect each device immediately. Pending settings changes will take effect after the reboot."
+        $msg = "Reboot $($targetIps.Count) device(s)?`n`nThis will disconnect each device immediately. Pending settings changes will take effect after the reboot."
         $ans = [System.Windows.MessageBox]::Show($msg, "Confirm reboot", 'YesNo', 'Warning')
         if ($ans -ne 'Yes') { Update-Status 'Reboot cancelled.'; return }
     }
 
-    $Script:RebootWaitDeviceCount = @($Ips).Count
+    $Script:RebootWaitDeviceCount = $targetIps.Count
     $Script:RebootWaitAcceptedCount = 0
 
-    Update-Status "Rebooting $($Ips.Count) device(s)..."
+    Update-Status "Rebooting $($targetIps.Count) device(s)..."
 
     $modManifest = (Get-Module CrestronAdminBootstrap).Path
     if (-not $modManifest) {
@@ -5959,7 +6198,7 @@ function Invoke-RebootBulk {
     $rs.ApartmentState = 'STA'; $rs.Open()
     $rs.SessionStateProxy.SetVariable('queue',    $queue)
     $rs.SessionStateProxy.SetVariable('doneRef',  $doneRef)
-    $rs.SessionStateProxy.SetVariable('ips',      $Ips)
+    $rs.SessionStateProxy.SetVariable('ips',      $targetIps)
     $rs.SessionStateProxy.SetVariable('userName', $cred.UserName)
     $rs.SessionStateProxy.SetVariable('userPass', $cred.GetNetworkCredential().Password)
     $rs.SessionStateProxy.SetVariable('manifest', $modManifest)
@@ -6014,8 +6253,15 @@ function Invoke-RebootBulk {
     $timer.Interval = [TimeSpan]::FromMilliseconds(250)
     $timer.Add_Tick({
         $item = $null
+        $queueRef = $Script:RebootState.Queue
+        $doneRef = $Script:RebootState.DoneRef
 
-        while ($Script:RebootState.Queue.TryDequeue([ref]$item)) {
+        if (-not $queueRef -or -not $doneRef) {
+            $timer.Stop()
+            return
+        }
+
+        while ($queueRef.TryDequeue([ref]$item)) {
             if ($item.__error) {
                 [System.Windows.MessageBox]::Show("Reboot failed: $($item.__error)", "Error", 'OK', 'Error') | Out-Null
                 continue
@@ -6030,7 +6276,7 @@ function Invoke-RebootBulk {
             }
         }
 
-        if ($Script:RebootState.DoneRef.Value -and $Script:RebootState.Queue.IsEmpty) {
+        if ($doneRef.Value -and $queueRef.IsEmpty) {
             Stop-RebootRunspace
             Update-Status "Reboot Command Sent."
 
@@ -6062,10 +6308,25 @@ function Invoke-RebootBulk {
     $Script:RebootState.Timer = $timer
 }
 
+function Invoke-RebootButtonAction {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][scriptblock]$Action
+    )
+
+    try {
+        & $Action
+    }
+    catch {
+        Show-GuiException -Title "$Name failed" -Exception $_.Exception -ErrorRecord $_
+    }
+}
+
 # Provision tab — reboot selected
 $Script:UI.ProvisionRebootButton.Add_Click({
+    Invoke-RebootButtonAction -Name 'Provision reboot' -Action {
     $ips = @($Script:ProvisionState.Rows | Where-Object Selected | Select-Object -ExpandProperty IP)
-    Invoke-RebootBulk $ips {
+    Invoke-RebootBulk -Ips $ips -StatusCallback {
         param($item)
         $row = $Script:ProvisionState.RowsByIP[$item.IP]
         if ($row) {
@@ -6073,14 +6334,18 @@ $Script:UI.ProvisionRebootButton.Add_Click({
             $row.Response = $item.Detail
             $row.Timestamp = (Get-Date).ToString('s')
         }
-        $Script:UI.ProvisionGrid.Items.Refresh()
+        if ($Script:UI.ProvisionGrid) {
+            $Script:UI.ProvisionGrid.Items.Refresh()
+        }
+    }
     }
 })
 
 # Blanket Settings tab — reboot selected
 $Script:UI.BlanketRebootButton.Add_Click({
+    Invoke-RebootButtonAction -Name 'Blanket reboot' -Action {
     $ips = @($Script:BlanketState.Rows | Where-Object NeedsReboot | Select-Object -ExpandProperty IP)
-    Invoke-RebootBulk $ips {
+    Invoke-RebootBulk -Ips $ips -StatusCallback {
         param($item)
         $row = $Script:BlanketState.RowsByIP[$item.IP]
         if ($row) {
@@ -6093,14 +6358,19 @@ $Script:UI.BlanketRebootButton.Add_Click({
 
             $row.Timestamp = (Get-Date).ToString('s')
         }
-        $Script:UI.BlanketGrid.Items.Refresh()
+        if ($Script:UI.BlanketGrid) {
+            $Script:UI.BlanketGrid.Items.Refresh()
+        }
+        Update-BlanketSummary
+    }
     }
 })
 
 # Per-Device tab — reboot all loaded
 $Script:UI.PerDeviceRebootButton.Add_Click({
+    Invoke-RebootButtonAction -Name 'Per-Device reboot' -Action {
     $ips = @($Script:PerDeviceState.Rows | Where-Object NeedsReboot | Select-Object -ExpandProperty IP)
-    Invoke-RebootBulk $ips {
+    Invoke-RebootBulk -Ips $ips -StatusCallback {
         param($item)
         $row = $Script:PerDeviceState.RowsByIP[$item.IP]
         if ($row) {
@@ -6113,7 +6383,11 @@ $Script:UI.PerDeviceRebootButton.Add_Click({
 
             $row.Timestamp = (Get-Date).ToString('s')
         }
-        $Script:UI.PerDeviceGrid.Items.Refresh()
+        if ($Script:UI.PerDeviceGrid) {
+            $Script:UI.PerDeviceGrid.Items.Refresh()
+        }
+        Update-PerDeviceSummary
+    }
     }
 })
 
@@ -6124,13 +6398,17 @@ $window.Add_Closed({ Stop-RebootRunspace })
 # =============================================================================
 
 $Script:WorkflowState = [pscustomobject]@{
-    Steps         = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-    IsRunning     = $false
-    PerDeviceWait = $false   # set true while paused for tech editing
-    Cancelled     = $false
-    Timer         = $null    # used to poll inner-tab work for completion
-    CurrentStep   = -1
-    PostRebootSec = 180
+    Steps               = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+    IsRunning           = $false
+    BlanketWait         = $false
+    BlanketApplied      = $false
+    BlanketApplyStarted = $false
+    PerDeviceWait       = $false   # set true while paused for tech editing
+    RebootAlreadyRequested = $false
+    Cancelled           = $false
+    Timer               = $null    # used to poll inner-tab work for completion
+    CurrentStep         = -1
+    PostRebootSec       = 180
 }
 $Script:UI.WorkflowStepsList.ItemsSource = $Script:WorkflowState.Steps
 
@@ -6139,7 +6417,7 @@ function Initialize-WorkflowSteps {
     foreach ($t in @(
         @{ Title='1. Scan';            Detail='Probe configured CIDRs for unprovisioned devices' },
         @{ Title='2. Provision';       Detail='Set the admin account on each found device' },
-        @{ Title='3. Blanket Settings'; Detail='Apply NTP / Cloud / Auto-Update across all devices' },
+        @{ Title='3. Blanket Settings'; Detail='Apply shared settings across all devices' },
         @{ Title='4. Per-Device';      Detail='Tech edits per-device hostname / IP / WiFi-off — pauses here' },
         @{ Title='5. Reboot';          Detail='Reboot all devices so changes take effect' },
         @{ Title='6. Verify';          Detail='Wait, then rescan to confirm provisioning stuck' }
@@ -6158,6 +6436,10 @@ function Set-WorkflowControls ($running, $waitingForUser = $false) {
     $Script:UI.WorkflowStartButton.IsEnabled   = (-not $running) -and (-not $waitingForUser)
     $Script:UI.WorkflowContinueButton.IsEnabled = $waitingForUser
     $Script:UI.WorkflowCancelButton.IsEnabled  = $running
+
+    if (-not $waitingForUser) {
+        $Script:UI.WorkflowContinueButton.Content = 'Continue Workflow'
+    }
 }
 
 function Set-WorkflowStep ($index, $icon, $detail) {
@@ -6183,105 +6465,16 @@ function Wait-ForInnerTab ($isRunningPredicate, $intervalMs = 250) {
     $timer.Stop()
 }
 
-function Show-WorkflowSettingsDialog {
-    # Modal asking the tech which blanket-settings sections to apply.
-    # Returns hashtable of choices, or $null if cancelled.
-    [xml]$dxaml = @'
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Blanket Settings for Workflow" Width="500" Height="380"
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
-    <Grid Margin="14">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-
-        <Border Grid.Row="0" BorderBrush="#DDD" BorderThickness="1" Padding="8" Margin="0,0,0,8">
-            <StackPanel>
-                <CheckBox x:Name="WNtpEnable" Content="Apply NTP / Time Zone" />
-                <Grid Margin="20,6,0,0" IsEnabled="{Binding ElementName=WNtpEnable, Path=IsChecked}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="80" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="Server"   Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
-                    <TextBox  x:Name="WNtpServer"   Grid.Row="0" Grid.Column="1" Padding="4,2" Margin="0,0,0,4" Text="time.google.com" />
-                    <TextBlock Text="Timezone" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
-                    <ComboBox x:Name="WNtpTimeZone" Grid.Row="1" Grid.Column="1" Padding="4,2" />
-                </Grid>
-            </StackPanel>
-        </Border>
-
-        <Border Grid.Row="1" BorderBrush="#DDD" BorderThickness="1" Padding="8" Margin="0,0,0,8">
-            <StackPanel>
-                <CheckBox x:Name="WCloudEnable" Content="Apply XiO Cloud toggle" />
-                <StackPanel Orientation="Horizontal" Margin="20,6,0,0" IsEnabled="{Binding ElementName=WCloudEnable, Path=IsChecked}">
-                    <RadioButton x:Name="WCloudOn"  GroupName="WCloud" Content="Enable" IsChecked="True" Margin="0,0,16,0" />
-                    <RadioButton x:Name="WCloudOff" GroupName="WCloud" Content="Disable" />
-                </StackPanel>
-            </StackPanel>
-        </Border>
-
-        <Border Grid.Row="2" BorderBrush="#DDD" BorderThickness="1" Padding="8">
-            <StackPanel>
-                <CheckBox x:Name="WAutoEnable" Content="Apply Auto-Update toggle" />
-                <StackPanel Orientation="Horizontal" Margin="20,6,0,0" IsEnabled="{Binding ElementName=WAutoEnable, Path=IsChecked}">
-                    <RadioButton x:Name="WAutoOn"  GroupName="WAuto" Content="Enable" IsChecked="True" Margin="0,0,16,0" />
-                    <RadioButton x:Name="WAutoOff" GroupName="WAuto" Content="Disable" />
-                </StackPanel>
-            </StackPanel>
-        </Border>
-
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-            <Button x:Name="WCancelBtn" Content="Skip Settings" Padding="14,4" Margin="0,0,8,0" />
-            <Button x:Name="WOkBtn"     Content="Apply"         Padding="14,4" IsDefault="True" />
-        </StackPanel>
-    </Grid>
-</Window>
-'@
-    $reader = [System.Xml.XmlNodeReader]::new($dxaml)
-    $dlg = [Windows.Markup.XamlReader]::Load($reader)
-    $dlg.Owner = $window
-
-    $wTz = $dlg.FindName('WNtpTimeZone')
-    $wTz.ItemsSource = $tzList
-    $wTz.DisplayMemberPath = 'Name'
-    $wTz.SelectedValuePath  = 'Code'
-    $defTz = $tzList | Where-Object { $_.Code -eq '010' } | Select-Object -First 1
-    if ($defTz) { $wTz.SelectedItem = $defTz }
-
-    $script:_wfResult = $null
-    $dlg.FindName('WOkBtn').Add_Click({
-        $tz = $dlg.FindName('WNtpTimeZone').SelectedItem
-        $script:_wfResult = [pscustomobject]@{
-            NtpEnabled    = [bool]$dlg.FindName('WNtpEnable').IsChecked
-            NtpServer     = $dlg.FindName('WNtpServer').Text.Trim()
-            TimeZoneCode  = if ($tz) { $tz.Code } else { '010' }
-            CloudEnabled  = [bool]$dlg.FindName('WCloudEnable').IsChecked
-            CloudOn       = [bool]$dlg.FindName('WCloudOn').IsChecked
-            AutoEnabled   = [bool]$dlg.FindName('WAutoEnable').IsChecked
-            AutoOn        = [bool]$dlg.FindName('WAutoOn').IsChecked
-        }
-        $dlg.DialogResult = $true; $dlg.Close()
-    })
-    $dlg.FindName('WCancelBtn').Add_Click({ $dlg.DialogResult = $false; $dlg.Close() })
-
-    [void]$dlg.ShowDialog()
-    return $script:_wfResult
-}
-
 function Reset-WorkflowSteps {
     Initialize-WorkflowSteps
-    $Script:WorkflowState.Cancelled   = $false
-    $Script:WorkflowState.CurrentStep = -1
+    $Script:WorkflowState.Cancelled           = $false
+    $Script:WorkflowState.BlanketWait         = $false
+    $Script:WorkflowState.BlanketApplied      = $false
+    $Script:WorkflowState.BlanketApplyStarted = $false
+    $Script:WorkflowState.PerDeviceWait       = $false
+    $Script:WorkflowState.RebootAlreadyRequested = $false
+    $Script:WorkflowState.CurrentStep         = -1
+    $Script:UI.WorkflowContinueButton.Content = 'Continue Workflow'
 }
 
 function Start-FullWorkflow {
@@ -6347,38 +6540,31 @@ function Start-FullWorkflow {
 
         # --- Step 3: Blanket Settings ---------------------------------------
         $Script:WorkflowState.CurrentStep = 2
-        Set-WorkflowStep 2 '⏸' 'Waiting for settings selection...'
-        $choices = Show-WorkflowSettingsDialog
-        if (-not $choices) {
-            Set-WorkflowStep 2 'ℹ️' 'Skipped (user chose Skip Settings).'
-        } elseif (-not ($choices.NtpEnabled -or $choices.CloudEnabled -or $choices.AutoEnabled)) {
-            Set-WorkflowStep 2 'ℹ️' 'Skipped (no sections enabled).'
-        } else {
-            Set-WorkflowStep 2 '🔄' 'Applying blanket settings...'
-            $Script:UI.MainTabs.SelectedIndex = 3  # Blanket Settings tab
-            Load-BlanketFromProvision
+        Set-WorkflowStep 2 '🔄' 'Loading Blanket Settings and fetching capabilities...'
+        $Script:UI.MainTabs.SelectedIndex = 3  # Blanket Settings tab
+        Load-BlanketFromProvision
+        Start-BlanketCapabilityFetch
+        Wait-ForInnerTab { $Script:BlanketState.IsRunning }
+        if ($Script:WorkflowState.Cancelled) { throw 'Cancelled by user.' }
 
-            # Apply the dialog choices to the visible tab controls so Start-BlanketApply
-            # picks them up. This reuses the existing apply logic.
-            $Script:UI.NtpEnableBox.IsChecked        = $choices.NtpEnabled
-            $Script:UI.NtpServerBox.Text             = $choices.NtpServer
-            $tzPick = $tzList | Where-Object Code -eq $choices.TimeZoneCode | Select-Object -First 1
-            if ($tzPick) { $Script:UI.NtpTimeZoneBox.SelectedItem = $tzPick }
-            $Script:UI.CloudEnableBox.IsChecked      = $choices.CloudEnabled
-            $Script:UI.CloudOnRadio.IsChecked        = $choices.CloudOn
-            $Script:UI.CloudOffRadio.IsChecked       = (-not $choices.CloudOn)
-            $Script:UI.AutoUpdateEnableBox.IsChecked = $choices.AutoEnabled
-            $Script:UI.AutoUpdateOnRadio.IsChecked   = $choices.AutoOn
-            $Script:UI.AutoUpdateOffRadio.IsChecked  = (-not $choices.AutoOn)
+        $Script:WorkflowState.BlanketApplied = $false
+        $Script:WorkflowState.BlanketApplyStarted = $false
+        $Script:WorkflowState.BlanketWait = $true
+        $Script:UI.WorkflowContinueButton.Content = 'Skip Blanket Settings'
+        Set-WorkflowControls $true $true
+        $capOk = ($Script:BlanketState.Rows | Where-Object Status -eq 'OK').Count
+        Set-WorkflowStep 2 '⏸' "Fetched capabilities for $capOk device(s). Choose shared settings, then click `"Apply to Selected`"; workflow continues when apply finishes."
 
-            # Start-BlanketApply requires a YES confirm dialog. To stay automatic in
-            # the workflow, we set a sentinel and let the existing logic prompt — it's
-            # one dialog, predictable for the tech.
-            Start-BlanketApply
-            Wait-ForInnerTab { $Script:BlanketState.IsRunning }
-            if ($Script:WorkflowState.Cancelled) { throw 'Cancelled by user.' }
+        Wait-ForInnerTab { $Script:WorkflowState.BlanketWait }
+        Set-WorkflowControls $true $false
+        if ($Script:WorkflowState.Cancelled) { throw 'Cancelled by user.' }
+
+        if ($Script:WorkflowState.BlanketApplied) {
             $blankOk = ($Script:BlanketState.Rows | Where-Object Status -eq 'OK').Count
-            Set-WorkflowStep 2 '✅' "Applied to $blankOk device(s)."
+            Set-WorkflowStep 2 '✅' "Blanket settings finished. $blankOk device(s) OK."
+        }
+        else {
+            Set-WorkflowStep 2 'ℹ️' 'Skipped by user.'
         }
 
         # --- Step 4: Per-Device (pause for editing) -------------------------
@@ -6411,6 +6597,11 @@ function Start-FullWorkflow {
         $rebootIps = @($Script:ProvisionState.Rows | Where-Object Success -eq 'True' | Select-Object -ExpandProperty IP)
         if ($rebootIps.Count -eq 0) {
             Set-WorkflowStep 4 'ℹ️' 'No devices to reboot.'
+        } elseif ([bool]$Script:WorkflowState.RebootAlreadyRequested) {
+            Set-WorkflowStep 4 '🔄' 'Reboot already requested from Per-Device prompt...'
+            Wait-ForInnerTab { $null -ne $Script:RebootState.PowerShell }
+            if ($Script:WorkflowState.Cancelled) { throw 'Cancelled by user.' }
+            Set-WorkflowStep 4 '✅' 'Reboot command was sent from Per-Device prompt.'
         } else {
             # Use the shared reboot helper. It pops its own confirm dialog.
             Invoke-RebootBulk -Ips $rebootIps -StatusCallback { param($item) } -SkipWait
@@ -6421,78 +6612,29 @@ function Start-FullWorkflow {
         }
 
         # --- Step 6: Wait for reboot + Verify --------------------------------
-        # Bumped to 4 minutes total. Probes GET / on each device every 5 seconds.
-        # When all rebooted devices come back, we exit the wait early and proceed
-        # straight to Verify.
         $Script:WorkflowState.CurrentStep = 5
-        $waitSec = 240  # 4 minutes hard cap
+        $Script:UI.WorkflowRebootPanel.Visibility = 'Collapsed'
 
-        # Build live reboot-status rows
-        $rebootRows = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-        $rebootByIp = @{}
-        foreach ($ip in $rebootIps) {
-            $r = [pscustomobject]@{ IP = $ip; Status = 'Booting'; FirstOnlineAt = '' }
-            $rebootRows.Add($r)
-            $rebootByIp[$ip] = $r
-        }
-        $Script:UI.WorkflowRebootGrid.ItemsSource = $rebootRows
-        $Script:UI.WorkflowRebootPanel.Visibility = 'Visible'
+        if ($rebootIps.Count -gt 0) {
+            Set-WorkflowStep 5 '⏳' 'Waiting up to 4 minutes for reboot before Verify...'
 
-        $elapsed = 0
-        $allOnline = $false
-        while ($elapsed -lt $waitSec) {
-            if ($Script:WorkflowState.Cancelled) { throw 'Cancelled by user.' }
+            $waitResult = Show-RebootWaitDialog `
+                -Seconds 240 `
+                -Title 'Waiting for reboot' `
+                -Message "Reboot commands have been sent to $($rebootIps.Count) device(s). Wait up to 4 minutes before Verify."
 
-            $remaining = $waitSec - $elapsed
-            $mm = [Math]::Floor($remaining / 60)
-            $ss = $remaining % 60
-            $Script:UI.WorkflowCountdownText.Text = ("Countdown: {0}:{1:D2}" -f $mm, $ss)
-
-            # Probe each not-yet-online device with a 2-second HTTPS GET /
-            $stillBooting = @($rebootRows | Where-Object Status -eq 'Booting')
-            foreach ($r in $stillBooting) {
-                $probeOk = $false
-                try {
-                    & curl.exe -k -s -o NUL --max-time 2 `
-                        -w "%{http_code}" "https://$($r.IP)/" 2>$null | Out-Null
-                    if ($LASTEXITCODE -eq 0) { $probeOk = $true }
-                } catch { }
-                if ($probeOk) {
-                    $r.Status        = 'Online'
-                    $r.FirstOnlineAt = (Get-Date).ToString('HH:mm:ss')
-                }
+            if ($waitResult -eq 'Cancelled') {
+                throw 'Reboot wait cancelled by user.'
             }
-            $online = ($rebootRows | Where-Object Status -eq 'Online').Count
-            $total  = $rebootRows.Count
-            $Script:UI.WorkflowOnlineText.Text = "$online of $total online"
-            $Script:UI.WorkflowRebootGrid.Items.Refresh()
-
-            Set-WorkflowStep 5 '⏳' ("Waiting for reboot: {0}/{1} online, {2}s remaining" -f $online, $total, $remaining)
-
-            if ($online -eq $total -and $total -gt 0) {
-                $allOnline = $true
-                break
+            elseif ($waitResult -eq 'Skipped') {
+                Set-WorkflowStep 5 'ℹ️' 'Reboot wait skipped. Verifying now.'
             }
-
-            # Pump dispatcher for 5 seconds, then re-probe
-            $f = New-Object System.Windows.Threading.DispatcherFrame
-            $t = New-Object System.Windows.Threading.DispatcherTimer
-            $t.Interval = [TimeSpan]::FromSeconds(5)
-            $t.Add_Tick({ $f.Continue = $false })
-            $t.Start()
-            [System.Windows.Threading.Dispatcher]::PushFrame($f)
-            $t.Stop()
-            $elapsed += 5
+            else {
+                Set-WorkflowStep 5 '✅' 'Reboot wait complete. Verifying now.'
+            }
         }
-
-        # Final summary on the reboot wait
-        $online = ($rebootRows | Where-Object Status -eq 'Online').Count
-        $total  = $rebootRows.Count
-        if ($allOnline) {
-            Set-WorkflowStep 5 '✅' "All $total device(s) back online (early exit)."
-        } else {
-            $offline = $total - $online
-            Set-WorkflowStep 5 'ℹ️' "$online of $total back online ($offline still booting after 4 min). Verifying anyway."
+        else {
+            Set-WorkflowStep 5 'ℹ️' 'No reboot wait needed. Verifying now.'
         }
 
         # --- Step 6: Verify --------------------------------------------------
@@ -6531,13 +6673,22 @@ function Start-FullWorkflow {
 $Script:UI.WorkflowStartButton.Add_Click({ Start-FullWorkflow })
 
 $Script:UI.WorkflowContinueButton.Add_Click({
-    $Script:WorkflowState.PerDeviceWait = $false
+    if ([bool]$Script:WorkflowState.BlanketWait) {
+        $Script:WorkflowState.BlanketApplied = $false
+        $Script:WorkflowState.BlanketWait = $false
+    }
+
+    if ([bool]$Script:WorkflowState.PerDeviceWait) {
+        $Script:WorkflowState.PerDeviceWait = $false
+    }
+
     $Script:UI.WorkflowContinueButton.IsEnabled = $false
     $Script:UI.MainTabs.SelectedIndex = 0
 })
 
 $Script:UI.WorkflowCancelButton.Add_Click({
     $Script:WorkflowState.Cancelled     = $true
+    $Script:WorkflowState.BlanketWait   = $false
     $Script:WorkflowState.PerDeviceWait = $false
     Stop-Scan
     Stop-Provision
@@ -6815,15 +6966,7 @@ $Script:UI.BlanketReloadButton.Add_Click({
 $dispatcherHandler = {
     param($sender, $e)
     try {
-        $msg = "$($e.Exception.GetType().Name): $($e.Exception.Message)"
-        if ($e.Exception.InnerException) {
-            $msg += "`n`nInner: $($e.Exception.InnerException.Message)"
-        }
-        [System.Windows.MessageBox]::Show(
-            "An unexpected error occurred:`n`n$msg`n`nThe application will keep running. If this happens repeatedly, please copy this message and report it.",
-            "Unexpected error",
-            'OK', 'Error'
-        ) | Out-Null
+        Show-GuiException -Title 'Unexpected error' -Exception $e.Exception
         $e.Handled = $true
     } catch {
         # Last-ditch: never let the handler itself crash
