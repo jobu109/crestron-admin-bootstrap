@@ -372,14 +372,15 @@ Load-GuiSettings
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Button x:Name="ProvisionStartButton"  Grid.Column="0" Content="Provision Selected" Padding="16,4" FontWeight="Bold" />
                         <Button x:Name="ProvisionReloadButton" Grid.Column="1" Content="Reload from scan CSV" Padding="10,4" Margin="8,0,0,0" />
-                        <Button x:Name="ProvisionRebootButton" Grid.Column="2" Content="Reboot Selected" Padding="10,4" Margin="8,0,0,0" HorizontalAlignment="Left" />
-                        <TextBlock x:Name="ProvisionProgressText" Grid.Column="2" Margin="170,0,0,0" VerticalAlignment="Center" Foreground="#666" />
-                        <Button x:Name="ProvisionCancelButton" Grid.Column="3" Content="Cancel" Padding="12,4" IsEnabled="False" />
+                        <Button x:Name="ProvisionRebootButton" Grid.Column="2" Content="Reboot Selected" Padding="10,4" Margin="8,0,0,0" />
+                        <TextBlock x:Name="ProvisionProgressText" Grid.Column="3" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#666" />
+                        <Button x:Name="ProvisionCancelButton" Grid.Column="4" Content="Cancel" Padding="12,4" IsEnabled="False" />
                     </Grid>
 
                     <!-- Summary -->
@@ -416,6 +417,24 @@ Load-GuiSettings
             <TabItem Header="Blanket Settings" x:Name="BlanketTab">
                 <DockPanel Margin="8">
 
+                    <!-- Action bar -->
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="BlanketApplyButton"      Grid.Column="0" Content="Apply to Selected"  Padding="16,4" FontWeight="Bold" />
+                        <Button x:Name="BlanketReloadButton"     Grid.Column="1" Content="Add Devices..."     Padding="10,4" Margin="8,0,0,0" />
+                        <Button x:Name="BlanketRebootButton"     Grid.Column="2" Content="Reboot Needed"      Padding="10,4" Margin="8,0,0,0" />
+                        <Button x:Name="BlanketClearButton"      Grid.Column="3" Content="Clear Loaded"       Padding="10,4" Margin="8,0,0,0" />
+                        <TextBlock x:Name="BlanketProgressText"  Grid.Column="4" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#CC0000" FontWeight="Bold" />
+                        <Button x:Name="BlanketCancelButton"     Grid.Column="5" Content="Cancel" Padding="12,4" IsEnabled="False" />
+                    </Grid>
+
                     <!-- Top: device grid -->
                     <Border DockPanel.Dock="Top" BorderBrush="#DDD" BorderThickness="1" Height="220" Margin="0,0,0,8">
                         <DockPanel LastChildFill="True">
@@ -423,13 +442,9 @@ Load-GuiSettings
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock x:Name="BlanketSummaryText" Grid.Column="0" Text="No devices loaded." Foreground="#666" VerticalAlignment="Center" />
-                                <Button x:Name="BlanketCapabilityButton" Grid.Column="1" Content="Fetch Capabilities" Padding="10,2" Margin="8,0,0,0" />
-                                <CheckBox  x:Name="BlanketSelectAll"        Grid.Column="2" Content="Select all" IsChecked="True" Margin="8,0,0,0" />
-                                <Button    x:Name="BlanketReloadButton"     Grid.Column="3" Content="Add Devices..." Padding="10,2" Margin="8,0,0,0" />
+                                <CheckBox  x:Name="BlanketSelectAll" Grid.Column="1" Content="Select all" IsChecked="True" Margin="8,0,0,0" />
                             </Grid>
 
                             <ScrollViewer HorizontalScrollBarVisibility="Visible"
@@ -468,22 +483,6 @@ Load-GuiSettings
                             </ScrollViewer>
                         </DockPanel>
                     </Border>
-
-                    <!-- Bottom: settings sections + apply -->
-                    <Grid DockPanel.Dock="Bottom" Margin="0,0,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Button x:Name="BlanketApplyButton"  Grid.Column="0" Content="Apply to Selected" Padding="16,4" FontWeight="Bold" />
-                        <Button x:Name="BlanketRebootButton" Grid.Column="1" Content="Reboot Needed"     Padding="10,4" Margin="8,0,0,0" />
-                        <Button x:Name="BlanketClearButton"  Grid.Column="2" Content="Clear Loaded"      Padding="10,4" Margin="8,0,0,0" />
-                        <TextBlock x:Name="BlanketProgressText" Grid.Column="3" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#CC0000" FontWeight="Bold" />
-                        <Button x:Name="BlanketCancelButton" Grid.Column="4" Content="Cancel" Padding="12,4" IsEnabled="False" />
-                    </Grid>
 
                     <!-- Middle (fills): settings sections -->
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
@@ -1069,9 +1068,6 @@ Load-GuiSettings
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
@@ -1198,7 +1194,7 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'VerifyCancelButton','VerifyProgressText',
                   'VerifyGrid','VerifySelectAll','VerifySummaryText',
                   'BlanketTab','BlanketGrid','BlanketSelectAll','BlanketSummaryText',
-                  'BlanketReloadButton','BlanketApplyButton','BlanketClearButton','BlanketCancelButton','BlanketCapabilityButton','BlanketProgressText',
+                  'BlanketReloadButton','BlanketApplyButton','BlanketClearButton','BlanketCancelButton','BlanketProgressText',
                   'NtpEnableBox','NtpServerBox','NtpTimeZoneBox',
                   'CloudEnableBox','CloudOnRadio','CloudOffRadio',
                   'FusionEnableBox','FusionOnRadio','FusionOffRadio',
@@ -1216,6 +1212,74 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'WorkflowStatusText','WorkflowStepsList',
                   'WorkflowRebootPanel','WorkflowCountdownText','WorkflowOnlineText','WorkflowRebootGrid') {
     $Script:UI[$name] = $window.FindName($name)
+}
+
+function Set-ToolbarButtonStyle {
+    param(
+        [Parameter(Mandatory)][string[]]$Names,
+        [int]$MinWidth = 108,
+        [bool]$Primary = $false
+    )
+
+    foreach ($name in $Names) {
+        $button = $Script:UI[$name]
+
+        if (-not $button) {
+            continue
+        }
+
+        $button.MinWidth = $MinWidth
+        $button.MinHeight = 28
+        $button.Padding = [System.Windows.Thickness]::new(12, 4, 12, 4)
+        $button.VerticalAlignment = 'Center'
+
+        if ($Primary) {
+            $button.FontWeight = [System.Windows.FontWeights]::Bold
+        }
+    }
+}
+
+function Initialize-ActionButtonStyles {
+    Set-ToolbarButtonStyle `
+        -Primary $true `
+        -MinWidth 124 `
+        -Names @(
+            'WorkflowStartButton',
+            'ScanStartButton',
+            'ProvisionStartButton',
+            'VerifyStartButton',
+            'BlanketApplyButton',
+            'PerDeviceApplyButton',
+            'SettingsSaveButton'
+        )
+
+    Set-ToolbarButtonStyle `
+        -MinWidth 112 `
+        -Names @(
+            'WorkflowContinueButton',
+            'ProvisionReloadButton',
+            'ProvisionRebootButton',
+            'VerifyReloadButton',
+            'BlanketReloadButton',
+            'BlanketRebootButton',
+            'BlanketClearButton',
+            'PerDeviceAddButton',
+            'PerDeviceRefreshButton',
+            'PerDeviceRebootButton',
+            'PerDeviceClearButton',
+            'SettingsClearPasswordButton'
+        )
+
+    Set-ToolbarButtonStyle `
+        -MinWidth 84 `
+        -Names @(
+            'WorkflowCancelButton',
+            'ScanCancelButton',
+            'ProvisionCancelButton',
+            'VerifyCancelButton',
+            'BlanketCancelButton',
+            'PerDeviceCancelButton'
+        )
 }
 
 function Initialize-SettingsTab {
@@ -1413,6 +1477,159 @@ function Show-GuiException {
         'OK',
         'Error'
     ) | Out-Null
+}
+
+$Script:BusyDialogs = @{}
+
+function Show-WindowInForeground {
+    param(
+        $TargetWindow
+    )
+
+    if (-not $TargetWindow) {
+        return
+    }
+
+    try {
+        if ($TargetWindow.WindowState -eq 'Minimized') {
+            $TargetWindow.WindowState = 'Normal'
+        }
+
+        $wasTopmost = [bool]$TargetWindow.Topmost
+        $TargetWindow.Topmost = $true
+        [void]$TargetWindow.Activate()
+        [void]$TargetWindow.Focus()
+        $TargetWindow.Topmost = $wasTopmost
+    }
+    catch { }
+}
+
+function Show-BusyDialog {
+    param(
+        [Parameter(Mandatory)][string]$Key,
+        [Parameter(Mandatory)][string]$Title,
+        [Parameter(Mandatory)][string]$Message,
+        [string]$Status = 'Working...'
+    )
+
+    Close-BusyDialog -Key $Key
+
+    [xml]$dxaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Working"
+        Width="460"
+        Height="170"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="ToolWindow"
+        ShowInTaskbar="False">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="BusyMessage"
+                   Grid.Row="0"
+                   Text="Working..."
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,12" />
+        <ProgressBar Grid.Row="1"
+                     Height="18"
+                     IsIndeterminate="True"
+                     Margin="0,0,0,10" />
+        <TextBlock x:Name="BusyStatus"
+                   Grid.Row="2"
+                   Text="Starting..."
+                   Foreground="#666"
+                   FontFamily="Consolas"
+                   TextWrapping="Wrap" />
+    </Grid>
+</Window>
+'@
+
+    try {
+        $reader = [System.Xml.XmlNodeReader]::new($dxaml)
+        $dlg = [Windows.Markup.XamlReader]::Load($reader)
+        $messageText = $dlg.FindName('BusyMessage')
+        $statusText = $dlg.FindName('BusyStatus')
+
+        if (-not ($dlg -and $messageText -and $statusText)) {
+            return
+        }
+
+        $dlg.Owner = $window
+        $dlg.Title = $Title
+        $messageText.Text = $Message
+        $statusText.Text = $Status
+
+        $Script:BusyDialogs[$Key] = [pscustomobject]@{
+            Window     = $dlg
+            MessageText = $messageText
+            StatusText  = $statusText
+        }
+
+        $dlg.Add_Closed({
+            try {
+                if ($Script:BusyDialogs -and
+                    $Script:BusyDialogs.ContainsKey($Key) -and
+                    $Script:BusyDialogs[$Key].Window -eq $dlg) {
+                    $Script:BusyDialogs.Remove($Key)
+                }
+            }
+            catch { }
+        }.GetNewClosure())
+
+        [void]$dlg.Show()
+        Show-WindowInForeground $dlg
+    }
+    catch { }
+}
+
+function Update-BusyDialog {
+    param(
+        [Parameter(Mandatory)][string]$Key,
+        [string]$Message,
+        [string]$Status
+    )
+
+    if (-not $Script:BusyDialogs.ContainsKey($Key)) {
+        return
+    }
+
+    $entry = $Script:BusyDialogs[$Key]
+
+    try {
+        if ($Message -and $entry.MessageText) {
+            $entry.MessageText.Text = $Message
+        }
+
+        if ($Status -and $entry.StatusText) {
+            $entry.StatusText.Text = $Status
+        }
+    }
+    catch { }
+}
+
+function Close-BusyDialog {
+    param(
+        [Parameter(Mandatory)][string]$Key
+    )
+
+    if (-not $Script:BusyDialogs.ContainsKey($Key)) {
+        return
+    }
+
+    $entry = $Script:BusyDialogs[$Key]
+    $Script:BusyDialogs.Remove($Key)
+
+    try {
+        if ($entry.Window) {
+            $entry.Window.Close()
+        }
+    }
+    catch { }
 }
 
 function Update-CredentialDisplay {
@@ -1813,6 +2030,11 @@ function Start-Scan {
     $Script:UI.ScanProgressText.Text = 'Scan in Progress...'
     Set-ScanControls $true
     Update-Status 'Scan in progress...'
+    Show-BusyDialog `
+        -Key 'Scan' `
+        -Title 'Scanning network' `
+        -Message "Scanning $($Script:ScanState.Cidrs.Count) subnet(s) for Crestron bootup pages..." `
+        -Status 'Starting scan...'
 
     # Background runspace runs Find-CrestronBootup; results are appended to a
     # thread-safe queue read by a DispatcherTimer on the UI thread.
@@ -1870,6 +2092,9 @@ function Start-Scan {
             $Script:ScanState.Results.Add($row)
         }
         Update-ScanSummary
+        Update-BusyDialog `
+            -Key 'Scan' `
+            -Status "Found $($Script:ScanState.Results.Count) device(s)..."
 
         if ($Script:ScanDone.Value -and $Script:ScanQueue.IsEmpty) {
             Stop-ScanTimer
@@ -1880,6 +2105,7 @@ function Start-Scan {
             Save-ScanCsv
             $Script:UI.ScanSelectAll.IsChecked = $true
             Update-Status "Scan complete. $count device(s) found. Saved $($Script:AppState.ScanCsv)"
+            Close-BusyDialog -Key 'Scan'
         }
     })
     $timer.Start()
@@ -1893,6 +2119,7 @@ function Stop-Scan {
     Set-ScanControls $false
     $Script:UI.ScanProgressText.Text = 'Cancelled.'
     Update-Status 'Scan cancelled.'
+    Close-BusyDialog -Key 'Scan'
 }
 
 # Wire up Scan tab events
@@ -2545,7 +2772,6 @@ function Set-BlanketControls ($isRunning) {
     $Script:UI.BlanketApplyButton.IsEnabled   = -not $isRunning
     $Script:UI.BlanketReloadButton.IsEnabled  = -not $isRunning
     $Script:UI.BlanketCancelButton.IsEnabled  = $isRunning
-    $Script:UI.BlanketCapabilityButton.IsEnabled = -not $isRunning
 }
 
 function Load-BlanketFromProvision {
@@ -2667,6 +2893,11 @@ function Start-BlanketCapabilityFetch {
     $Script:UI.BlanketProgressText.Text = "Fetching capabilities for $($ips.Count) device(s)..."
     Set-BlanketControls $true
     Update-Status "Fetching Blanket Settings capabilities..."
+    Show-BusyDialog `
+        -Key 'BlanketCapabilityFetch' `
+        -Title 'Fetching capabilities' `
+        -Message "Fetching current capabilities for $($ips.Count) device(s)..." `
+        -Status 'Starting capability fetch...'
 
     $modManifest = (Get-Module CrestronAdminBootstrap).Path
 
@@ -2883,6 +3114,11 @@ function Start-BlanketCapabilityFetch {
 
             $Script:UI.BlanketGrid.Items.Refresh()
             Update-BlanketSummary
+            $okCount = ($Script:BlanketState.Rows | Where-Object Status -eq 'OK').Count
+            $errorCount = ($Script:BlanketState.Rows | Where-Object Status -eq 'Error').Count
+            Update-BusyDialog `
+                -Key 'BlanketCapabilityFetch' `
+                -Status "OK: $okCount  Errors: $errorCount"
 
             if ($Script:BlanketState.DoneRef.Value -and $Script:BlanketState.Queue.IsEmpty) {
             Stop-BlanketRunspace
@@ -2893,6 +3129,7 @@ function Start-BlanketCapabilityFetch {
             $Script:UI.BlanketProgressText.Text = "Capability fetch complete. $ok device(s) OK."
             Update-Status "Blanket capability fetch complete. $ok OK."
             Update-AvGlobalEdidOptions
+            Close-BusyDialog -Key 'BlanketCapabilityFetch'
         }
     })
 
@@ -3708,6 +3945,7 @@ function Stop-BlanketApply {
     Set-BlanketControls $false
     $Script:UI.BlanketProgressText.Text = 'Cancelled.'
     Update-Status 'Apply cancelled.'
+    Close-BusyDialog -Key 'BlanketCapabilityFetch'
 
     if ($Script:WorkflowState -and
         $Script:WorkflowState.CurrentStep -eq 2 -and
@@ -3721,10 +3959,6 @@ function Stop-BlanketApply {
 
 $Script:UI.BlanketTab.Add_GotFocus({
     if ($Script:BlanketState.Rows.Count -eq 0) { Load-BlanketFromProvision }
-})
-
-$Script:UI.BlanketCapabilityButton.Add_Click({
-    Start-BlanketCapabilityFetch
 })
 
 $Script:UI.BlanketClearButton.Add_Click({
@@ -4215,6 +4449,11 @@ function Start-PerDeviceFetch {
     $Script:UI.PerDeviceProgressText.Text = "Fetching state for $($ips.Count) device(s)..."
     Set-PerDeviceControls $true
     Update-Status "Fetching device state..."
+    Show-BusyDialog `
+        -Key 'PerDeviceFetch' `
+        -Title 'Fetching device state' `
+        -Message "Fetching current state and AV details for $($ips.Count) device(s)..." `
+        -Status 'Starting fetch...'
 
     $modManifest = (Get-Module CrestronAdminBootstrap).Path
 
@@ -4817,12 +5056,20 @@ function Start-PerDeviceFetch {
         $Script:UI.PerDeviceAvOutputGrid.Items.Refresh()
         $Script:UI.PerDeviceMulticastGrid.Items.Refresh()
         Update-PerDeviceSummary
+        $okCount = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
+        $errorCount = ($Script:PerDeviceState.Rows | Where-Object {
+            $_.Detail -like 'ERROR:*'
+        }).Count
+        Update-BusyDialog `
+            -Key 'PerDeviceFetch' `
+            -Status "OK: $okCount  Errors: $errorCount"
 
         if ($Script:PerDeviceState.DoneRef.Value -and $Script:PerDeviceState.Queue.IsEmpty) {
             Stop-PerDeviceRunspace
             Set-PerDeviceControls $false
             $Script:UI.PerDeviceProgressText.Text = "Fetch complete."
             Update-Status "Per-device state fetch complete."
+            Close-BusyDialog -Key 'PerDeviceFetch'
         }
     })
 
@@ -5877,6 +6124,7 @@ function Stop-PerDeviceApply {
     Set-PerDeviceControls $false
     $Script:UI.PerDeviceProgressText.Text = 'Cancelled.'
     Update-Status 'Per-device apply cancelled.'
+    Close-BusyDialog -Key 'PerDeviceFetch'
 }
 
 # Auto-load on tab focus, then auto-fetch if device state hasn't been pulled yet
@@ -6465,6 +6713,253 @@ function Wait-ForInnerTab ($isRunningPredicate, $intervalMs = 250) {
     $timer.Stop()
 }
 
+function Get-WorkflowScanSubnetOptions {
+    $items = @()
+    $seen = @{}
+    $cidrRegex = '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$'
+
+    foreach ($child in @($Script:UI.ScanCidrList.Children)) {
+        $cidr = "$($child.Content)".Trim()
+
+        if ($cidr -match $cidrRegex -and -not $seen.ContainsKey($cidr)) {
+            $seen[$cidr] = $true
+            $items += [pscustomobject]@{
+                Cidr    = $cidr
+                Checked = [bool]$child.IsChecked
+            }
+        }
+    }
+
+    if ($items.Count -eq 0 -and $Script:GuiSettings -and $Script:GuiSettings.MostUsedSubnets) {
+        foreach ($cidr in @($Script:GuiSettings.MostUsedSubnets)) {
+            $cidrText = "$cidr".Trim()
+
+            if ($cidrText -match $cidrRegex -and -not $seen.ContainsKey($cidrText)) {
+                $seen[$cidrText] = $true
+                $items += [pscustomobject]@{
+                    Cidr    = $cidrText
+                    Checked = $true
+                }
+            }
+        }
+    }
+
+    return $items
+}
+
+function Set-WorkflowScanSubnetSelection {
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$Cidrs
+    )
+
+    $selected = @{}
+
+    foreach ($cidr in @($Cidrs)) {
+        $cidrText = "$cidr".Trim()
+
+        if ([string]::IsNullOrWhiteSpace($cidrText)) {
+            continue
+        }
+
+        $selected[$cidrText] = $true
+        Add-ScanCidrCheckbox -Cidr $cidrText -Checked $true
+    }
+
+    foreach ($child in @($Script:UI.ScanCidrList.Children)) {
+        $cidrText = "$($child.Content)".Trim()
+        $child.IsChecked = $selected.ContainsKey($cidrText)
+    }
+
+    Sync-ScanStateFromCheckedCidrs
+    Save-ScanCidrs
+}
+
+function Show-WorkflowScanSubnetDialog {
+    [xml]$dxaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Confirm Scan Subnets"
+        Width="460"
+        Height="430"
+        MinHeight="360"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        WindowStyle="ToolWindow">
+    <DockPanel Margin="12">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="CancelBtn" Content="Cancel Workflow" MinWidth="110" Padding="12,4" Margin="0,0,8,0" />
+            <Button x:Name="StartBtn" Content="Start Scan" MinWidth="110" Padding="12,4" FontWeight="Bold" IsDefault="True" />
+        </StackPanel>
+
+        <TextBlock DockPanel.Dock="Top"
+                   Text="Choose the subnet(s) to scan for this Full Workflow run."
+                   TextWrapping="Wrap"
+                   Foreground="#444"
+                   Margin="0,0,0,10" />
+
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="CidrBox"
+                     Grid.Column="0"
+                     Padding="4,2"
+                     VerticalContentAlignment="Center" />
+            <Button x:Name="AddBtn"
+                    Grid.Column="1"
+                    Content="Add Subnet"
+                    MinWidth="96"
+                    Padding="10,2"
+                    Margin="6,0,0,0" />
+        </Grid>
+
+        <TextBlock x:Name="StatusText"
+                   DockPanel.Dock="Bottom"
+                   Foreground="#666"
+                   FontSize="11"
+                   Margin="0,8,0,0" />
+
+        <Border BorderBrush="#DDD" BorderThickness="1" Padding="8">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Auto">
+                <StackPanel x:Name="CidrList" />
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</Window>
+'@
+
+    $reader = [System.Xml.XmlNodeReader]::new($dxaml)
+    $dlg = [Windows.Markup.XamlReader]::Load($reader)
+    $dlg.Owner = $window
+
+    $cidrList = $dlg.FindName('CidrList')
+    $cidrBox = $dlg.FindName('CidrBox')
+    $addBtn = $dlg.FindName('AddBtn')
+    $startBtn = $dlg.FindName('StartBtn')
+    $cancelBtn = $dlg.FindName('CancelBtn')
+    $statusText = $dlg.FindName('StatusText')
+    $cidrRegex = '^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$'
+
+    $addCidrCheckbox = {
+        param(
+            [string]$Cidr,
+            [bool]$Checked = $true
+        )
+
+        $cidrText = "$Cidr".Trim()
+
+        if ($cidrText -notmatch $cidrRegex) {
+            return $false
+        }
+
+        foreach ($child in @($cidrList.Children)) {
+            if ("$($child.Content)" -eq $cidrText) {
+                $child.IsChecked = $Checked
+                return $true
+            }
+        }
+
+        $check = New-Object System.Windows.Controls.CheckBox
+        $check.Content = $cidrText
+        $check.IsChecked = $Checked
+        $check.Margin = '2,3,2,3'
+        [void]$cidrList.Children.Add($check)
+        return $true
+    }
+
+    foreach ($item in @(Get-WorkflowScanSubnetOptions)) {
+        & $addCidrCheckbox $item.Cidr ([bool]$item.Checked) | Out-Null
+    }
+
+    if ($cidrList.Children.Count -eq 0) {
+        $statusText.Text = 'No subnets are configured. Add one before starting the scan.'
+    }
+    else {
+        $statusText.Text = 'Uncheck any subnet you do not want to scan.'
+    }
+
+    $addManualCidr = {
+        $entry = "$($cidrBox.Text)".Trim()
+
+        if ([string]::IsNullOrWhiteSpace($entry)) {
+            $statusText.Text = 'Enter a CIDR subnet to add.'
+            return
+        }
+
+        if ($entry -notmatch $cidrRegex) {
+            [System.Windows.MessageBox]::Show(
+                "Invalid CIDR. Example: 192.168.20.0/24",
+                "Invalid input",
+                'OK',
+                'Warning'
+            ) | Out-Null
+            return
+        }
+
+        if (& $addCidrCheckbox $entry $true) {
+            $cidrBox.Clear()
+            $statusText.Text = "Added $entry to this workflow scan."
+        }
+    }
+
+    $script:_workflowScanCidrs = $null
+
+    $addBtn.Add_Click({ & $addManualCidr })
+    $cidrBox.Add_KeyDown({
+        param($sender, $e)
+
+        if ($e.Key -eq 'Return') {
+            & $addManualCidr
+            $e.Handled = $true
+        }
+    })
+
+    $startBtn.Add_Click({
+        $selected = @()
+
+        foreach ($child in @($cidrList.Children)) {
+            if ([bool]$child.IsChecked) {
+                $selected += "$($child.Content)"
+            }
+        }
+
+        if ($selected.Count -eq 0) {
+            [System.Windows.MessageBox]::Show(
+                "Select at least one subnet to scan.",
+                "No subnet selected",
+                'OK',
+                'Warning'
+            ) | Out-Null
+            return
+        }
+
+        $script:_workflowScanCidrs = @($selected)
+        $dlg.DialogResult = $true
+        $dlg.Close()
+    })
+
+    $cancelBtn.Add_Click({
+        $script:_workflowScanCidrs = $null
+        $dlg.DialogResult = $false
+        $dlg.Close()
+    })
+
+    $dlg.Add_ContentRendered({
+        Show-WindowInForeground $dlg
+    })
+
+    [void]$dlg.ShowDialog()
+
+    if ($null -eq $script:_workflowScanCidrs) {
+        return $null
+    }
+
+    return @($script:_workflowScanCidrs)
+}
+
 function Reset-WorkflowSteps {
     Initialize-WorkflowSteps
     $Script:WorkflowState.Cancelled           = $false
@@ -6486,31 +6981,18 @@ function Start-FullWorkflow {
     try {
         # --- Step 1: Scan ----------------------------------------------------
         $Script:WorkflowState.CurrentStep = 0
-        Set-WorkflowStep 0 '⏸' 'Confirm or edit Subnets (CIDR) on the Scan tab, then click OK to start scanning.'
+        Set-WorkflowStep 0 '⏸' 'Choose subnet(s) for this workflow scan.'
         $Script:UI.MainTabs.SelectedIndex = 1  # Scan tab
 
         Sync-ScanStateFromCheckedCidrs
 
-        $cidrText = if ($Script:ScanState.Cidrs.Count -gt 0) {
-            ($Script:ScanState.Cidrs -join "`n")
-        } else {
-            '(none)'
-        }
-
-        $scanConfirm = [System.Windows.MessageBox]::Show(
-            "Confirm the Subnets (CIDR) list on the Scan tab before starting the Full Workflow scan.`n`nCurrent CIDRs:`n$cidrText`n`nClick OK to start scanning, or Cancel to stop the workflow.",
-            "Confirm scan subnets",
-            'OKCancel',
-            'Question'
-        )
-
-        if ($scanConfirm -ne 'OK') {
+        $workflowCidrs = Show-WorkflowScanSubnetDialog
+        if ($null -eq $workflowCidrs) {
             Set-WorkflowStep 0 'ℹ️' 'Workflow cancelled before scan.'
             return
         }
 
-        Sync-ScanStateFromCheckedCidrs
-        Save-ScanCidrs
+        Set-WorkflowScanSubnetSelection -Cidrs @($workflowCidrs)
         Set-WorkflowStep 0 '🔄' 'Scanning Network...'
         Start-Scan
         Wait-ForInnerTab { $Script:ScanState.IsScanning }
@@ -6828,6 +7310,8 @@ function Add-DevicesToGrid {
 }
 
 $Script:UI.PerDeviceAddButton.Add_Click({
+    $beforeCount = $Script:PerDeviceState.Rows.Count
+
     Add-DevicesToGrid `
         -Rows $Script:PerDeviceState.Rows `
         -RowsByIP $Script:PerDeviceState.RowsByIP `
@@ -6892,11 +7376,9 @@ $Script:UI.PerDeviceAddButton.Add_Click({
             }
         }
     Update-PerDeviceSummary
-    # Auto-fetch state for the new rows if creds are cached
-    if ($Script:AppState.Credential) {
+
+    if ($Script:PerDeviceState.Rows.Count -gt $beforeCount) {
         Start-PerDeviceFetch
-    } else {
-        Update-Status "Devices added. Click 'Fetch current state' to populate hostname/model after entering credentials."
     }
 })
 
@@ -6923,6 +7405,8 @@ $Script:UI.PerDeviceClearButton.Add_Click({
 # Blanket Settings uses the shared add-device dialog while still auto-loading
 # provisioned devices the first time the tab is focused.
 $Script:UI.BlanketReloadButton.Add_Click({
+    $beforeCount = $Script:BlanketState.Rows.Count
+
     Add-DevicesToGrid `
         -Rows $Script:BlanketState.Rows `
         -RowsByIP $Script:BlanketState.RowsByIP `
@@ -6956,6 +7440,10 @@ $Script:UI.BlanketReloadButton.Add_Click({
             }
         }
     Update-BlanketSummary
+
+    if ($Script:BlanketState.Rows.Count -gt $beforeCount) {
+        Start-BlanketCapabilityFetch
+    }
 })
 
 # ---- Global exception handlers -----------------------------------------------
@@ -7417,7 +7905,26 @@ function Find-DevicesReachable {
 
 # ---- Show window -------------------------------------------------------------
 try {
+    Initialize-ActionButtonStyles
     Initialize-SettingsTab
+    $window.Add_SourceInitialized({
+        Show-WindowInForeground $window
+    })
+    $window.Add_ContentRendered({
+        try {
+            Show-WindowInForeground $window
+            $window.Dispatcher.BeginInvoke(
+                [Action]{ try { Show-WindowInForeground $window } catch { } },
+                [System.Windows.Threading.DispatcherPriority]::ApplicationIdle
+            ) | Out-Null
+        }
+        catch { }
+    })
+    $window.Add_Closed({
+        foreach ($key in @($Script:BusyDialogs.Keys)) {
+            Close-BusyDialog -Key $key
+        }
+    })
     $window.ShowDialog() | Out-Null
 } catch {
     [System.Windows.MessageBox]::Show(
