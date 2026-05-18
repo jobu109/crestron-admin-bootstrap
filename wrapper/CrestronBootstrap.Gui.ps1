@@ -1160,8 +1160,7 @@ Load-GuiSettings
 
                         <GroupBox Header="Appearance" Padding="10" Margin="0,0,0,12">
                             <CheckBox x:Name="SettingsDarkModeBox"
-                            Content="Enable dark mode (coming soon)"
-                            IsEnabled="False" />
+                                      Content="Enable dark mode" />
                         </GroupBox>
 
                         <StackPanel Orientation="Horizontal">
@@ -1292,7 +1291,7 @@ function Initialize-SettingsTab {
     $Script:UI.SettingsMostUsedSubnetsBox.Text = (($Script:GuiSettings.MostUsedSubnets | Where-Object {
         -not [string]::IsNullOrWhiteSpace($_)
     }) -join "`r`n")
-    $Script:UI.SettingsDarkModeBox.IsChecked = $false
+    $Script:UI.SettingsDarkModeBox.IsChecked = [bool]$Script:GuiSettings.DarkMode
     $Script:UI.SettingsStatusText.Text = ''
 }
 
@@ -1327,6 +1326,498 @@ function New-Brush {
     )
 }
 
+function Get-BrushColorString {
+    param(
+        [Parameter(Mandatory)]$Brush
+    )
+
+    if ($Brush -is [System.Windows.Media.SolidColorBrush]) {
+        return $Brush.Color.ToString()
+    }
+
+    return '#000000'
+}
+
+function New-XamlObject {
+    param(
+        [Parameter(Mandatory)][string]$XamlText
+    )
+
+    [xml]$doc = $XamlText
+    $reader = [System.Xml.XmlNodeReader]::new($doc)
+    return [Windows.Markup.XamlReader]::Load($reader)
+}
+
+function Get-GuiThemePalette {
+    param(
+        [bool]$DarkMode
+    )
+
+    if ($DarkMode) {
+        return [pscustomobject]@{
+            WindowBg    = New-Brush '#1E1F22'
+            PanelBg     = New-Brush '#25262A'
+            ControlBg   = New-Brush '#303136'
+            ButtonBg    = New-Brush '#393A40'
+            TextFg      = New-Brush '#F0F0F0'
+            MutedFg     = New-Brush '#B8B8B8'
+            AccentFg    = New-Brush '#8AB4F8'
+            DangerFg    = New-Brush '#FF6B6B'
+            SuccessFg   = New-Brush '#72D18B'
+            Border      = New-Brush '#56585F'
+            GridAltBg   = New-Brush '#2C2D32'
+            HeaderBg    = New-Brush '#34363B'
+            StatusBg    = New-Brush '#151619'
+            SelectionBg = New-Brush '#315A86'
+            SelectionFg = New-Brush '#FFFFFF'
+            ButtonHover = New-Brush '#46484F'
+            ButtonDown  = New-Brush '#315A86'
+            DisabledFg  = New-Brush '#8E8E8E'
+        }
+    }
+
+    return [pscustomobject]@{
+        WindowBg    = New-Brush '#FFFFFF'
+        PanelBg     = New-Brush '#FFFFFF'
+        ControlBg   = New-Brush '#FFFFFF'
+        ButtonBg    = New-Brush '#F0F0F0'
+        TextFg      = New-Brush '#000000'
+        MutedFg     = New-Brush '#666666'
+        AccentFg    = New-Brush '#0066CC'
+        DangerFg    = New-Brush '#CC0000'
+        SuccessFg   = New-Brush '#1A7F37'
+        Border      = New-Brush '#DDDDDD'
+        GridAltBg   = New-Brush '#F8F8F8'
+        HeaderBg    = New-Brush '#F0F0F0'
+        StatusBg    = New-Brush '#F0F0F0'
+        SelectionBg = New-Brush '#0078D7'
+        SelectionFg = New-Brush '#FFFFFF'
+        ButtonHover = New-Brush '#E5F1FB'
+        ButtonDown  = New-Brush '#CCE4F7'
+        DisabledFg  = New-Brush '#888888'
+    }
+}
+
+function Get-GuiDarkModeEnabled {
+    if ($null -ne $Script:GuiThemeDarkMode) {
+        return [bool]$Script:GuiThemeDarkMode
+    }
+
+    if ($Script:GuiSettings) {
+        return [bool]$Script:GuiSettings.DarkMode
+    }
+
+    return $false
+}
+
+function Add-StyleSetter {
+    param(
+        [Parameter(Mandatory)][System.Windows.Style]$Style,
+        [Parameter(Mandatory)][System.Windows.DependencyProperty]$Property,
+        [AllowNull()]$Value
+    )
+
+    [void]$Style.Setters.Add([System.Windows.Setter]::new($Property, $Value))
+}
+
+function New-PropertyTrigger {
+    param(
+        [Parameter(Mandatory)][System.Windows.DependencyProperty]$Property,
+        [Parameter(Mandatory)]$Value,
+        [Parameter(Mandatory)][System.Windows.SetterBase[]]$Setters
+    )
+
+    $trigger = [System.Windows.Trigger]::new()
+    $trigger.Property = $Property
+    $trigger.Value = $Value
+
+    foreach ($setter in $Setters) {
+        [void]$trigger.Setters.Add($setter)
+    }
+
+    return $trigger
+}
+
+function Set-ImplicitThemeStyle {
+    param(
+        [Parameter(Mandatory)][System.Windows.FrameworkElement]$Root,
+        [Parameter(Mandatory)][type]$TargetType,
+        [Parameter(Mandatory)][System.Windows.Style]$Style
+    )
+
+    try {
+        if ($Root.Resources.Contains($TargetType)) {
+            $Root.Resources.Remove($TargetType)
+        }
+
+        $Root.Resources.Add($TargetType, $Style)
+    }
+    catch { }
+}
+
+function Set-GuiThemeResourceStyles {
+    param(
+        [Parameter(Mandatory)][System.Windows.FrameworkElement]$Root,
+        [Parameter(Mandatory)]$Palette
+    )
+
+    $textBlockStyle = [System.Windows.Style]::new([System.Windows.Controls.TextBlock])
+    Add-StyleSetter $textBlockStyle ([System.Windows.Controls.TextBlock]::ForegroundProperty) $Palette.TextFg
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.TextBlock]) $textBlockStyle
+
+    $textBoxStyle = [System.Windows.Style]::new([System.Windows.Controls.TextBox])
+    Add-StyleSetter $textBoxStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.ControlBg
+    Add-StyleSetter $textBoxStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $textBoxStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Add-StyleSetter $textBoxStyle ([System.Windows.Controls.TextBox]::CaretBrushProperty) $Palette.TextFg
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.TextBox]) $textBoxStyle
+
+    $passwordBoxStyle = [System.Windows.Style]::new([System.Windows.Controls.PasswordBox])
+    Add-StyleSetter $passwordBoxStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.ControlBg
+    Add-StyleSetter $passwordBoxStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $passwordBoxStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Add-StyleSetter $passwordBoxStyle ([System.Windows.Controls.PasswordBox]::CaretBrushProperty) $Palette.TextFg
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.PasswordBox]) $passwordBoxStyle
+
+    $buttonStyle = [System.Windows.Style]::new([System.Windows.Controls.Button])
+    Add-StyleSetter $buttonStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.ButtonBg
+    Add-StyleSetter $buttonStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $buttonStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Add-StyleSetter $buttonStyle ([System.Windows.Controls.Control]::BorderThicknessProperty) ([System.Windows.Thickness]::new(1))
+    Add-StyleSetter $buttonStyle ([System.Windows.Controls.Control]::HorizontalContentAlignmentProperty) ([System.Windows.HorizontalAlignment]::Center)
+    Add-StyleSetter $buttonStyle ([System.Windows.Controls.Control]::VerticalContentAlignmentProperty) ([System.Windows.VerticalAlignment]::Center)
+
+    $buttonTemplateXaml = @"
+<ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 TargetType="{x:Type Button}">
+    <Border x:Name="Chrome"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="{TemplateBinding BorderThickness}"
+            SnapsToDevicePixels="True">
+        <ContentPresenter Margin="{TemplateBinding Padding}"
+                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                          RecognizesAccessKey="True" />
+    </Border>
+    <ControlTemplate.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+            <Setter TargetName="Chrome" Property="Background" Value="$(Get-BrushColorString $Palette.ButtonHover)" />
+        </Trigger>
+        <Trigger Property="IsPressed" Value="True">
+            <Setter TargetName="Chrome" Property="Background" Value="$(Get-BrushColorString $Palette.ButtonDown)" />
+        </Trigger>
+        <Trigger Property="IsEnabled" Value="False">
+            <Setter TargetName="Chrome" Property="Opacity" Value="0.58" />
+            <Setter Property="Foreground" Value="$(Get-BrushColorString $Palette.DisabledFg)" />
+        </Trigger>
+    </ControlTemplate.Triggers>
+</ControlTemplate>
+"@
+
+    try {
+        Add-StyleSetter $buttonStyle ([System.Windows.Controls.Control]::TemplateProperty) (New-XamlObject $buttonTemplateXaml)
+    }
+    catch { }
+
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.Button]) $buttonStyle
+
+    $borderStyle = [System.Windows.Style]::new([System.Windows.Controls.Border])
+    Add-StyleSetter $borderStyle ([System.Windows.Controls.Border]::BackgroundProperty) $Palette.PanelBg
+    Add-StyleSetter $borderStyle ([System.Windows.Controls.Border]::BorderBrushProperty) $Palette.Border
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.Border]) $borderStyle
+
+    $scrollViewerStyle = [System.Windows.Style]::new([System.Windows.Controls.ScrollViewer])
+    Add-StyleSetter $scrollViewerStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.WindowBg
+    Add-StyleSetter $scrollViewerStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.ScrollViewer]) $scrollViewerStyle
+
+    $scrollBarStyle = [System.Windows.Style]::new([System.Windows.Controls.Primitives.ScrollBar])
+    Add-StyleSetter $scrollBarStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.HeaderBg
+    Add-StyleSetter $scrollBarStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $scrollBarStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.Primitives.ScrollBar]) $scrollBarStyle
+
+    $thumbStyle = [System.Windows.Style]::new([System.Windows.Controls.Primitives.Thumb])
+    Add-StyleSetter $thumbStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.ButtonBg
+    Add-StyleSetter $thumbStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.Primitives.Thumb]) $thumbStyle
+
+    $checkBoxStyle = [System.Windows.Style]::new([System.Windows.Controls.CheckBox])
+    Add-StyleSetter $checkBoxStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.CheckBox]) $checkBoxStyle
+
+    $radioStyle = [System.Windows.Style]::new([System.Windows.Controls.RadioButton])
+    Add-StyleSetter $radioStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.RadioButton]) $radioStyle
+
+    $comboStyle = [System.Windows.Style]::new([System.Windows.Controls.ComboBox])
+    Add-StyleSetter $comboStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.ControlBg
+    Add-StyleSetter $comboStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $comboStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.ComboBox]) $comboStyle
+
+    $groupStyle = [System.Windows.Style]::new([System.Windows.Controls.GroupBox])
+    Add-StyleSetter $groupStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.PanelBg
+    Add-StyleSetter $groupStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $groupStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.GroupBox]) $groupStyle
+
+    $tabStyle = [System.Windows.Style]::new([System.Windows.Controls.TabControl])
+    Add-StyleSetter $tabStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.WindowBg
+    Add-StyleSetter $tabStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $tabStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.TabControl]) $tabStyle
+
+    $tabItemStyle = [System.Windows.Style]::new([System.Windows.Controls.TabItem])
+    Add-StyleSetter $tabItemStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.ControlBg
+    Add-StyleSetter $tabItemStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $tabItemStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.TabItem]) $tabItemStyle
+
+    $gridStyle = [System.Windows.Style]::new([System.Windows.Controls.DataGrid])
+    Add-StyleSetter $gridStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.PanelBg
+    Add-StyleSetter $gridStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $gridStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Add-StyleSetter $gridStyle ([System.Windows.Controls.DataGrid]::RowBackgroundProperty) $Palette.PanelBg
+    Add-StyleSetter $gridStyle ([System.Windows.Controls.DataGrid]::AlternatingRowBackgroundProperty) $Palette.GridAltBg
+    Add-StyleSetter $gridStyle ([System.Windows.Controls.DataGrid]::HorizontalGridLinesBrushProperty) $Palette.Border
+    Add-StyleSetter $gridStyle ([System.Windows.Controls.DataGrid]::VerticalGridLinesBrushProperty) $Palette.Border
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.DataGrid]) $gridStyle
+
+    $headerStyle = [System.Windows.Style]::new([System.Windows.Controls.Primitives.DataGridColumnHeader])
+    Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.HeaderBg
+    Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.Primitives.DataGridColumnHeader]) $headerStyle
+
+    $cellStyle = [System.Windows.Style]::new([System.Windows.Controls.DataGridCell])
+    Add-StyleSetter $cellStyle ([System.Windows.Controls.Control]::BackgroundProperty) ([System.Windows.Media.Brushes]::Transparent)
+    Add-StyleSetter $cellStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $cellStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    [void]$cellStyle.Triggers.Add((New-PropertyTrigger `
+        -Property ([System.Windows.Controls.DataGridCell]::IsSelectedProperty) `
+        -Value $true `
+        -Setters @(
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::BackgroundProperty, $Palette.SelectionBg),
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::ForegroundProperty, $Palette.SelectionFg)
+        )))
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.DataGridCell]) $cellStyle
+
+    $rowStyle = [System.Windows.Style]::new([System.Windows.Controls.DataGridRow])
+    Add-StyleSetter $rowStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.PanelBg
+    Add-StyleSetter $rowStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    [void]$rowStyle.Triggers.Add((New-PropertyTrigger `
+        -Property ([System.Windows.Controls.DataGridRow]::IsSelectedProperty) `
+        -Value $true `
+        -Setters @(
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::BackgroundProperty, $Palette.SelectionBg),
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::ForegroundProperty, $Palette.SelectionFg)
+        )))
+    [void]$rowStyle.Triggers.Add((New-PropertyTrigger `
+        -Property ([System.Windows.UIElement]::IsMouseOverProperty) `
+        -Value $true `
+        -Setters @(
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::BackgroundProperty, $Palette.HeaderBg)
+        )))
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.DataGridRow]) $rowStyle
+
+    $statusStyle = [System.Windows.Style]::new([System.Windows.Controls.Primitives.StatusBar])
+    Add-StyleSetter $statusStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.StatusBg
+    Add-StyleSetter $statusStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.Primitives.StatusBar]) $statusStyle
+}
+
+function Apply-GuiSemanticBrushes {
+    param(
+        [Parameter(Mandatory)]$Palette
+    )
+
+    foreach ($name in @(
+            'StatusText',
+            'ScanProgressText',
+            'BlanketProgressText',
+            'PerDeviceProgressText'
+        )) {
+        if ($Script:UI[$name]) {
+            $Script:UI[$name].Foreground = $Palette.DangerFg
+        }
+    }
+
+    foreach ($name in @(
+            'WorkflowStatusText',
+            'ProvisionProgressText',
+            'VerifyProgressText',
+            'ScanSummaryText',
+            'ProvisionSummaryText',
+            'VerifySummaryText',
+            'BlanketSummaryText',
+            'PerDeviceSummaryText',
+            'SettingsStatusText',
+            'WorkflowOnlineText'
+        )) {
+        if ($Script:UI[$name]) {
+            $Script:UI[$name].Foreground = $Palette.MutedFg
+        }
+    }
+
+    if ($Script:UI.WorkspaceText) {
+        $Script:UI.WorkspaceText.Foreground = $Palette.AccentFg
+    }
+
+    if ($Script:UI.WorkflowCountdownText) {
+        $Script:UI.WorkflowCountdownText.Foreground = $Palette.AccentFg
+    }
+
+    Update-CredentialDisplay
+}
+
+function Apply-GuiThemeToRoot {
+    param(
+        [Parameter(Mandatory)][System.Windows.FrameworkElement]$Root,
+        [bool]$DarkMode
+    )
+
+    if (-not $Root) { return }
+
+    $palette = Get-GuiThemePalette -DarkMode:$DarkMode
+
+    Set-GuiThemeResourceStyles -Root $Root -Palette $palette
+
+    if ($Root -is [System.Windows.Window]) {
+        $Root.Background = $palette.WindowBg
+        $Root.Foreground = $palette.TextFg
+    }
+    elseif ($Root -is [System.Windows.Controls.Control]) {
+        $Root.Background = $palette.WindowBg
+        $Root.Foreground = $palette.TextFg
+    }
+
+    foreach ($panel in Find-VisualChildren $Root ([System.Windows.Controls.Panel])) {
+        try {
+            $panel.Background = $palette.PanelBg
+        }
+        catch { }
+    }
+
+    foreach ($border in Find-VisualChildren $Root ([System.Windows.Controls.Border])) {
+        $border.Background = $palette.PanelBg
+        $border.BorderBrush = $palette.Border
+    }
+
+    foreach ($group in Find-VisualChildren $Root ([System.Windows.Controls.GroupBox])) {
+        $group.Background = $palette.PanelBg
+        $group.Foreground = $palette.TextFg
+        $group.BorderBrush = $palette.Border
+    }
+
+    foreach ($tab in Find-VisualChildren $Root ([System.Windows.Controls.TabControl])) {
+        $tab.Background = $palette.WindowBg
+        $tab.Foreground = $palette.TextFg
+        $tab.BorderBrush = $palette.Border
+    }
+
+    foreach ($tabItem in Find-VisualChildren $Root ([System.Windows.Controls.TabItem])) {
+        $tabItem.Background = $palette.ControlBg
+        $tabItem.Foreground = $palette.TextFg
+        $tabItem.BorderBrush = $palette.Border
+    }
+
+    foreach ($tb in Find-VisualChildren $Root ([System.Windows.Controls.TextBlock])) {
+        $tb.Foreground = $palette.TextFg
+    }
+
+    foreach ($box in Find-VisualChildren $Root ([System.Windows.Controls.TextBox])) {
+        $box.Background = $palette.ControlBg
+        $box.Foreground = $palette.TextFg
+        $box.BorderBrush = $palette.Border
+        $box.CaretBrush = $palette.TextFg
+    }
+
+    foreach ($box in Find-VisualChildren $Root ([System.Windows.Controls.PasswordBox])) {
+        $box.Background = $palette.ControlBg
+        $box.Foreground = $palette.TextFg
+        $box.BorderBrush = $palette.Border
+        $box.CaretBrush = $palette.TextFg
+    }
+
+    foreach ($combo in Find-VisualChildren $Root ([System.Windows.Controls.ComboBox])) {
+        $combo.Background = $palette.ControlBg
+        $combo.Foreground = $palette.TextFg
+        $combo.BorderBrush = $palette.Border
+    }
+
+    foreach ($button in Find-VisualChildren $Root ([System.Windows.Controls.Button])) {
+        $button.Background = $palette.ButtonBg
+        $button.Foreground = $palette.TextFg
+        $button.BorderBrush = $palette.Border
+        $button.Style = $Root.Resources[[System.Windows.Controls.Button]]
+    }
+
+    foreach ($check in Find-VisualChildren $Root ([System.Windows.Controls.CheckBox])) {
+        $check.Foreground = $palette.TextFg
+    }
+
+    foreach ($radio in Find-VisualChildren $Root ([System.Windows.Controls.RadioButton])) {
+        $radio.Foreground = $palette.TextFg
+    }
+
+    foreach ($grid in Find-VisualChildren $Root ([System.Windows.Controls.DataGrid])) {
+        Apply-GuiThemeToDataGrid -Grid $grid -ResourceRoot $Root -Palette $palette
+    }
+
+    foreach ($status in Find-VisualChildren $Root ([System.Windows.Controls.Primitives.StatusBar])) {
+        $status.Background = $palette.StatusBg
+        $status.Foreground = $palette.TextFg
+    }
+
+    foreach ($scroll in Find-VisualChildren $Root ([System.Windows.Controls.ScrollViewer])) {
+        $scroll.Background = $palette.WindowBg
+        $scroll.Foreground = $palette.TextFg
+    }
+
+    foreach ($scrollBar in Find-VisualChildren $Root ([System.Windows.Controls.Primitives.ScrollBar])) {
+        $scrollBar.Background = $palette.HeaderBg
+        $scrollBar.Foreground = $palette.TextFg
+        $scrollBar.BorderBrush = $palette.Border
+    }
+
+    foreach ($thumb in Find-VisualChildren $Root ([System.Windows.Controls.Primitives.Thumb])) {
+        $thumb.Background = $palette.ButtonBg
+        $thumb.BorderBrush = $palette.Border
+    }
+}
+
+function Apply-GuiThemeToDataGrid {
+    param(
+        [Parameter(Mandatory)][System.Windows.Controls.DataGrid]$Grid,
+        [Parameter(Mandatory)][System.Windows.FrameworkElement]$ResourceRoot,
+        [Parameter(Mandatory)]$Palette
+    )
+
+    if (-not $Grid) { return }
+
+    Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.Primitives.DataGridColumnHeader]) $ResourceRoot.Resources[[System.Windows.Controls.Primitives.DataGridColumnHeader]]
+    Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.DataGridCell]) $ResourceRoot.Resources[[System.Windows.Controls.DataGridCell]]
+    Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.DataGridRow]) $ResourceRoot.Resources[[System.Windows.Controls.DataGridRow]]
+
+    $Grid.Background = $Palette.PanelBg
+    $Grid.Foreground = $Palette.TextFg
+    $Grid.RowBackground = $Palette.PanelBg
+    $Grid.AlternatingRowBackground = $Palette.GridAltBg
+    $Grid.HorizontalGridLinesBrush = $Palette.Border
+    $Grid.VerticalGridLinesBrush = $Palette.Border
+    $Grid.BorderBrush = $Palette.Border
+    $Grid.ColumnHeaderStyle = $Grid.Resources[[System.Windows.Controls.Primitives.DataGridColumnHeader]]
+    $Grid.CellStyle = $Grid.Resources[[System.Windows.Controls.DataGridCell]]
+    $Grid.RowStyle = $Grid.Resources[[System.Windows.Controls.DataGridRow]]
+
+    # Avoid clipping/odd header rendering after theme changes.
+    $Grid.HeadersVisibility = 'Column'
+    $Grid.ColumnHeaderHeight = 24
+}
+
 function Apply-GuiTheme {
     param(
         [bool]$DarkMode
@@ -1334,109 +1825,40 @@ function Apply-GuiTheme {
 
     if (-not $window) { return }
 
-    if ($DarkMode) {
-        $bg          = New-Brush '#1E1E1E'
-        $panelBg     = New-Brush '#252526'
-        $controlBg   = New-Brush '#2D2D30'
-        $textFg      = New-Brush '#E6E6E6'
-        $borderBrush = New-Brush '#555555'
-        $gridAltBg   = New-Brush '#333337'
-        $buttonBg    = New-Brush '#3A3A3D'
-        $statusBg    = New-Brush '#111111'
-    }
-    else {
-        $bg          = New-Brush '#FFFFFF'
-        $panelBg     = New-Brush '#FFFFFF'
-        $controlBg   = New-Brush '#FFFFFF'
-        $textFg      = New-Brush '#000000'
-        $borderBrush = New-Brush '#DDDDDD'
-        $gridAltBg   = New-Brush '#F8F8F8'
-        $buttonBg    = New-Brush '#F0F0F0'
-        $statusBg    = New-Brush '#F0F0F0'
+    $Script:GuiThemeDarkMode = [bool]$DarkMode
+    $Script:GuiThemePalette = Get-GuiThemePalette -DarkMode:$DarkMode
+    Apply-GuiThemeToRoot -Root $window -DarkMode:$DarkMode
+
+    foreach ($grid in @($Script:UI.Values | Where-Object { $_ -is [System.Windows.Controls.DataGrid] })) {
+        Apply-GuiThemeToDataGrid -Grid $grid -ResourceRoot $window -Palette $Script:GuiThemePalette
     }
 
-    $window.Background = $bg
-    $window.Foreground = $textFg
+    Apply-GuiSemanticBrushes -Palette $Script:GuiThemePalette
 
-    foreach ($border in Find-VisualChildren $window ([System.Windows.Controls.Border])) {
-        $border.Background = $panelBg
-        $border.BorderBrush = $borderBrush
+    foreach ($entry in @($Script:BusyDialogs.Values)) {
+        if ($entry.Window) {
+            Apply-GuiThemeToRoot -Root $entry.Window -DarkMode:$DarkMode
+        }
     }
+}
 
-    foreach ($group in Find-VisualChildren $window ([System.Windows.Controls.GroupBox])) {
-        $group.Background = $panelBg
-        $group.Foreground = $textFg
-        $group.BorderBrush = $borderBrush
-    }
+function Request-GuiThemeRefresh {
+    if (-not $window) { return }
+    if ($Script:GuiThemeRefreshQueued) { return }
 
-    foreach ($tab in Find-VisualChildren $window ([System.Windows.Controls.TabControl])) {
-        $tab.Background = $bg
-        $tab.Foreground = $textFg
-        $tab.BorderBrush = $borderBrush
-    }
-
-    foreach ($tabItem in Find-VisualChildren $window ([System.Windows.Controls.TabItem])) {
-        $tabItem.Background = if ($DarkMode) { $controlBg } else { $buttonBg }
-        $tabItem.Foreground = $textFg
-        $tabItem.BorderBrush = $borderBrush
-    }
-
-    foreach ($tb in Find-VisualChildren $window ([System.Windows.Controls.TextBlock])) {
-        $tb.Foreground = $textFg
-    }
-
-    foreach ($box in Find-VisualChildren $window ([System.Windows.Controls.TextBox])) {
-        $box.Background = $controlBg
-        $box.Foreground = $textFg
-        $box.BorderBrush = $borderBrush
-        $box.CaretBrush = $textFg
-    }
-
-    foreach ($box in Find-VisualChildren $window ([System.Windows.Controls.PasswordBox])) {
-        $box.Background = $controlBg
-        $box.Foreground = $textFg
-        $box.BorderBrush = $borderBrush
-        $box.CaretBrush = $textFg
-    }
-
-    foreach ($combo in Find-VisualChildren $window ([System.Windows.Controls.ComboBox])) {
-        $combo.Background = $controlBg
-        $combo.Foreground = $textFg
-        $combo.BorderBrush = $borderBrush
-    }
-
-    foreach ($button in Find-VisualChildren $window ([System.Windows.Controls.Button])) {
-        $button.Background = $buttonBg
-        $button.Foreground = $textFg
-        $button.BorderBrush = $borderBrush
-    }
-
-    foreach ($check in Find-VisualChildren $window ([System.Windows.Controls.CheckBox])) {
-        $check.Foreground = $textFg
-    }
-
-    foreach ($radio in Find-VisualChildren $window ([System.Windows.Controls.RadioButton])) {
-        $radio.Foreground = $textFg
-    }
-
-    foreach ($grid in Find-VisualChildren $window ([System.Windows.Controls.DataGrid])) {
-        $grid.Background = $panelBg
-        $grid.Foreground = $textFg
-        $grid.RowBackground = $panelBg
-        $grid.AlternatingRowBackground = $gridAltBg
-        $grid.HorizontalGridLinesBrush = $borderBrush
-        $grid.VerticalGridLinesBrush = $borderBrush
-        $grid.BorderBrush = $borderBrush
-
-        # Avoid clipping/odd header rendering after theme changes.
-        $grid.HeadersVisibility = 'Column'
-        $grid.ColumnHeaderHeight = 24
-    }
-
-    foreach ($status in Find-VisualChildren $window ([System.Windows.Controls.Primitives.StatusBar])) {
-        $status.Background = $statusBg
-        $status.Foreground = $textFg
-    }
+    $Script:GuiThemeRefreshQueued = $true
+    $window.Dispatcher.BeginInvoke(
+        [Action]{
+            try {
+                $Script:GuiThemeRefreshQueued = $false
+                Apply-GuiTheme -DarkMode:(Get-GuiDarkModeEnabled)
+            }
+            catch {
+                $Script:GuiThemeRefreshQueued = $false
+            }
+        },
+        [System.Windows.Threading.DispatcherPriority]::ContextIdle
+    ) | Out-Null
 }
 
 # ---- Helpers -----------------------------------------------------------------
@@ -1563,6 +1985,7 @@ function Show-BusyDialog {
         $dlg.Title = $Title
         $messageText.Text = $Message
         $statusText.Text = $Status
+        Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
 
         $Script:BusyDialogs[$Key] = [pscustomobject]@{
             Window     = $dlg
@@ -1633,12 +2056,16 @@ function Close-BusyDialog {
 }
 
 function Update-CredentialDisplay {
+    if (-not $Script:GuiThemePalette) {
+        $Script:GuiThemePalette = Get-GuiThemePalette -DarkMode:(Get-GuiDarkModeEnabled)
+    }
+
     if ($null -eq $Script:AppState.Credential) {
         $Script:UI.CredText.Text       = 'not entered'
-        $Script:UI.CredText.Foreground = '#888'
+        $Script:UI.CredText.Foreground = $Script:GuiThemePalette.MutedFg
     } else {
         $Script:UI.CredText.Text       = $Script:AppState.Credential.UserName
-        $Script:UI.CredText.Foreground = '#1A7F37'
+        $Script:UI.CredText.Foreground = $Script:GuiThemePalette.SuccessFg
     }
 }
 
@@ -1776,6 +2203,7 @@ function Show-CredentialDialog {
     })
 
     $dlg.Owner = $window
+    Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
 
     if ($userBox.Text -and -not $passBox.Password) {
         $passBox.Focus() | Out-Null
@@ -4009,7 +4437,7 @@ $Script:UI.SettingsSaveButton.Add_Click({
 
     $Script:GuiSettings.DefaultUsername = "$($Script:UI.SettingsDefaultUsernameBox.Text)"
     $Script:GuiSettings.ProtectedDefaultPassword = Protect-GuiSettingPassword $Script:UI.SettingsDefaultPasswordBox.Password
-    $Script:GuiSettings.DarkMode = $false
+    $Script:GuiSettings.DarkMode = [bool]$Script:UI.SettingsDarkModeBox.IsChecked
 
     $subnets = @($Script:UI.SettingsMostUsedSubnetsBox.Text -split "`r?`n" | ForEach-Object {
         $_.Trim()
@@ -4031,9 +4459,18 @@ $Script:UI.SettingsSaveButton.Add_Click({
 
     Save-GuiSettings
     Initialize-ScanCidrs
+    Apply-GuiTheme -DarkMode:([bool]$Script:GuiSettings.DarkMode)
 
     $Script:UI.SettingsStatusText.Text = "Saved."
     Update-Status "GUI settings saved."
+})
+
+$Script:UI.SettingsDarkModeBox.Add_Checked({
+    Apply-GuiTheme -DarkMode:$true
+})
+
+$Script:UI.SettingsDarkModeBox.Add_Unchecked({
+    Apply-GuiTheme -DarkMode:$false
 })
 
 $Script:UI.SettingsClearPasswordButton.Add_Click({
@@ -6325,6 +6762,7 @@ function Show-RebootWaitDialog {
     }
 
     $messageText.Text = $Message
+    Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
 
     $script:_rebootWaitResult = 'Completed'
     $startTime = Get-Date
@@ -6382,6 +6820,7 @@ function Show-RebootWaitDialog {
     })
 
     $dlg.Add_ContentRendered({
+        Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
         $timer.Start()
     })
 
@@ -6696,6 +7135,7 @@ function Set-WorkflowStep ($index, $icon, $detail) {
     $step.Icon = $icon
     if ($null -ne $detail) { $step.Detail = $detail }
     $Script:UI.WorkflowStepsList.Items.Refresh()
+    Request-GuiThemeRefresh
 }
 
 function Wait-ForInnerTab ($isRunningPredicate, $intervalMs = 250) {
@@ -6947,7 +7387,10 @@ function Show-WorkflowScanSubnetDialog {
         $dlg.Close()
     })
 
+    Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
+
     $dlg.Add_ContentRendered({
+        Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
         Show-WindowInForeground $dlg
     })
 
@@ -7512,6 +7955,7 @@ function Show-ProbingDialog {
 
     $dlg.FindName('ProbingText').Text = $Message
     $dlg.FindName('ProbingStatusText').Text = 'Scanning Network...'
+    Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
 
     $script:_probeResult = $null
     $script:_probeError  = $null
@@ -7784,6 +8228,8 @@ function Show-AddDevicesDialog {
     })
     $cancelBtn.Add_Click({ $dlg.DialogResult = $false; $dlg.Close() })
 
+    Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
+
     [void]$dlg.ShowDialog()
     return ,$script:_addResult
 }
@@ -7907,14 +8353,28 @@ function Find-DevicesReachable {
 try {
     Initialize-ActionButtonStyles
     Initialize-SettingsTab
+    Apply-GuiTheme -DarkMode:(Get-GuiDarkModeEnabled)
+    if ($Script:UI.WorkflowStepsList -and $Script:UI.WorkflowStepsList.ItemContainerGenerator) {
+        $Script:UI.WorkflowStepsList.ItemContainerGenerator.Add_StatusChanged({
+            if ("$($Script:UI.WorkflowStepsList.ItemContainerGenerator.Status)" -eq 'ContainersGenerated') {
+                Request-GuiThemeRefresh
+            }
+        })
+    }
     $window.Add_SourceInitialized({
         Show-WindowInForeground $window
     })
     $window.Add_ContentRendered({
         try {
+            Apply-GuiTheme -DarkMode:(Get-GuiDarkModeEnabled)
             Show-WindowInForeground $window
             $window.Dispatcher.BeginInvoke(
-                [Action]{ try { Show-WindowInForeground $window } catch { } },
+                [Action]{
+                    try {
+                        Apply-GuiTheme -DarkMode:(Get-GuiDarkModeEnabled)
+                        Show-WindowInForeground $window
+                    } catch { }
+                },
                 [System.Windows.Threading.DispatcherPriority]::ApplicationIdle
             ) | Out-Null
         }
