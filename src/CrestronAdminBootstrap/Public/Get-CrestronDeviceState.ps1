@@ -82,6 +82,14 @@ function Get-CrestronDeviceState {
         } catch { }
     }
 
+    $displaySettings = $null
+    try {
+        $displaySettings = Get-CrestronDisplaySettings -Session $Session -TimeoutSec $TimeoutSec
+    }
+    catch {
+        $displaySettings = $null
+    }
+
     $na = $api.BodyJson.Device.NetworkAdapters
 
     # The Adapters dictionary is keyed by device/firmware-specific adapter names
@@ -260,6 +268,12 @@ function Get-CrestronDeviceState {
         SupportsNetwork          = $true
         SupportsIpTable          = [bool]$ipTableJson
         SupportsWifi             = $hasWifi
+        SupportsDisplaySettings  = if ($displaySettings) { [bool]$displaySettings.SupportsDisplaySettings } else { $false }
+        DisplayPath              = if ($displaySettings) { "$($displaySettings.DisplayPath)" } else { '' }
+        CurrentAutoBrightness    = if ($displaySettings) { $displaySettings.AutoBrightness } else { $null }
+        CurrentBrightness        = if ($displaySettings) { $displaySettings.Brightness } else { $null }
+        CurrentScreensaverEnabled = if ($displaySettings) { $displaySettings.ScreensaverEnabled } else { $null }
+        CurrentStandbyTimeout    = if ($displaySettings) { $displaySettings.StandbyTimeout } else { $null }
 
         RawJson                  = $api.BodyJson
         FetchedAt                = (Get-Date).ToString('s')

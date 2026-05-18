@@ -75,6 +75,7 @@ function Get-CrestronDeviceCapabilities {
     $supportsFusion = $false
     $supportsAutoUpdate = $false
     $avSettings = $null
+    $displaySettings = $null
 
     try {
         $deviceApi = Invoke-CrestronApi -Session $Session -Path '/Device' -Method GET -TimeoutSec $TimeoutSec
@@ -119,6 +120,21 @@ function Get-CrestronDeviceCapabilities {
         $avSettings = $null
     }
 
+    if ($state -and ($state.PSObject.Properties.Name -contains 'SupportsDisplaySettings')) {
+        $displaySettings = [pscustomobject]@{
+            SupportsDisplaySettings = [bool]$state.SupportsDisplaySettings
+            DisplayPath             = "$($state.DisplayPath)"
+        }
+    }
+    else {
+        try {
+            $displaySettings = Get-CrestronDisplaySettings -Session $Session -TimeoutSec $TimeoutSec
+        }
+        catch {
+            $displaySettings = $null
+        }
+    }
+
     $supportsAvSettings = $false
     $supportsAvMulticast = $false
     $supportsGlobalEdid = $false
@@ -150,6 +166,7 @@ function Get-CrestronDeviceCapabilities {
     [pscustomobject]@{
         IP                     = $Session.IP
         Model                  = $model
+        Hostname               = if ($state) { "$($state.Hostname)" } else { '' }
 
         SupportsDevice         = $supportsDevice
         SupportsNetwork        = $supportsNetwork
@@ -164,6 +181,8 @@ function Get-CrestronDeviceCapabilities {
         SupportsCloud          = $supportsCloud
         SupportsFusion         = $supportsFusion
         SupportsAutoUpdate     = $supportsAutoUpdate
+        SupportsDisplaySettings = if ($displaySettings) { [bool]$displaySettings.SupportsDisplaySettings } else { $false }
+        DisplayPath            = if ($displaySettings) { "$($displaySettings.DisplayPath)" } else { '' }
         SupportsAvSettings     = $supportsAvSettings
         SupportsAvMulticast    = $supportsAvMulticast
         SupportsGlobalEdid     = $supportsGlobalEdid

@@ -204,6 +204,18 @@ function Get-CrestronAvSettings {
                 }
             })
 
+            $currentEdidNames = @($result.Inputs | ForEach-Object {
+                "$($_.CurrentEdid)"
+            } | Where-Object {
+                -not [string]::IsNullOrWhiteSpace($_) -and $_ -ne 'N/A'
+            })
+
+            if ($currentEdidNames.Count -gt 0) {
+                $result.EdidNames = @($result.EdidNames + $currentEdidNames |
+                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                    Sort-Object -Unique)
+            }
+
             $result.Outputs = @($av.Outputs | ForEach-Object {
                 $output = $_
 

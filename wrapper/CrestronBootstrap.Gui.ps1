@@ -38,15 +38,51 @@ Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 
+function Resolve-CrestronAdminBootstrapManifest {
+    param(
+        [Parameter(Mandatory)][string]$WorkspaceDirectory
+    )
+
+    $candidates = @()
+
+    if ($PSScriptRoot) {
+        $repoRoot = Split-Path -Parent $PSScriptRoot
+        $candidates += (Join-Path $repoRoot 'src\CrestronAdminBootstrap\CrestronAdminBootstrap.psd1')
+    }
+
+    if ($WorkspaceDirectory) {
+        $candidates += (Join-Path $WorkspaceDirectory 'src\CrestronAdminBootstrap\CrestronAdminBootstrap.psd1')
+    }
+
+    $installed = Get-Module -ListAvailable CrestronAdminBootstrap |
+        Sort-Object Version -Descending |
+        Select-Object -First 1
+
+    if ($installed -and $installed.Path) {
+        $candidates += $installed.Path
+    }
+
+    foreach ($candidate in @($candidates | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)) {
+        if (Test-Path -LiteralPath $candidate) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+    }
+
+    return $null
+}
+
 # Module
-if (-not (Get-Module -ListAvailable CrestronAdminBootstrap)) {
+$Script:ModuleManifestPath = Resolve-CrestronAdminBootstrapManifest -WorkspaceDirectory $WorkingDirectory
+$env:CABS_MODULE_MANIFEST = $Script:ModuleManifestPath
+
+if (-not $Script:ModuleManifestPath) {
     [System.Windows.MessageBox]::Show(
         "CrestronAdminBootstrap module is not installed. Run the installer first:`n`niex (irm https://raw.githubusercontent.com/jobu109/crestron-admin-bootstrap/main/install.ps1)",
         "Module missing", 'OK', 'Error'
     ) | Out-Null
     exit 1
 }
-Import-Module CrestronAdminBootstrap -Force
+Import-Module $Script:ModuleManifestPath -Force
 
 # ---- App-wide state ----------------------------------------------------------
 $Script:AppState = [pscustomobject]@{
@@ -216,7 +252,7 @@ Load-GuiSettings
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="Full Workflow" FontSize="18" FontWeight="Bold" />
-                            <TextBlock Text="Runs Scan → Provision → Blanket Settings → Per-Device → Reboot → Verify in sequence." Foreground="#666" />
+                            <TextBlock Text="Runs Scan → Provision → Blanket Settings → Per-Device → Reboot in sequence." Foreground="#666" />
                         </StackPanel>
                         <Button x:Name="WorkflowStartButton"   Grid.Column="1" Content="Start Workflow"    Padding="16,6" FontWeight="Bold" />
                         <Button x:Name="WorkflowContinueButton" Grid.Column="2" Content="Continue Workflow" Padding="14,6" Margin="8,0,0,0" IsEnabled="False" />
@@ -450,7 +486,7 @@ Load-GuiSettings
                             <ScrollViewer HorizontalScrollBarVisibility="Visible"
                                           VerticalScrollBarVisibility="Disabled">
                                 <DataGrid x:Name="BlanketGrid"
-                                          Width="1640"
+                                          Width="1740"
                                           HorizontalAlignment="Left"
                                           AutoGenerateColumns="False"
                                           CanUserAddRows="False"
@@ -461,21 +497,22 @@ Load-GuiSettings
                                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                           AlternatingRowBackground="#F8F8F8">
                                 <DataGrid.Columns>
-                                    <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" />
-                                    <DataGridTextColumn     Header="IP"            Binding="{Binding IP}"                  Width="140" IsReadOnly="True" />
-                                    <DataGridTextColumn     Header="Model"         Binding="{Binding Model}"               Width="120" IsReadOnly="True" />
-                                    <DataGridTextColumn     Header="Current Mode"  Binding="{Binding CurrentDeviceMode}"   Width="110" IsReadOnly="True" />
+                                     <DataGridCheckBoxColumn Header="Sel" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" />
+                                     <DataGridTextColumn     Header="IP"            Binding="{Binding IP}"                  Width="140" IsReadOnly="True" />
+                                     <DataGridTextColumn     Header="Model"         Binding="{Binding Model}"               Width="120" IsReadOnly="True" />
+                                     <DataGridTextColumn     Header="Hostname"      Binding="{Binding Hostname}"            Width="170" IsReadOnly="True" />
+                                     <DataGridTextColumn     Header="Current Mode"  Binding="{Binding CurrentDeviceMode}"   Width="110" IsReadOnly="True" />
                                     <DataGridCheckBoxColumn Header="AV?"           Binding="{Binding SupportsAvSettings}"  Width="55"  IsReadOnly="True" />
                                     <DataGridCheckBoxColumn Header="EDID?"         Binding="{Binding SupportsGlobalEdid}"  Width="60"  IsReadOnly="True" />
                                     <DataGridCheckBoxColumn Header="NTP?"          Binding="{Binding SupportsNtp}"         Width="55"  IsReadOnly="True" />
-                                    <DataGridCheckBoxColumn Header="Cloud?"        Binding="{Binding SupportsCloud}"       Width="65"  IsReadOnly="True" />
-                                    <DataGridCheckBoxColumn Header="Fusion?"       Binding="{Binding SupportsFusion}"      Width="65"  IsReadOnly="True" />
-                                    <DataGridCheckBoxColumn Header="Auto?"         Binding="{Binding SupportsAutoUpdate}"  Width="60"  IsReadOnly="True" />
-                                    <DataGridCheckBoxColumn Header="TX/RX Mode?"   Binding="{Binding SupportsModeChange}"  Width="70"  IsReadOnly="True" />
+                                     <DataGridCheckBoxColumn Header="Cloud?"        Binding="{Binding SupportsCloud}"       Width="65"  IsReadOnly="True" />
+                                     <DataGridCheckBoxColumn Header="Fusion?"       Binding="{Binding SupportsFusion}"      Width="65"  IsReadOnly="True" />
+                                     <DataGridCheckBoxColumn Header="Auto?"         Binding="{Binding SupportsAutoUpdate}"  Width="60"  IsReadOnly="True" />
+                                     <DataGridCheckBoxColumn Header="Display?"      Binding="{Binding SupportsDisplaySettings}" Width="70" IsReadOnly="True" />
+                                     <DataGridCheckBoxColumn Header="TX/RX Mode?"   Binding="{Binding SupportsModeChange}"  Width="70"  IsReadOnly="True" />
                                     <DataGridCheckBoxColumn Header="Fetched?"      Binding="{Binding CapabilitiesFetched}" Width="75"  IsReadOnly="True" />
                                     <DataGridTextColumn     Header="Status"        Binding="{Binding Status}"              Width="90"  IsReadOnly="True" />
                                     <DataGridCheckBoxColumn Header="Reboot?"       Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
-                                    <DataGridTextColumn     Header="Sections"      Binding="{Binding Sections}"            Width="200" IsReadOnly="True" />
                                     <DataGridTextColumn     Header="Detail"        Binding="{Binding Detail}"              Width="260" IsReadOnly="True" />
                                     <DataGridTextColumn     Header="Time"          Binding="{Binding Timestamp}"           Width="160" IsReadOnly="True" />
                                 </DataGrid.Columns>
@@ -559,6 +596,80 @@ Load-GuiSettings
                                                FontSize="11"
                                                TextWrapping="Wrap"
                                                Text="On TouchPanel devices only the on/off flag is sent; schedule/manifest fields are touchscreen-incompatible and are not exposed in the GUI." />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Display / Screensaver -->
+                            <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" Margin="0,0,0,8">
+                                <StackPanel>
+                                    <CheckBox x:Name="DisplayEnableBox"
+                                              Content="Apply Display / Screensaver settings"
+                                              FontWeight="Bold" />
+
+                                    <Grid Margin="20,8,0,0"
+                                          IsEnabled="{Binding ElementName=DisplayEnableBox, Path=IsChecked}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="220" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="160" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Text="Auto-Brightness" Grid.Row="0" Grid.Column="0" Margin="0,0,8,6" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,16,6">
+                                            <RadioButton x:Name="DisplayAutoBrightnessOnRadio"
+                                                         GroupName="DisplayAutoBrightnessRadios"
+                                                         Content="Enable"
+                                                         IsChecked="True"
+                                                         Margin="0,0,16,0" />
+                                            <RadioButton x:Name="DisplayAutoBrightnessOffRadio"
+                                                         GroupName="DisplayAutoBrightnessRadios"
+                                                         Content="Disable" />
+                                        </StackPanel>
+
+                                        <TextBlock Text="Brightness" Grid.Row="0" Grid.Column="2" Margin="0,0,8,6" VerticalAlignment="Center" />
+                                        <TextBox x:Name="DisplayBrightnessBox"
+                                                 Grid.Row="0"
+                                                 Grid.Column="3"
+                                                 Width="60"
+                                                 Padding="4,2"
+                                                 Margin="0,0,0,6"
+                                                 HorizontalAlignment="Left"
+                                                 Text="80" />
+
+                                        <TextBlock Text="Screensaver" Grid.Row="1" Grid.Column="0" Margin="0,0,8,6" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,16,6">
+                                            <RadioButton x:Name="DisplayScreensaverOnRadio"
+                                                         GroupName="DisplayScreensaverRadios"
+                                                         Content="Enable"
+                                                         IsChecked="True"
+                                                         Margin="0,0,16,0" />
+                                            <RadioButton x:Name="DisplayScreensaverOffRadio"
+                                                         GroupName="DisplayScreensaverRadios"
+                                                         Content="Disable" />
+                                        </StackPanel>
+
+                                        <TextBlock Text="Standby timeout" Grid.Row="1" Grid.Column="2" Margin="0,0,8,6" VerticalAlignment="Center" />
+                                        <TextBox x:Name="DisplayStandbyTimeoutBox"
+                                                 Grid.Row="1"
+                                                 Grid.Column="3"
+                                                 Width="80"
+                                                 Padding="4,2"
+                                                 Margin="0,0,0,6"
+                                                 HorizontalAlignment="Left"
+                                                 Text="10" />
+                                    </Grid>
+
+                                    <TextBlock Margin="20,2,0,0"
+                                               Foreground="#888"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
+                                               Text="Brightness is sent only when Auto-Brightness is disabled. Devices without a display settings object are skipped." />
                                 </StackPanel>
                             </Border>
 
@@ -700,7 +811,7 @@ Load-GuiSettings
                     </Grid>
 
                     <TextBlock DockPanel.Dock="Top" Margin="0,0,0,6" TextWrapping="Wrap" Foreground="#666" FontSize="11"
-                               Text="Edit per-device values inline. IP changes are fire-and-forget — Success means the device acknowledged the change before its current TCP connection dropped, not that the new IP is reachable. Use the Verify tab afterwards to confirm." />
+                               Text="Edit per-device values inline. IP changes are fire-and-forget — Success means the device acknowledged the change before its current TCP connection dropped, not that the new IP is reachable." />
 
                     <Grid DockPanel.Dock="Bottom" Margin="0,6,0,0">
                         <TextBlock x:Name="PerDeviceSummaryText" Text="No devices loaded." Foreground="#666" VerticalAlignment="Center" />
@@ -713,7 +824,7 @@ Load-GuiSettings
                     <ScrollViewer HorizontalScrollBarVisibility="Visible"
                                   VerticalScrollBarVisibility="Disabled">
                     <DataGrid x:Name="PerDeviceGrid"
-                              Width="1465"
+                              Width="1890"
                               HorizontalAlignment="Left"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
@@ -837,6 +948,70 @@ Load-GuiSettings
                                         <CheckBox IsChecked="{Binding DisableWifi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                 IsEnabled="{Binding HasWifi}"
                                                 HorizontalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Auto Brightness" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewAutoBrightness}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewAutoBrightness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsDisplaySettings}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Enabled</sys:String>
+                                                <sys:String>Disabled</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Brightness" Width="85">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewBrightness}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewBrightness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsDisplaySettings}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Screensaver" Width="105">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewScreensaver}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewScreensaver, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsDisplaySettings}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Enabled</sys:String>
+                                                <sys:String>Disabled</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Standby Timeout" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewStandbyTimeout}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewStandbyTimeout, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsDisplaySettings}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
@@ -1198,6 +1373,8 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'CloudEnableBox','CloudOnRadio','CloudOffRadio',
                   'FusionEnableBox','FusionOnRadio','FusionOffRadio',
                   'AutoUpdateEnableBox','AutoUpdateOnRadio','AutoUpdateOffRadio',
+                  'DisplayEnableBox','DisplayAutoBrightnessOnRadio','DisplayAutoBrightnessOffRadio',
+                  'DisplayBrightnessBox','DisplayScreensaverOnRadio','DisplayScreensaverOffRadio','DisplayStandbyTimeoutBox',
                   'ModeEnableBox','ModeTransmitterRadio','ModeReceiverRadio',
                   'AvInputHdcpEnableBox','AvInputHdcpModeBox',
                   'AvOutputHdcpEnableBox','AvOutputHdcpModeBox',
@@ -1212,6 +1389,33 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'WorkflowRebootPanel','WorkflowCountdownText','WorkflowOnlineText','WorkflowRebootGrid') {
     $Script:UI[$name] = $window.FindName($name)
 }
+
+if ($Script:UI.VerifyTab) {
+    $Script:UI.VerifyTab.Visibility = 'Collapsed'
+}
+
+function Update-BlanketDisplayControls {
+    if (-not $Script:UI.DisplayBrightnessBox) {
+        return
+    }
+
+    $Script:UI.DisplayBrightnessBox.IsEnabled =
+        ([bool]$Script:UI.DisplayEnableBox.IsChecked -and
+         [bool]$Script:UI.DisplayAutoBrightnessOffRadio.IsChecked)
+}
+
+foreach ($displayControl in @(
+    $Script:UI.DisplayEnableBox,
+    $Script:UI.DisplayAutoBrightnessOnRadio,
+    $Script:UI.DisplayAutoBrightnessOffRadio
+)) {
+    if ($displayControl) {
+        $displayControl.Add_Checked({ Update-BlanketDisplayControls })
+        $displayControl.Add_Unchecked({ Update-BlanketDisplayControls })
+    }
+}
+
+Update-BlanketDisplayControls
 
 function Set-ToolbarButtonStyle {
     param(
@@ -1348,6 +1552,85 @@ function New-XamlObject {
     return [Windows.Markup.XamlReader]::Load($reader)
 }
 
+function New-MarqueeProgressBar {
+    param(
+        [Parameter(Mandatory)]$HostElement,
+        [Parameter(Mandatory)]$Palette,
+        [double]$SegmentWidth = 95
+    )
+
+    $border = New-Object System.Windows.Controls.Border
+    $border.Height = 18
+    $border.Background = $Palette.ControlBg
+    $border.BorderBrush = $Palette.Border
+    $border.BorderThickness = [System.Windows.Thickness]::new(1)
+    $border.ClipToBounds = $true
+
+    $segment = New-Object System.Windows.Controls.Border
+    $segment.Width = $SegmentWidth
+    $segment.Background = $Palette.SuccessFg
+    $segment.HorizontalAlignment = 'Left'
+    $segment.RenderTransform = [System.Windows.Media.TranslateTransform]::new(-$SegmentWidth, 0)
+
+    $border.Child = $segment
+
+    if ($HostElement -is [System.Windows.Controls.ContentControl]) {
+        $HostElement.Content = $border
+    }
+    elseif ($HostElement -is [System.Windows.Controls.Decorator]) {
+        $HostElement.Child = $border
+    }
+    else {
+        throw "Marquee progress host must be a ContentControl or Decorator."
+    }
+
+    [pscustomobject]@{
+        Host       = $HostElement
+        Track      = $border
+        Segment    = $segment
+        Transform  = $segment.RenderTransform
+        Position   = -$SegmentWidth
+        Direction  = 1
+        SegmentWidth = $SegmentWidth
+    }
+}
+
+function Step-MarqueeProgressBar {
+    param(
+        $Marquee,
+        [double]$Step = 10
+    )
+
+    if (-not $Marquee -or -not $Marquee.Track -or -not $Marquee.Transform) {
+        return
+    }
+
+    $trackWidth = [double]$Marquee.Track.ActualWidth
+    if ($trackWidth -le 0) {
+        $trackWidth = [double]$Marquee.Host.ActualWidth
+    }
+
+    if ($trackWidth -le 0) {
+        $trackWidth = 380
+    }
+
+    $rightLimit = [Math]::Max(0, $trackWidth - $Marquee.SegmentWidth)
+    $leftLimit = -$Marquee.SegmentWidth
+    $next = [double]$Marquee.Position + ([double]$Marquee.Direction * $Step)
+
+    if ($next -ge $rightLimit) {
+        $next = $rightLimit
+        $Marquee.Direction = -1
+    }
+    elseif ($next -le $leftLimit) {
+        $next = $leftLimit
+        $Marquee.Direction = 1
+    }
+
+    $Marquee.Position = $next
+    $Marquee.Transform.X = $next
+}
+
 function Get-GuiThemePalette {
     param(
         [bool]$DarkMode
@@ -1455,11 +1738,35 @@ function Set-ImplicitThemeStyle {
     catch { }
 }
 
+function Set-ThemeResourceValue {
+    param(
+        [Parameter(Mandatory)][System.Windows.FrameworkElement]$Root,
+        [Parameter(Mandatory)]$Key,
+        [AllowNull()]$Value
+    )
+
+    try {
+        if ($Root.Resources.Contains($Key)) {
+            $Root.Resources.Remove($Key)
+        }
+
+        $Root.Resources.Add($Key, $Value)
+    }
+    catch { }
+}
+
 function Set-GuiThemeResourceStyles {
     param(
         [Parameter(Mandatory)][System.Windows.FrameworkElement]$Root,
         [Parameter(Mandatory)]$Palette
     )
+
+    Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::WindowBrushKey) $Palette.PanelBg
+    Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::ControlBrushKey) $Palette.ControlBg
+    Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::ControlTextBrushKey) $Palette.TextFg
+    Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::WindowTextBrushKey) $Palette.TextFg
+    Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::HighlightBrushKey) $Palette.SelectionBg
+    Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::HighlightTextBrushKey) $Palette.SelectionFg
 
     $textBlockStyle = [System.Windows.Style]::new([System.Windows.Controls.TextBlock])
     Add-StyleSetter $textBlockStyle ([System.Windows.Controls.TextBlock]::ForegroundProperty) $Palette.TextFg
@@ -1545,11 +1852,127 @@ function Set-GuiThemeResourceStyles {
     Set-ImplicitThemeStyle $Root ([System.Windows.Controls.Primitives.Thumb]) $thumbStyle
 
     $checkBoxStyle = [System.Windows.Style]::new([System.Windows.Controls.CheckBox])
+    Add-StyleSetter $checkBoxStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.ControlBg
     Add-StyleSetter $checkBoxStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $checkBoxStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Add-StyleSetter $checkBoxStyle ([System.Windows.Controls.Control]::BorderThicknessProperty) ([System.Windows.Thickness]::new(1))
+    Add-StyleSetter $checkBoxStyle ([System.Windows.Controls.Control]::VerticalContentAlignmentProperty) ([System.Windows.VerticalAlignment]::Center)
+    $checkBoxTemplateXaml = @"
+<ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 TargetType="{x:Type CheckBox}">
+    <BulletDecorator Background="Transparent"
+                     SnapsToDevicePixels="True">
+        <BulletDecorator.Bullet>
+            <Border x:Name="Box"
+                    Width="14"
+                    Height="14"
+                    Margin="0,0,4,0"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}">
+                <Grid>
+                    <Path x:Name="CheckMark"
+                          Data="M 3 7 L 6 10 L 11 3"
+                          Stroke="#FFFFFF"
+                          StrokeThickness="2"
+                          StrokeStartLineCap="Square"
+                          StrokeEndLineCap="Square"
+                          Visibility="Collapsed" />
+                    <Rectangle x:Name="IndeterminateMark"
+                               Width="8"
+                               Height="2"
+                               Fill="#FFFFFF"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed" />
+                </Grid>
+            </Border>
+        </BulletDecorator.Bullet>
+        <ContentPresenter Margin="2,0,0,0"
+                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                          RecognizesAccessKey="True" />
+    </BulletDecorator>
+    <ControlTemplate.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+            <Setter TargetName="Box" Property="BorderBrush" Value="$(Get-BrushColorString $Palette.SelectionBg)" />
+        </Trigger>
+        <Trigger Property="IsChecked" Value="True">
+            <Setter TargetName="Box" Property="Background" Value="$(Get-BrushColorString $Palette.SelectionBg)" />
+            <Setter TargetName="Box" Property="BorderBrush" Value="$(Get-BrushColorString $Palette.SelectionBg)" />
+            <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+        </Trigger>
+        <Trigger Property="IsChecked" Value="{x:Null}">
+            <Setter TargetName="Box" Property="Background" Value="$(Get-BrushColorString $Palette.SelectionBg)" />
+            <Setter TargetName="Box" Property="BorderBrush" Value="$(Get-BrushColorString $Palette.SelectionBg)" />
+            <Setter TargetName="IndeterminateMark" Property="Visibility" Value="Visible" />
+        </Trigger>
+        <Trigger Property="IsEnabled" Value="False">
+            <Setter Property="Foreground" Value="$(Get-BrushColorString $Palette.DisabledFg)" />
+            <Setter TargetName="Box" Property="Opacity" Value="0.55" />
+        </Trigger>
+    </ControlTemplate.Triggers>
+</ControlTemplate>
+"@
+    try {
+        Add-StyleSetter $checkBoxStyle ([System.Windows.Controls.Control]::TemplateProperty) (New-XamlObject $checkBoxTemplateXaml)
+    }
+    catch { }
     Set-ImplicitThemeStyle $Root ([System.Windows.Controls.CheckBox]) $checkBoxStyle
 
     $radioStyle = [System.Windows.Style]::new([System.Windows.Controls.RadioButton])
+    Add-StyleSetter $radioStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.ControlBg
     Add-StyleSetter $radioStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $radioStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Add-StyleSetter $radioStyle ([System.Windows.Controls.Control]::BorderThicknessProperty) ([System.Windows.Thickness]::new(1))
+    Add-StyleSetter $radioStyle ([System.Windows.Controls.Control]::VerticalContentAlignmentProperty) ([System.Windows.VerticalAlignment]::Center)
+    $radioTemplateXaml = @"
+<ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 TargetType="{x:Type RadioButton}">
+    <BulletDecorator Background="Transparent"
+                     SnapsToDevicePixels="True">
+        <BulletDecorator.Bullet>
+            <Grid Width="14"
+                  Height="14"
+                  Margin="0,0,4,0">
+                <Ellipse x:Name="Outer"
+                         Fill="{TemplateBinding Background}"
+                         Stroke="{TemplateBinding BorderBrush}"
+                         StrokeThickness="1" />
+                <Ellipse x:Name="Inner"
+                         Width="8"
+                         Height="8"
+                         Fill="#FFFFFF"
+                         Visibility="Collapsed" />
+            </Grid>
+        </BulletDecorator.Bullet>
+        <ContentPresenter Margin="2,0,0,0"
+                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                          RecognizesAccessKey="True" />
+    </BulletDecorator>
+    <ControlTemplate.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+            <Setter TargetName="Outer" Property="Stroke" Value="$(Get-BrushColorString $Palette.SelectionBg)" />
+        </Trigger>
+        <Trigger Property="IsChecked" Value="True">
+            <Setter TargetName="Outer" Property="Fill" Value="$(Get-BrushColorString $Palette.SelectionBg)" />
+            <Setter TargetName="Outer" Property="Stroke" Value="$(Get-BrushColorString $Palette.SelectionBg)" />
+            <Setter TargetName="Inner" Property="Visibility" Value="Visible" />
+        </Trigger>
+        <Trigger Property="IsEnabled" Value="False">
+            <Setter Property="Foreground" Value="$(Get-BrushColorString $Palette.DisabledFg)" />
+            <Setter TargetName="Outer" Property="Opacity" Value="0.55" />
+        </Trigger>
+    </ControlTemplate.Triggers>
+</ControlTemplate>
+"@
+    try {
+        Add-StyleSetter $radioStyle ([System.Windows.Controls.Control]::TemplateProperty) (New-XamlObject $radioTemplateXaml)
+    }
+    catch { }
     Set-ImplicitThemeStyle $Root ([System.Windows.Controls.RadioButton]) $radioStyle
 
     $comboStyle = [System.Windows.Style]::new([System.Windows.Controls.ComboBox])
@@ -1557,6 +1980,28 @@ function Set-GuiThemeResourceStyles {
     Add-StyleSetter $comboStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
     Add-StyleSetter $comboStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
     Set-ImplicitThemeStyle $Root ([System.Windows.Controls.ComboBox]) $comboStyle
+
+    $comboItemStyle = [System.Windows.Style]::new([System.Windows.Controls.ComboBoxItem])
+    Add-StyleSetter $comboItemStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.PanelBg
+    Add-StyleSetter $comboItemStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
+    Add-StyleSetter $comboItemStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Add-StyleSetter $comboItemStyle ([System.Windows.Controls.Control]::PaddingProperty) ([System.Windows.Thickness]::new(6, 3, 6, 3))
+    Add-StyleSetter $comboItemStyle ([System.Windows.Controls.Control]::HorizontalContentAlignmentProperty) ([System.Windows.HorizontalAlignment]::Stretch)
+    [void]$comboItemStyle.Triggers.Add((New-PropertyTrigger `
+        -Property ([System.Windows.Controls.ComboBoxItem]::IsHighlightedProperty) `
+        -Value $true `
+        -Setters @(
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::BackgroundProperty, $Palette.SelectionBg),
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::ForegroundProperty, $Palette.SelectionFg)
+        )))
+    [void]$comboItemStyle.Triggers.Add((New-PropertyTrigger `
+        -Property ([System.Windows.Controls.ComboBoxItem]::IsSelectedProperty) `
+        -Value $true `
+        -Setters @(
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::BackgroundProperty, $Palette.SelectionBg),
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::ForegroundProperty, $Palette.SelectionFg)
+        )))
+    Set-ImplicitThemeStyle $Root ([System.Windows.Controls.ComboBoxItem]) $comboItemStyle
 
     $groupStyle = [System.Windows.Style]::new([System.Windows.Controls.GroupBox])
     Add-StyleSetter $groupStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.PanelBg
@@ -1590,6 +2035,41 @@ function Set-GuiThemeResourceStyles {
     Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.HeaderBg
     Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
     Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::BorderThicknessProperty) ([System.Windows.Thickness]::new(0, 0, 1, 1))
+    Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::PaddingProperty) ([System.Windows.Thickness]::new(8, 0, 6, 0))
+    Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::HorizontalContentAlignmentProperty) ([System.Windows.HorizontalAlignment]::Left)
+    Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::VerticalContentAlignmentProperty) ([System.Windows.VerticalAlignment]::Center)
+    Add-StyleSetter $headerStyle ([System.Windows.FrameworkElement]::MinHeightProperty) ([double]28)
+    $headerTemplateXaml = @"
+<ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 TargetType="{x:Type DataGridColumnHeader}">
+    <Border x:Name="HeaderBorder"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="{TemplateBinding BorderThickness}"
+            Padding="{TemplateBinding Padding}"
+            SnapsToDevicePixels="True">
+        <ContentPresenter Margin="2,0,2,0"
+                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                          RecognizesAccessKey="True"
+                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+    </Border>
+    <ControlTemplate.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+            <Setter TargetName="HeaderBorder" Property="Background" Value="$(Get-BrushColorString $Palette.ButtonHover)" />
+        </Trigger>
+        <Trigger Property="IsPressed" Value="True">
+            <Setter TargetName="HeaderBorder" Property="Background" Value="$(Get-BrushColorString $Palette.ButtonDown)" />
+        </Trigger>
+    </ControlTemplate.Triggers>
+</ControlTemplate>
+"@
+    try {
+        Add-StyleSetter $headerStyle ([System.Windows.Controls.Control]::TemplateProperty) (New-XamlObject $headerTemplateXaml)
+    }
+    catch { }
     Set-ImplicitThemeStyle $Root ([System.Windows.Controls.Primitives.DataGridColumnHeader]) $headerStyle
 
     $cellStyle = [System.Windows.Style]::new([System.Windows.Controls.DataGridCell])
@@ -1746,6 +2226,13 @@ function Apply-GuiThemeToRoot {
         $combo.Background = $palette.ControlBg
         $combo.Foreground = $palette.TextFg
         $combo.BorderBrush = $palette.Border
+        $combo.ItemContainerStyle = $Root.Resources[[System.Windows.Controls.ComboBoxItem]]
+        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::WindowBrushKey) $palette.PanelBg
+        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::ControlBrushKey) $palette.ControlBg
+        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::ControlTextBrushKey) $palette.TextFg
+        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::WindowTextBrushKey) $palette.TextFg
+        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::HighlightBrushKey) $palette.SelectionBg
+        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::HighlightTextBrushKey) $palette.SelectionFg
     }
 
     foreach ($button in Find-VisualChildren $Root ([System.Windows.Controls.Button])) {
@@ -1757,10 +2244,16 @@ function Apply-GuiThemeToRoot {
 
     foreach ($check in Find-VisualChildren $Root ([System.Windows.Controls.CheckBox])) {
         $check.Foreground = $palette.TextFg
+        $check.Background = $palette.ControlBg
+        $check.BorderBrush = $palette.Border
+        $check.Style = $Root.Resources[[System.Windows.Controls.CheckBox]]
     }
 
     foreach ($radio in Find-VisualChildren $Root ([System.Windows.Controls.RadioButton])) {
         $radio.Foreground = $palette.TextFg
+        $radio.Background = $palette.ControlBg
+        $radio.BorderBrush = $palette.Border
+        $radio.Style = $Root.Resources[[System.Windows.Controls.RadioButton]]
     }
 
     foreach ($grid in Find-VisualChildren $Root ([System.Windows.Controls.DataGrid])) {
@@ -1801,6 +2294,8 @@ function Apply-GuiThemeToDataGrid {
     Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.Primitives.DataGridColumnHeader]) $ResourceRoot.Resources[[System.Windows.Controls.Primitives.DataGridColumnHeader]]
     Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.DataGridCell]) $ResourceRoot.Resources[[System.Windows.Controls.DataGridCell]]
     Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.DataGridRow]) $ResourceRoot.Resources[[System.Windows.Controls.DataGridRow]]
+    Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.CheckBox]) $ResourceRoot.Resources[[System.Windows.Controls.CheckBox]]
+    Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.RadioButton]) $ResourceRoot.Resources[[System.Windows.Controls.RadioButton]]
 
     $Grid.Background = $Palette.PanelBg
     $Grid.Foreground = $Palette.TextFg
@@ -1815,7 +2310,7 @@ function Apply-GuiThemeToDataGrid {
 
     # Avoid clipping/odd header rendering after theme changes.
     $Grid.HeadersVisibility = 'Column'
-    $Grid.ColumnHeaderHeight = 24
+    $Grid.ColumnHeaderHeight = 30
 }
 
 function Apply-GuiTheme {
@@ -1957,10 +2452,10 @@ function Show-BusyDialog {
                    Text="Working..."
                    TextWrapping="Wrap"
                    Margin="0,0,0,12" />
-        <ProgressBar Grid.Row="1"
-                     Height="18"
-                     IsIndeterminate="True"
-                     Margin="0,0,0,10" />
+        <ContentControl x:Name="BusyProgressHost"
+                        Grid.Row="1"
+                        Height="18"
+                        Margin="0,0,0,10" />
         <TextBlock x:Name="BusyStatus"
                    Grid.Row="2"
                    Text="Starting..."
@@ -1976,8 +2471,9 @@ function Show-BusyDialog {
         $dlg = [Windows.Markup.XamlReader]::Load($reader)
         $messageText = $dlg.FindName('BusyMessage')
         $statusText = $dlg.FindName('BusyStatus')
+        $progressHost = $dlg.FindName('BusyProgressHost')
 
-        if (-not ($dlg -and $messageText -and $statusText)) {
+        if (-not ($dlg -and $messageText -and $statusText -and $progressHost)) {
             return
         }
 
@@ -1985,12 +2481,31 @@ function Show-BusyDialog {
         $dlg.Title = $Title
         $messageText.Text = $Message
         $statusText.Text = $Status
+        $palette = Get-GuiThemePalette -DarkMode:(Get-GuiDarkModeEnabled)
         Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
+        $marquee = New-MarqueeProgressBar -HostElement $progressHost -Palette $palette
+
+        $pulseState = [pscustomobject]@{
+            Enabled = $true
+        }
+        $pulseTimer = New-Object System.Windows.Threading.DispatcherTimer
+        $pulseTimer.Interval = [TimeSpan]::FromMilliseconds(80)
+        $pulseTimer.Add_Tick({
+            if (-not $pulseState.Enabled) {
+                return
+            }
+
+            Step-MarqueeProgressBar -Marquee $marquee -Step 10
+        }.GetNewClosure())
 
         $Script:BusyDialogs[$Key] = [pscustomobject]@{
             Window     = $dlg
             MessageText = $messageText
             StatusText  = $statusText
+            ProgressHost = $progressHost
+            Marquee     = $marquee
+            PulseState  = $pulseState
+            PulseTimer  = $pulseTimer
         }
 
         $dlg.Add_Closed({
@@ -1998,6 +2513,13 @@ function Show-BusyDialog {
                 if ($Script:BusyDialogs -and
                     $Script:BusyDialogs.ContainsKey($Key) -and
                     $Script:BusyDialogs[$Key].Window -eq $dlg) {
+                    try {
+                        if ($Script:BusyDialogs[$Key].PulseTimer) {
+                            $Script:BusyDialogs[$Key].PulseTimer.Stop()
+                        }
+                    }
+                    catch { }
+
                     $Script:BusyDialogs.Remove($Key)
                 }
             }
@@ -2005,6 +2527,7 @@ function Show-BusyDialog {
         }.GetNewClosure())
 
         [void]$dlg.Show()
+        $pulseTimer.Start()
         Show-WindowInForeground $dlg
     }
     catch { }
@@ -2014,7 +2537,11 @@ function Update-BusyDialog {
     param(
         [Parameter(Mandatory)][string]$Key,
         [string]$Message,
-        [string]$Status
+        [string]$Status,
+        [Nullable[int]]$Completed,
+        [Nullable[int]]$Total,
+        [Nullable[int]]$Ok,
+        [Nullable[int]]$Errors
     )
 
     if (-not $Script:BusyDialogs.ContainsKey($Key)) {
@@ -2026,6 +2553,60 @@ function Update-BusyDialog {
     try {
         if ($Message -and $entry.MessageText) {
             $entry.MessageText.Text = $Message
+        }
+
+        $counterParts = @()
+
+        if ($PSBoundParameters.ContainsKey('Completed') -and
+            $PSBoundParameters.ContainsKey('Total') -and
+            $Total -gt 0) {
+            $counterParts += "Done: $Completed/$Total"
+
+            if ($entry.ProgressHost) {
+                if ($entry.PulseState) {
+                    $entry.PulseState.Enabled = $false
+                }
+
+                $palette = Get-GuiThemePalette -DarkMode:(Get-GuiDarkModeEnabled)
+                $track = New-Object System.Windows.Controls.Border
+                $track.Height = 18
+                $track.Background = $palette.ControlBg
+                $track.BorderBrush = $palette.Border
+                $track.BorderThickness = [System.Windows.Thickness]::new(1)
+
+                $fill = New-Object System.Windows.Controls.Border
+                $fill.HorizontalAlignment = 'Left'
+                $fill.Background = $palette.SuccessFg
+                $fill.Width = 0
+
+                $track.Child = $fill
+                if ($entry.ProgressHost -is [System.Windows.Controls.ContentControl]) {
+                    $entry.ProgressHost.Content = $track
+                }
+                elseif ($entry.ProgressHost -is [System.Windows.Controls.Decorator]) {
+                    $entry.ProgressHost.Child = $track
+                }
+
+                $trackWidth = [double]$entry.ProgressHost.ActualWidth
+                if ($trackWidth -le 0) {
+                    $trackWidth = 380
+                }
+
+                $fill.Width = [Math]::Min($trackWidth, [Math]::Max(0, ($Completed / $Total) * $trackWidth))
+                $entry.Marquee = $null
+            }
+        }
+
+        if ($PSBoundParameters.ContainsKey('Ok')) {
+            $counterParts += "OK: $Ok"
+        }
+
+        if ($PSBoundParameters.ContainsKey('Errors')) {
+            $counterParts += "Errors: $Errors"
+        }
+
+        if ($counterParts.Count -gt 0) {
+            $Status = $counterParts -join '  '
         }
 
         if ($Status -and $entry.StatusText) {
@@ -2048,6 +2629,10 @@ function Close-BusyDialog {
     $Script:BusyDialogs.Remove($Key)
 
     try {
+        if ($entry.PulseTimer) {
+            $entry.PulseTimer.Stop()
+        }
+
         if ($entry.Window) {
             $entry.Window.Close()
         }
@@ -2254,6 +2839,7 @@ $Script:ScanState = [pscustomobject]@{
     AsyncHandle  = $null
     Timer        = $null
     IsScanning   = $false
+    StartTime    = $null
 }
 # ScanCidrList is now a StackPanel of CheckBox controls, populated by Initialize-ScanCidrs.
 $Script:UI.ScanResultsGrid.ItemsSource = $Script:ScanState.Results
@@ -2454,6 +3040,7 @@ function Start-Scan {
     Save-ScanCidrs
 
     $Script:ScanState.Results.Clear()
+    $Script:ScanState.StartTime = Get-Date
     Update-ScanSummary
     $Script:UI.ScanProgressText.Text = 'Scan in Progress...'
     Set-ScanControls $true
@@ -2482,7 +3069,13 @@ function Start-Scan {
 
     [void]$ps.AddScript({
         try {
-            Import-Module CrestronAdminBootstrap -Force -ErrorAction Stop
+            $moduleManifest = $env:CABS_MODULE_MANIFEST
+            if ($moduleManifest -and (Test-Path -LiteralPath $moduleManifest)) {
+                Import-Module $moduleManifest -Force -ErrorAction Stop
+            }
+            else {
+                Import-Module CrestronAdminBootstrap -Force -ErrorAction Stop
+            }
             # Write CIDRs to subnets file (Find-CrestronBootup takes a file path)
             $cidrs | Set-Content -Path $subnetsFile -Encoding UTF8
             # Stream results into the queue
@@ -2520,9 +3113,15 @@ function Start-Scan {
             $Script:ScanState.Results.Add($row)
         }
         Update-ScanSummary
+        $elapsed = 0
+        if ($Script:ScanState.StartTime) {
+            $elapsed = [int]((Get-Date) - $Script:ScanState.StartTime).TotalSeconds
+        }
+
+        $elapsedText = ("Elapsed: {0}:{1:D2}" -f ([Math]::Floor($elapsed / 60)), ($elapsed % 60))
         Update-BusyDialog `
             -Key 'Scan' `
-            -Status "Found $($Script:ScanState.Results.Count) device(s)..."
+            -Status "Found $($Script:ScanState.Results.Count) device(s)  $elapsedText"
 
         if ($Script:ScanDone.Value -and $Script:ScanQueue.IsEmpty) {
             Stop-ScanTimer
@@ -2727,7 +3326,13 @@ function Start-Provision {
     $ps.Runspace = $rs
     [void]$ps.AddScript({
         try {
-            Import-Module CrestronAdminBootstrap -Force -ErrorAction Stop
+            $moduleManifest = $env:CABS_MODULE_MANIFEST
+            if ($moduleManifest -and (Test-Path -LiteralPath $moduleManifest)) {
+                Import-Module $moduleManifest -Force -ErrorAction Stop
+            }
+            else {
+                Import-Module CrestronAdminBootstrap -Force -ErrorAction Stop
+            }
             $sec     = ConvertTo-SecureString $userPass -AsPlainText -Force
             $credObj = [pscredential]::new($userName, $sec)
 
@@ -2984,7 +3589,13 @@ function Start-Verify {
     $ps.Runspace = $rs
     [void]$ps.AddScript({
         try {
-            Import-Module CrestronAdminBootstrap -Force -ErrorAction Stop
+            $moduleManifest = $env:CABS_MODULE_MANIFEST
+            if ($moduleManifest -and (Test-Path -LiteralPath $moduleManifest)) {
+                Import-Module $moduleManifest -Force -ErrorAction Stop
+            }
+            else {
+                Import-Module CrestronAdminBootstrap -Force -ErrorAction Stop
+            }
             $results = Test-CrestronAdmin -IP $ips
             foreach ($r in @($results)) {
                 $queue.Enqueue([pscustomobject]@{
@@ -3169,6 +3780,10 @@ function Update-AvGlobalEdidOptions {
 
     $names = @($names | Sort-Object -Unique)
 
+    if ($names.Count -eq 0 -and -not [string]::IsNullOrWhiteSpace($currentText)) {
+        $names = @($currentText)
+    }
+
     if ($names.Count -gt 0) {
         $Script:UI.AvGlobalEdidNameBox.ItemsSource = $names
 
@@ -3178,6 +3793,9 @@ function Update-AvGlobalEdidOptions {
         else {
             $Script:UI.AvGlobalEdidNameBox.Text = "$($names[0])"
         }
+    }
+    else {
+        $Script:UI.AvGlobalEdidNameBox.ItemsSource = @()
     }
 }
 
@@ -3231,6 +3849,7 @@ function Load-BlanketFromProvision {
             Selected            = $true
             IP                  = $s.IP
             Model                = ''
+            Hostname             = ''
             CurrentDeviceMode    = ''
             AvApiFamily          = ''
             AvApiVersion         = ''
@@ -3243,6 +3862,7 @@ function Load-BlanketFromProvision {
             SupportsCloud        = $false
             SupportsFusion       = $false
             SupportsAutoUpdate   = $false
+            SupportsDisplaySettings = $false
             SupportsIpTable      = $false
             SupportsNetwork      = $false
             SupportsWifi         = $false
@@ -3267,13 +3887,13 @@ function Save-BlanketCsv {
 
     $Script:BlanketState.Rows |
         Where-Object Status -ne '' |
-        Select-Object IP, Model, CurrentDeviceMode,
+        Select-Object IP, Model, Hostname, CurrentDeviceMode,
                       AvApiFamily, AvApiVersion, SupportsAvSettings, SupportsAvMulticast, SupportsGlobalEdid,
                       EdidNames,
-                      SupportsNtp, SupportsCloud, SupportsFusion, SupportsAutoUpdate,
+                      SupportsNtp, SupportsCloud, SupportsFusion, SupportsAutoUpdate, SupportsDisplaySettings,
                       SupportsIpTable, SupportsNetwork, SupportsWifi, SupportsModeChange,
                       CapabilitiesFetched,
-                      Status, Sections, Detail, NeedsReboot, Timestamp |
+                      Status, Detail, NeedsReboot, Timestamp |
         Export-Csv -NoTypeInformation -Path $Script:AppState.SettingsCsv
 }
 
@@ -3385,6 +4005,7 @@ function Start-BlanketCapabilityFetch {
                             __result            = $true
                             IP                  = $ip
                             Model               = $caps.Model
+                            Hostname            = "$($caps.Hostname)"
                             CurrentDeviceMode   = $caps.CurrentDeviceMode
                             AvApiFamily         = "$($caps.AvApiFamily)"
                             AvApiVersion        = "$($caps.AvApiVersion)"
@@ -3397,6 +4018,7 @@ function Start-BlanketCapabilityFetch {
                             SupportsCloud       = [bool]$caps.SupportsCloud
                             SupportsFusion      = [bool]$caps.SupportsFusion
                             SupportsAutoUpdate  = [bool]$caps.SupportsAutoUpdate
+                            SupportsDisplaySettings = [bool]$caps.SupportsDisplaySettings
                             SupportsIpTable     = [bool]$caps.SupportsIpTable
                             SupportsNetwork     = [bool]$caps.SupportsNetwork
                             SupportsWifi        = [bool]$caps.SupportsWifi
@@ -3415,6 +4037,7 @@ function Start-BlanketCapabilityFetch {
                         __result            = $true
                         IP                  = $ip
                         Model               = ''
+                        Hostname            = ''
                         CurrentDeviceMode   = ''
                         AvApiFamily         = ''
                         AvApiVersion        = ''
@@ -3427,6 +4050,7 @@ function Start-BlanketCapabilityFetch {
                         SupportsCloud       = $false
                         SupportsFusion      = $false
                         SupportsAutoUpdate  = $false
+                        SupportsDisplaySettings = $false
                         SupportsIpTable     = $false
                         SupportsNetwork     = $false
                         SupportsWifi        = $false
@@ -3471,6 +4095,7 @@ function Start-BlanketCapabilityFetch {
 
             foreach ($prop in @(
                 'Model',
+                'Hostname',
                 'CurrentDeviceMode',
                 'AvApiFamily',
                 'AvApiVersion',
@@ -3483,6 +4108,7 @@ function Start-BlanketCapabilityFetch {
                 'SupportsCloud',
                 'SupportsFusion',
                 'SupportsAutoUpdate',
+                'SupportsDisplaySettings',
                 'SupportsIpTable',
                 'SupportsNetwork',
                 'SupportsWifi',
@@ -3492,6 +4118,7 @@ function Start-BlanketCapabilityFetch {
                 if (-not ($row.PSObject.Properties.Name -contains $prop)) {
                     $defaultValue = switch ($prop) {
                         'Model'               { '' }
+                        'Hostname'            { '' }
                         'CurrentDeviceMode'   { '' }
                         'AvApiFamily'         { '' }
                         'AvApiVersion'        { '' }
@@ -3504,6 +4131,7 @@ function Start-BlanketCapabilityFetch {
                         'SupportsCloud'       { $false }
                         'SupportsFusion'      { $false }
                         'SupportsAutoUpdate'  { $false }
+                        'SupportsDisplaySettings' { $false }
                         'SupportsIpTable'     { $false }
                         'SupportsNetwork'     { $false }
                         'SupportsWifi'        { $false }
@@ -3519,6 +4147,7 @@ function Start-BlanketCapabilityFetch {
 
             if (-not $item.__progress) {
                 $row.Model               = "$($item.Model)"
+                $row.Hostname            = "$($item.Hostname)"
                 $row.CurrentDeviceMode   = "$($item.CurrentDeviceMode)"
                 $row.AvApiFamily         = "$($item.AvApiFamily)"
                 $row.AvApiVersion        = "$($item.AvApiVersion)"
@@ -3531,6 +4160,7 @@ function Start-BlanketCapabilityFetch {
                 $row.SupportsCloud       = [bool]$item.SupportsCloud
                 $row.SupportsFusion      = [bool]$item.SupportsFusion
                 $row.SupportsAutoUpdate  = [bool]$item.SupportsAutoUpdate
+                $row.SupportsDisplaySettings = [bool]$item.SupportsDisplaySettings
                 $row.SupportsIpTable     = [bool]$item.SupportsIpTable
                 $row.SupportsNetwork     = [bool]$item.SupportsNetwork
                 $row.SupportsWifi        = [bool]$item.SupportsWifi
@@ -3542,11 +4172,18 @@ function Start-BlanketCapabilityFetch {
 
             $Script:UI.BlanketGrid.Items.Refresh()
             Update-BlanketSummary
-            $okCount = ($Script:BlanketState.Rows | Where-Object Status -eq 'OK').Count
-            $errorCount = ($Script:BlanketState.Rows | Where-Object Status -eq 'Error').Count
+            $okCount = ($Script:BlanketState.Rows | Where-Object {
+                $_.Status -eq 'OK' -or $_.Detail -eq 'Capabilities fetched'
+            }).Count
+            $errorCount = ($Script:BlanketState.Rows | Where-Object {
+                $_.Status -eq 'Error' -or $_.Detail -like 'ERROR:*'
+            }).Count
             Update-BusyDialog `
                 -Key 'BlanketCapabilityFetch' `
-                -Status "OK: $okCount  Errors: $errorCount"
+                -Completed ($okCount + $errorCount) `
+                -Total $ips.Count `
+                -Ok $okCount `
+                -Errors $errorCount
 
             if ($Script:BlanketState.DoneRef.Value -and $Script:BlanketState.Queue.IsEmpty) {
             Stop-BlanketRunspace
@@ -3719,7 +4356,8 @@ function Invoke-RebootNeededRows {
     }.GetNewClosure()
 
     if ($isWorkflowRebootPrompt) {
-        Invoke-RebootBulk -Ips $ipsToReboot -StatusCallback $statusCallback -SkipConfirm -SkipWait
+        $Script:WorkflowState.RebootWaitHandled = $true
+        Invoke-RebootBulk -Ips $ipsToReboot -StatusCallback $statusCallback -SkipConfirm
     }
     else {
         Invoke-RebootBulk -Ips $ipsToReboot -StatusCallback $statusCallback -SkipConfirm
@@ -3739,6 +4377,7 @@ function Start-BlanketApply {
     $applyCloud  = [bool]$Script:UI.CloudEnableBox.IsChecked
     $applyFusion = [bool]$Script:UI.FusionEnableBox.IsChecked
     $applyAuto   = [bool]$Script:UI.AutoUpdateEnableBox.IsChecked
+    $applyDisplay = [bool]$Script:UI.DisplayEnableBox.IsChecked
     $applyMode   = [bool]$Script:UI.ModeEnableBox.IsChecked
     $applyInputHdcp = [bool]$Script:UI.AvInputHdcpEnableBox.IsChecked
     $applyOutputHdcp = [bool]$Script:UI.AvOutputHdcpEnableBox.IsChecked
@@ -3746,7 +4385,7 @@ function Start-BlanketApply {
     $applyGlobalEdid = [bool]$Script:UI.AvGlobalEdidEnableBox.IsChecked
 
     if (-not (
-        $applyNtp -or $applyCloud -or $applyFusion -or $applyAuto -or $applyMode -or
+        $applyNtp -or $applyCloud -or $applyFusion -or $applyAuto -or $applyDisplay -or $applyMode -or
         $applyInputHdcp -or $applyOutputHdcp -or $applyOutputResolution -or $applyGlobalEdid
     )) {
         [System.Windows.MessageBox]::Show("Enable at least one settings section before applying.", "Nothing to apply", 'OK', 'Warning') | Out-Null
@@ -3785,6 +4424,37 @@ function Start-BlanketApply {
     if ($applyAuto) {
         $autoUpdate = @{
             Enabled = [bool]$Script:UI.AutoUpdateOnRadio.IsChecked
+        }
+    }
+
+    $displaySettings = $null
+    if ($applyDisplay) {
+        $brightnessText = "$($Script:UI.DisplayBrightnessBox.Text)".Trim()
+        $standbyText = "$($Script:UI.DisplayStandbyTimeoutBox.Text)".Trim()
+        $brightness = 0
+        $standbyTimeout = 0
+        $autoBrightness = [bool]$Script:UI.DisplayAutoBrightnessOnRadio.IsChecked
+
+        if (-not $autoBrightness) {
+            if (-not [int]::TryParse($brightnessText, [ref]$brightness) -or $brightness -lt 0 -or $brightness -gt 100) {
+                [System.Windows.MessageBox]::Show("Brightness must be a number from 0 to 100.", "Invalid brightness", 'OK', 'Warning') | Out-Null
+                return
+            }
+        }
+
+        if (-not [int]::TryParse($standbyText, [ref]$standbyTimeout) -or $standbyTimeout -lt 0 -or $standbyTimeout -gt 86400) {
+            [System.Windows.MessageBox]::Show("Standby timeout must be a number from 0 to 86400.", "Invalid standby timeout", 'OK', 'Warning') | Out-Null
+            return
+        }
+
+        $displaySettings = @{
+            AutoBrightness     = $autoBrightness
+            ScreensaverEnabled = [bool]$Script:UI.DisplayScreensaverOnRadio.IsChecked
+            StandbyTimeout     = $standbyTimeout
+        }
+
+        if (-not $autoBrightness) {
+            $displaySettings.Brightness = $brightness
         }
     }
 
@@ -3828,6 +4498,13 @@ function Start-BlanketApply {
     if ($applyCloud)  { $bits += "Cloud=$(if ($cloud) { 'ON' } else { 'OFF' })" }
     if ($applyFusion) { $bits += "Fusion=$(if ($fusion) { 'ON' } else { 'OFF' })" }
     if ($applyAuto)   { $bits += "AutoUpdate=$(if ($autoUpdate.Enabled) { 'ON' } else { 'OFF' })" }
+    if ($applyDisplay) {
+        $displayBit = "Display AutoBrightness=$(if ($displaySettings.AutoBrightness) { 'ON' } else { 'OFF' }) Screensaver=$(if ($displaySettings.ScreensaverEnabled) { 'ON' } else { 'OFF' }) Standby=$($displaySettings.StandbyTimeout)"
+        if ($displaySettings.ContainsKey('Brightness')) {
+            $displayBit += " Brightness=$($displaySettings.Brightness)"
+        }
+        $bits += $displayBit
+    }
     if ($applyMode)   { $bits += "Mode=$deviceMode" }
     if ($applyInputHdcp) { $bits += "InputHDCP=$inputHdcpMode" }
     if ($applyOutputHdcp) { $bits += "OutputHDCP=$outputHdcpMode" }
@@ -3874,6 +4551,7 @@ function Start-BlanketApply {
         @{
             IP                  = $_.IP
             Model               = $_.Model
+            Hostname            = $_.Hostname
             AvApiFamily         = $_.AvApiFamily
             AvApiVersion        = $_.AvApiVersion
             SupportsAvSettings  = [bool]$_.SupportsAvSettings
@@ -3883,6 +4561,7 @@ function Start-BlanketApply {
             SupportsCloud       = [bool]$_.SupportsCloud
             SupportsFusion      = [bool]$_.SupportsFusion
             SupportsAutoUpdate  = [bool]$_.SupportsAutoUpdate
+            SupportsDisplaySettings = [bool]$_.SupportsDisplaySettings
             SupportsModeChange  = [bool]$_.SupportsModeChange
             CapabilitiesFetched = [bool]$_.CapabilitiesFetched
         }
@@ -3901,6 +4580,7 @@ function Start-BlanketApply {
     $rs.SessionStateProxy.SetVariable('cloudArg',     $cloud)
     $rs.SessionStateProxy.SetVariable('fusionArg',    $fusion)
     $rs.SessionStateProxy.SetVariable('autoUpdate',   $autoUpdate)
+    $rs.SessionStateProxy.SetVariable('displaySettings', $displaySettings)
     $rs.SessionStateProxy.SetVariable('deviceMode',   $deviceMode)
     $rs.SessionStateProxy.SetVariable('inputHdcpMode', $inputHdcpMode)
     $rs.SessionStateProxy.SetVariable('outputHdcpMode', $outputHdcpMode)
@@ -3912,7 +4592,13 @@ function Start-BlanketApply {
 
     [void]$ps.AddScript({
         try {
-            Import-Module CrestronAdminBootstrap -Force -ErrorAction Stop
+            $moduleManifest = $env:CABS_MODULE_MANIFEST
+            if ($moduleManifest -and (Test-Path -LiteralPath $moduleManifest)) {
+                Import-Module $moduleManifest -Force -ErrorAction Stop
+            }
+            else {
+                Import-Module CrestronAdminBootstrap -Force -ErrorAction Stop
+            }
 
             $sec     = ConvertTo-SecureString $userPass -AsPlainText -Force
             $credObj = [pscredential]::new($userName, $sec)
@@ -3939,6 +4625,7 @@ function Start-BlanketApply {
                 $cArg     = $using:cloudArg
                 $fArg     = $using:fusionArg
                 $auArg    = $using:autoUpdate
+                $displayArg = $using:displaySettings
                 $modeArg  = $using:deviceMode
                 $inHdcpArg = $using:inputHdcpMode
                 $outHdcpArg = $using:outputHdcpMode
@@ -4106,6 +4793,43 @@ function Start-BlanketApply {
                             $stepResults += ($r.SectionResults | ForEach-Object {
                                 "$($_.Path):$($_.StatusInfo)"
                             })
+                        }
+
+                        if ($displayArg) {
+                            try {
+                                if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsDisplaySettings) {
+                                    $stepResults += "Display=skipped; unsupported on $($rowArg.Model)"
+                                }
+                                else {
+                                    $displayCallArgs = @{
+                                        Session              = $sess
+                                        AutoBrightness       = [bool]$displayArg.AutoBrightness
+                                        ScreensaverEnabled   = [bool]$displayArg.ScreensaverEnabled
+                                        StandbyTimeout       = [int]$displayArg.StandbyTimeout
+                                    }
+
+                                    if ($displayArg.ContainsKey('Brightness')) {
+                                        $displayCallArgs.Brightness = [int]$displayArg.Brightness
+                                    }
+
+                                    $rDisplay = Set-CrestronDisplaySettings @displayCallArgs
+
+                                    if (-not $rDisplay.Success) {
+                                        $allOk = $false
+                                    }
+
+                                    if (Test-ResultNeedsReboot $rDisplay) {
+                                        $needsReboot = $true
+                                    }
+
+                                    $sections += 'Display'
+                                    $stepResults += Get-StepResultDetail -Name 'Display' -Result $rDisplay
+                                }
+                            }
+                            catch {
+                                $allOk = $false
+                                $stepResults += "Display=ERR: $($_.Exception.Message)"
+                            }
                         }
 
                         if ($modeArg) {
@@ -4387,6 +5111,7 @@ function Stop-BlanketApply {
 
 $Script:UI.BlanketTab.Add_GotFocus({
     if ($Script:BlanketState.Rows.Count -eq 0) { Load-BlanketFromProvision }
+    Update-AvGlobalEdidOptions
 })
 
 $Script:UI.BlanketClearButton.Add_Click({
@@ -4517,6 +5242,52 @@ function Test-PerDeviceValue {
 
     $text = "$Value"
     return (-not [string]::IsNullOrWhiteSpace($text)) -and ($text -ne 'N/A')
+}
+
+function ConvertTo-PerDeviceToggleText {
+    param($Value)
+
+    if ($null -eq $Value) {
+        return 'N/A'
+    }
+
+    if ($Value -is [bool]) {
+        if ([bool]$Value) { return 'Enabled' }
+        return 'Disabled'
+    }
+
+    switch -Regex ("$Value".Trim()) {
+        '^(true|yes|on|enabled|enable|1)$'       { 'Enabled'; break }
+        '^(false|no|off|disabled|disable|0)$'    { 'Disabled'; break }
+        default                                  { 'N/A' }
+    }
+}
+
+function ConvertFrom-PerDeviceToggleText {
+    param($Value)
+
+    switch ("$Value") {
+        'Enabled'  { return $true }
+        'Disabled' { return $false }
+        default    { return $null }
+    }
+}
+
+function Test-PerDeviceDisplayChanged {
+    param($Row)
+
+    if (-not $Row) { return $false }
+
+    $autoChanged = ($Row.NewAutoBrightness -in 'Enabled','Disabled') -and
+                   "$($Row.NewAutoBrightness)" -ne "$($Row.CurrentAutoBrightness)"
+    $brightnessChanged = (Test-PerDeviceValue $Row.NewBrightness) -and
+                         "$($Row.NewBrightness)" -ne "$($Row.CurrentBrightness)"
+    $screensaverChanged = ($Row.NewScreensaver -in 'Enabled','Disabled') -and
+                          "$($Row.NewScreensaver)" -ne "$($Row.CurrentScreensaver)"
+    $standbyChanged = (Test-PerDeviceValue $Row.NewStandbyTimeout) -and
+                      "$($Row.NewStandbyTimeout)" -ne "$($Row.CurrentStandbyTimeout)"
+
+    return ($autoChanged -or $brightnessChanged -or $screensaverChanged -or $standbyChanged)
 }
 
 function ConvertTo-PerDeviceInputHdcpMode {
@@ -4702,11 +5473,14 @@ function Update-PerDeviceSummary {
                                ((Test-PerDeviceValue $_.PrimaryDns) -and "$($_.PrimaryDns)" -ne "$($_.CurrentDns1)") -or
                                ((Test-PerDeviceValue $_.SecondaryDns) -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
 
+        $displayChanged = Test-PerDeviceDisplayChanged $_
+
         $hostnameChanged -or
         $ipModeChanged -or
         $deviceModeChanged -or
         $ipTableChanged -or
         $networkValueChanged -or
+        $displayChanged -or
         $_.DisableWifi
     }).Count
 
@@ -4794,6 +5568,11 @@ function Load-PerDeviceFromProvision {
             CurrentOutputHdcp        = ''
             CurrentOutputResolution  = ''
             CurrentGlobalEdid        = ''
+            SupportsDisplaySettings  = $false
+            CurrentAutoBrightness    = 'N/A'
+            CurrentBrightness        = 'N/A'
+            CurrentScreensaver       = 'N/A'
+            CurrentStandbyTimeout    = 'N/A'
 
             NewHostname              = 'N/A'
             IPMode                   = 'N/A'
@@ -4804,6 +5583,10 @@ function Load-PerDeviceFromProvision {
             NewGlobalEdidName        = 'N/A'
             NewMulticastAddress      = 'N/A'
             MulticastStreamIndex     = 'N/A'
+            NewAutoBrightness        = 'N/A'
+            NewBrightness            = 'N/A'
+            NewScreensaver           = 'N/A'
+            NewStandbyTimeout        = 'N/A'
             NewIP                    = 'N/A'
             SubnetMask               = 'N/A'
             Gateway                  = 'N/A'
@@ -4837,9 +5620,11 @@ function Save-PerDeviceCsv {
                     SupportsInputEdid, SupportsEdidEdit, EdidNames,
                     SupportsAvMulticast, CurrentTransmitMulticast, CurrentReceiveMulticast,
                     CurrentInputHdcp, CurrentOutputHdcp, CurrentOutputResolution, CurrentGlobalEdid,
+                    SupportsDisplaySettings, CurrentAutoBrightness, CurrentBrightness, CurrentScreensaver, CurrentStandbyTimeout,
                     NewHostname, IPMode, DeviceMode,
                     NewInputHdcp, NewOutputHdcp, NewOutputResolution, NewGlobalEdidName,
                     NewMulticastAddress, MulticastStreamIndex,
+                    NewAutoBrightness, NewBrightness, NewScreensaver, NewStandbyTimeout,
                     NewIP, SubnetMask, Gateway,
                     PrimaryDns, SecondaryDns, DisableWifi,
                     NewIpId, NewControlSystemAddr, NewRoomId,
@@ -5156,9 +5941,15 @@ function Start-PerDeviceFetch {
                             CurrentOutputHdcp        = $currentOutputHdcp
                             CurrentOutputResolution  = $currentOutputResolution
                             CurrentGlobalEdid        = $currentGlobalEdid
+                            SupportsDisplaySettings  = [bool]$state.SupportsDisplaySettings
+                            CurrentAutoBrightness    = $state.CurrentAutoBrightness
+                            CurrentBrightness        = $state.CurrentBrightness
+                            CurrentScreensaverEnabled = $state.CurrentScreensaverEnabled
+                            CurrentStandbyTimeout    = $state.CurrentStandbyTimeout
                             AvInputRows              = $avInputRows
                             AvOutputRows             = $avOutputRows
                             MulticastRows            = $multicastRows
+                            Status                   = "OK"
                             Detail                   = "OK"
                         })
                     } finally {
@@ -5167,6 +5958,7 @@ function Start-PerDeviceFetch {
                 } catch {
                     $q.Enqueue([pscustomobject]@{
                         IP     = $ip
+                        Status = "Error"
                         Detail = "ERROR: $($_.Exception.Message)"
                     })
                 }
@@ -5229,6 +6021,11 @@ function Start-PerDeviceFetch {
                 'CurrentOutputHdcp',
                 'CurrentOutputResolution',
                 'CurrentGlobalEdid',
+                'SupportsDisplaySettings',
+                'CurrentAutoBrightness',
+                'CurrentBrightness',
+                'CurrentScreensaver',
+                'CurrentStandbyTimeout',
                 'NewHostname',
                 'IPMode',
                 'NewInputHdcp',
@@ -5237,7 +6034,12 @@ function Start-PerDeviceFetch {
                 'NewGlobalEdidName',
                 'NewMulticastAddress',
                 'MulticastStreamIndex',
+                'NewAutoBrightness',
+                'NewBrightness',
+                'NewScreensaver',
+                'NewStandbyTimeout',
                 'DeviceMode',
+                'Status',
                 'NeedsReboot'
             )) {
                 if (-not ($row.PSObject.Properties.Name -contains $prop)) {
@@ -5266,6 +6068,11 @@ function Start-PerDeviceFetch {
                         'CurrentOutputHdcp' { '' }
                         'CurrentOutputResolution' { '' }
                         'CurrentGlobalEdid' { '' }
+                        'SupportsDisplaySettings' { $false }
+                        'CurrentAutoBrightness' { 'N/A' }
+                        'CurrentBrightness' { 'N/A' }
+                        'CurrentScreensaver' { 'N/A' }
+                        'CurrentStandbyTimeout' { 'N/A' }
                         'NewHostname' { 'N/A' }
                         'IPMode' { 'N/A' }
                         'NewInputHdcp' { 'N/A' }
@@ -5274,12 +6081,27 @@ function Start-PerDeviceFetch {
                         'NewGlobalEdidName' { 'N/A' }
                         'NewMulticastAddress' { 'N/A' }
                         'MulticastStreamIndex' { 'N/A' }
+                        'NewAutoBrightness' { 'N/A' }
+                        'NewBrightness' { 'N/A' }
+                        'NewScreensaver' { 'N/A' }
+                        'NewStandbyTimeout' { 'N/A' }
                         'DeviceMode'         { 'N/A' }
+                        'Status'             { '' }
                         'NeedsReboot'        { $false }
                     }
 
                     $row | Add-Member -NotePropertyName $prop -NotePropertyValue $defaultValue -Force
                 }
+            }
+
+            if ($item.PSObject.Properties.Name -contains 'Status') {
+                $row.Status = "$($item.Status)"
+            }
+            elseif ("$($item.Detail)" -eq 'OK') {
+                $row.Status = 'OK'
+            }
+            elseif ("$($item.Detail)" -like 'ERROR:*') {
+                $row.Status = 'Error'
             }
 
             if ($item.Model) {
@@ -5313,6 +6135,28 @@ function Start-PerDeviceFetch {
                 $row.CurrentOutputHdcp        = ConvertTo-PerDeviceOutputHdcpMode $item.CurrentOutputHdcp
                 $row.CurrentOutputResolution  = "$($item.CurrentOutputResolution)"
                 $row.CurrentGlobalEdid        = "$($item.CurrentGlobalEdid)"
+                $row.SupportsDisplaySettings  = [bool]$item.SupportsDisplaySettings
+
+                if ([bool]$item.SupportsDisplaySettings) {
+                    $row.CurrentAutoBrightness = ConvertTo-PerDeviceToggleText $item.CurrentAutoBrightness
+                    $row.CurrentBrightness = if ($null -ne $item.CurrentBrightness) { "$($item.CurrentBrightness)" } else { 'N/A' }
+                    $row.CurrentScreensaver = ConvertTo-PerDeviceToggleText $item.CurrentScreensaverEnabled
+                    $row.CurrentStandbyTimeout = if ($null -ne $item.CurrentStandbyTimeout) { "$($item.CurrentStandbyTimeout)" } else { 'N/A' }
+                    $row.NewAutoBrightness = "$($row.CurrentAutoBrightness)"
+                    $row.NewBrightness = "$($row.CurrentBrightness)"
+                    $row.NewScreensaver = "$($row.CurrentScreensaver)"
+                    $row.NewStandbyTimeout = "$($row.CurrentStandbyTimeout)"
+                }
+                else {
+                    $row.CurrentAutoBrightness = 'N/A'
+                    $row.CurrentBrightness = 'N/A'
+                    $row.CurrentScreensaver = 'N/A'
+                    $row.CurrentStandbyTimeout = 'N/A'
+                    $row.NewAutoBrightness = 'N/A'
+                    $row.NewBrightness = 'N/A'
+                    $row.NewScreensaver = 'N/A'
+                    $row.NewStandbyTimeout = 'N/A'
+                }
 
                 if ([bool]$item.SupportsNetwork) {
                     $row.NewHostname = "$($item.CurrentHostname)"
@@ -5493,13 +6337,18 @@ function Start-PerDeviceFetch {
         $Script:UI.PerDeviceAvOutputGrid.Items.Refresh()
         $Script:UI.PerDeviceMulticastGrid.Items.Refresh()
         Update-PerDeviceSummary
-        $okCount = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
+        $okCount = ($Script:PerDeviceState.Rows | Where-Object {
+            $_.Status -eq 'OK' -or $_.Detail -eq 'OK'
+        }).Count
         $errorCount = ($Script:PerDeviceState.Rows | Where-Object {
-            $_.Detail -like 'ERROR:*'
+            $_.Status -eq 'Error' -or $_.Detail -like 'ERROR:*'
         }).Count
         Update-BusyDialog `
             -Key 'PerDeviceFetch' `
-            -Status "OK: $okCount  Errors: $errorCount"
+            -Completed ($okCount + $errorCount) `
+            -Total $ips.Count `
+            -Ok $okCount `
+            -Errors $errorCount
 
         if ($Script:PerDeviceState.DoneRef.Value -and $Script:PerDeviceState.Queue.IsEmpty) {
             Stop-PerDeviceRunspace
@@ -5559,6 +6408,37 @@ function Test-PerDeviceRow ($row) {
     if ($row.DeviceMode -in 'Transmitter','Receiver') {
         if (-not $row.SupportsModeChange) {
             return "Device mode change selected, but this device does not expose DeviceSpecific.DeviceMode"
+        }
+    }
+
+    if (Test-PerDeviceDisplayChanged $row) {
+        if (-not [bool]$row.SupportsDisplaySettings) {
+            return "Display settings selected, but this device does not expose display settings"
+        }
+
+        if ((Test-PerDeviceValue $row.NewBrightness) -and "$($row.NewBrightness)" -ne "$($row.CurrentBrightness)") {
+            $brightness = 0
+            if (-not [int]::TryParse("$($row.NewBrightness)", [ref]$brightness) -or $brightness -lt 0 -or $brightness -gt 100) {
+                return "Brightness must be a number from 0 to 100"
+            }
+
+            $targetAutoBrightness = if ($row.NewAutoBrightness -in 'Enabled','Disabled') {
+                "$($row.NewAutoBrightness)"
+            }
+            else {
+                "$($row.CurrentAutoBrightness)"
+            }
+
+            if ($targetAutoBrightness -ne 'Disabled') {
+                return "Brightness can only be set when Auto Brightness is Disabled"
+            }
+        }
+
+        if ((Test-PerDeviceValue $row.NewStandbyTimeout) -and "$($row.NewStandbyTimeout)" -ne "$($row.CurrentStandbyTimeout)") {
+            $standbyTimeout = 0
+            if (-not [int]::TryParse("$($row.NewStandbyTimeout)", [ref]$standbyTimeout) -or $standbyTimeout -lt 0 -or $standbyTimeout -gt 86400) {
+                return "Standby Timeout must be a number from 0 to 86400"
+            }
         }
     }
 
@@ -5661,11 +6541,14 @@ function Start-PerDeviceApply {
                             ((Test-PerDeviceValue $_.PrimaryDns) -and "$($_.PrimaryDns)" -ne "$($_.CurrentDns1)") -or
                             ((Test-PerDeviceValue $_.SecondaryDns) -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
 
+        $displayChanged = Test-PerDeviceDisplayChanged $_
+
         $hostnameChanged -or
         $ipModeChanged -or
         $deviceModeChanged -or
         $ipTableChanged -or
         $networkValueChanged -or
+        $displayChanged -or
         $_.DisableWifi
     })
 
@@ -5783,6 +6666,15 @@ function Start-PerDeviceApply {
             CurrentOutputResolution  = $_.CurrentOutputResolution
             NewGlobalEdidName        = $_.NewGlobalEdidName
             CurrentGlobalEdid        = $_.CurrentGlobalEdid
+            SupportsDisplaySettings  = [bool]$_.SupportsDisplaySettings
+            NewAutoBrightness        = $_.NewAutoBrightness
+            CurrentAutoBrightness    = $_.CurrentAutoBrightness
+            NewBrightness            = $_.NewBrightness
+            CurrentBrightness        = $_.CurrentBrightness
+            NewScreensaver           = $_.NewScreensaver
+            CurrentScreensaver       = $_.CurrentScreensaver
+            NewStandbyTimeout        = $_.NewStandbyTimeout
+            CurrentStandbyTimeout    = $_.CurrentStandbyTimeout
             SupportsAvMulticast      = [bool]$_.SupportsAvMulticast
             CurrentTransmitMulticast = $_.CurrentTransmitMulticast
             CurrentReceiveMulticast  = $_.CurrentReceiveMulticast
@@ -5909,6 +6801,16 @@ function Start-PerDeviceApply {
                         return (-not [string]::IsNullOrWhiteSpace($text)) -and ($text -ne 'N/A')
                     }
 
+                    function ConvertFrom-PerDeviceToggleText {
+                        param($Value)
+
+                        switch ("$Value") {
+                            'Enabled'  { return $true }
+                            'Disabled' { return $false }
+                            default    { return $null }
+                        }
+                    }
+
                     function Test-PerDeviceInputHdcpMode {
                         param($Value)
 
@@ -6020,6 +6922,56 @@ function Start-PerDeviceApply {
                                 }
                             } catch {
                                 $stepResults += "IpTable=ERR: $($_.Exception.Message)"
+                                $allOk = $false
+                            }
+                        }
+
+                        $displayChanged = (($row.NewAutoBrightness -in 'Enabled','Disabled') -and "$($row.NewAutoBrightness)" -ne "$($row.CurrentAutoBrightness)") -or
+                                          ((Test-PerDeviceValue $row.NewBrightness) -and "$($row.NewBrightness)" -ne "$($row.CurrentBrightness)") -or
+                                          (($row.NewScreensaver -in 'Enabled','Disabled') -and "$($row.NewScreensaver)" -ne "$($row.CurrentScreensaver)") -or
+                                          ((Test-PerDeviceValue $row.NewStandbyTimeout) -and "$($row.NewStandbyTimeout)" -ne "$($row.CurrentStandbyTimeout)")
+
+                        if ($displayChanged) {
+                            try {
+                                if (-not [bool]$row.SupportsDisplaySettings) {
+                                    $stepResults += "Display=skipped; unsupported"
+                                    $allOk = $false
+                                }
+                                else {
+                                    $displayArgs = @{
+                                        Session = $sess
+                                    }
+
+                                    if (($row.NewAutoBrightness -in 'Enabled','Disabled') -and "$($row.NewAutoBrightness)" -ne "$($row.CurrentAutoBrightness)") {
+                                        $displayArgs.AutoBrightness = ConvertFrom-PerDeviceToggleText $row.NewAutoBrightness
+                                    }
+
+                                    if ((Test-PerDeviceValue $row.NewBrightness) -and "$($row.NewBrightness)" -ne "$($row.CurrentBrightness)") {
+                                        $displayArgs.Brightness = [int]$row.NewBrightness
+                                    }
+
+                                    if (($row.NewScreensaver -in 'Enabled','Disabled') -and "$($row.NewScreensaver)" -ne "$($row.CurrentScreensaver)") {
+                                        $displayArgs.ScreensaverEnabled = ConvertFrom-PerDeviceToggleText $row.NewScreensaver
+                                    }
+
+                                    if ((Test-PerDeviceValue $row.NewStandbyTimeout) -and "$($row.NewStandbyTimeout)" -ne "$($row.CurrentStandbyTimeout)") {
+                                        $displayArgs.StandbyTimeout = [int]$row.NewStandbyTimeout
+                                    }
+
+                                    $rDisplay = Set-CrestronDisplaySettings @displayArgs
+                                    $stepResults += "Display=$(if($rDisplay.Success){'OK'}else{$rDisplay.Status})"
+
+                                    if (Test-ResultNeedsReboot $rDisplay) {
+                                        $needsReboot = $true
+                                    }
+
+                                    if (-not $rDisplay.Success) {
+                                        $allOk = $false
+                                    }
+                                }
+                            }
+                            catch {
+                                $stepResults += "Display=ERR: $($_.Exception.Message)"
                                 $allOk = $false
                             }
                         }
@@ -6609,6 +7561,14 @@ $Script:UI.PerDeviceGrid.Add_BeginningEdit({
         }
     }
 
+    if ($header -in @('Auto Brightness','Brightness','Screensaver','Standby Timeout')) {
+        $row = $e.Row.Item
+
+        if (-not $row -or -not [bool]$row.SupportsDisplaySettings) {
+            $e.Cancel = $true
+        }
+    }
+
 })
 
 $Script:UI.PerDeviceGrid.Add_CellEditEnding({
@@ -6684,12 +7644,12 @@ function Show-RebootWaitDialog {
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Waiting for reboot"
-        Width="500"
-        Height="250"
-        MinHeight="250"
+        Width="460"
+        Height="220"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        WindowStyle="ToolWindow">
+        WindowStyle="ToolWindow"
+        ShowInTaskbar="False">
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -6707,21 +7667,21 @@ function Show-RebootWaitDialog {
 
         <ProgressBar x:Name="WaitProgress"
                      Grid.Row="1"
-                     Height="22"
+                     Height="18"
                      Minimum="0"
                      Maximum="100"
                      Value="0"
-                     Margin="0,0,0,8" />
+                     Margin="0,0,0,10" />
 
         <TextBlock x:Name="WaitCountdown"
                    Grid.Row="2"
                    Text="Starting..."
                    FontFamily="Consolas"
                    Foreground="#0066CC"
-                   Margin="0,0,0,10" />
+                   Margin="0,0,0,8" />
 
         <TextBlock Grid.Row="3"
-                   Text="You can skip this wait if the devices are already back online. Cancel exits this wait screen."
+                   Text="Skip this wait if the devices are already back online. Cancel exits the wait screen."
                    Foreground="#666"
                    FontSize="11"
                    TextWrapping="Wrap"
@@ -6795,7 +7755,7 @@ function Show-RebootWaitDialog {
         $mm = [Math]::Floor($remaining / 60)
         $ss = $remaining % 60
 
-        $countdown.Text = ("Waiting: {0}:{1:D2} remaining ({2}% complete)" -f $mm, $ss, $percent)
+        $countdown.Text = ("Remaining: {0}:{1:D2}  Complete: {2}%" -f $mm, $ss, $percent)
 
         if ($elapsed -ge $Seconds) {
             $timer.Stop()
@@ -7092,6 +8052,7 @@ $Script:WorkflowState = [pscustomobject]@{
     BlanketApplyStarted = $false
     PerDeviceWait       = $false   # set true while paused for tech editing
     RebootAlreadyRequested = $false
+    RebootWaitHandled   = $false
     Cancelled           = $false
     Timer               = $null    # used to poll inner-tab work for completion
     CurrentStep         = -1
@@ -7106,8 +8067,7 @@ function Initialize-WorkflowSteps {
         @{ Title='2. Provision';       Detail='Set the admin account on each found device' },
         @{ Title='3. Blanket Settings'; Detail='Apply shared settings across all devices' },
         @{ Title='4. Per-Device';      Detail='Tech edits per-device hostname / IP / WiFi-off — pauses here' },
-        @{ Title='5. Reboot';          Detail='Reboot all devices so changes take effect' },
-        @{ Title='6. Verify';          Detail='Wait, then rescan to confirm provisioning stuck' }
+        @{ Title='5. Reboot';          Detail='Reboot all devices so changes take effect' }
     )) {
         $Script:WorkflowState.Steps.Add([pscustomobject]@{
             Icon   = '⏳'
@@ -7411,6 +8371,7 @@ function Reset-WorkflowSteps {
     $Script:WorkflowState.BlanketApplyStarted = $false
     $Script:WorkflowState.PerDeviceWait       = $false
     $Script:WorkflowState.RebootAlreadyRequested = $false
+    $Script:WorkflowState.RebootWaitHandled   = $false
     $Script:WorkflowState.CurrentStep         = -1
     $Script:UI.WorkflowContinueButton.Content = 'Continue Workflow'
 }
@@ -7536,50 +8497,36 @@ function Start-FullWorkflow {
             Set-WorkflowStep 4 '✅' "Reboot signal sent to $($rebootIps.Count) device(s)."
         }
 
-        # --- Step 6: Wait for reboot + Verify --------------------------------
-        $Script:WorkflowState.CurrentStep = 5
+        # --- Reboot wait ------------------------------------------------------
         $Script:UI.WorkflowRebootPanel.Visibility = 'Collapsed'
 
-        if ($rebootIps.Count -gt 0) {
-            Set-WorkflowStep 5 '⏳' 'Waiting up to 4 minutes for reboot before Verify...'
+        if ($rebootIps.Count -gt 0 -and -not [bool]$Script:WorkflowState.RebootWaitHandled) {
+            Set-WorkflowStep 4 '⏳' 'Waiting up to 4 minutes for reboot...'
 
             $waitResult = Show-RebootWaitDialog `
                 -Seconds 240 `
                 -Title 'Waiting for reboot' `
-                -Message "Reboot commands have been sent to $($rebootIps.Count) device(s). Wait up to 4 minutes before Verify."
+                -Message "Reboot commands have been sent to $($rebootIps.Count) device(s). Wait up to 4 minutes before continuing."
 
             if ($waitResult -eq 'Cancelled') {
                 throw 'Reboot wait cancelled by user.'
             }
             elseif ($waitResult -eq 'Skipped') {
-                Set-WorkflowStep 5 'ℹ️' 'Reboot wait skipped. Verifying now.'
+                Set-WorkflowStep 4 'ℹ️' 'Reboot wait skipped.'
             }
             else {
-                Set-WorkflowStep 5 '✅' 'Reboot wait complete. Verifying now.'
+                Set-WorkflowStep 4 '✅' 'Reboot wait complete.'
             }
         }
+        elseif ($rebootIps.Count -gt 0) {
+            Set-WorkflowStep 4 '✅' 'Reboot wait already handled from the Per-Device prompt.'
+        }
         else {
-            Set-WorkflowStep 5 'ℹ️' 'No reboot wait needed. Verifying now.'
+            Set-WorkflowStep 4 'ℹ️' 'No reboot wait needed.'
         }
 
-        # --- Step 6: Verify --------------------------------------------------
-        $Script:WorkflowState.CurrentStep = 5
-        Set-WorkflowStep 5 '🔄' 'Verifying after reboot wait...'
-        $Script:UI.WorkflowStatusText.Text = 'Verifying...'
-
-        $Script:UI.MainTabs.SelectedIndex = 5  # Verify
-        Load-VerifyFromProvision
-        Start-Verify
-        Wait-ForInnerTab { $Script:VerifyState.IsRunning }
-
-        if ($Script:WorkflowState.Cancelled) {
-            throw 'Cancelled by user.'
-        }
-
-        $verified = ($Script:VerifyState.Rows | Where-Object Verified -eq 'True').Count
-        $total = $Script:VerifyState.Rows.Count
-
-        Set-WorkflowStep 5 '✅' "Verify: $verified/$total past bootup."
+        $Script:UI.WorkflowStatusText.Text = 'Workflow complete.'
+        Update-Status 'Full Workflow complete.'
 
     }
     catch {
@@ -7665,9 +8612,8 @@ function Add-DevicesToGrid {
     $probeResults = Show-ProbingDialog `
         -Title "Adding devices" `
         -Message "Scanning $($newIps.Count) IP(s) on the network, please wait..." `
-        -Work {
-            Find-DevicesReachable -Ips $newIps -Credential $Script:AppState.Credential
-        }
+        -Ips $newIps `
+        -Credential $null
 
     $reachableObjs = @($probeResults | Where-Object Reachable)
 
@@ -7684,25 +8630,33 @@ function Add-DevicesToGrid {
     }
 
     $authOk   = @($reachableObjs | Where-Object Authenticated)
-    $authFail = @($reachableObjs | Where-Object { -not $_.Authenticated -and $Script:AppState.Credential })
-    $noTested = @($reachableObjs | Where-Object { -not $Script:AppState.Credential })
+    $authFail = @($reachableObjs | Where-Object {
+        -not $_.Authenticated -and
+        $_.AuthDetail -and
+        "$($_.AuthDetail)" -notlike 'not tested*'
+    })
+    $noTested = @($reachableObjs | Where-Object {
+        -not $_.Authenticated -and
+        (-not $_.AuthDetail -or "$($_.AuthDetail)" -like 'not tested*')
+    })
 
     foreach ($obj in $reachableObjs) {
         $row = & $RowFactory $obj.IP
 
         # If the row has a Detail field, surface auth failure there so the tech sees it.
         if ($null -ne $row.PSObject.Properties['Detail']) {
-            if ($Script:AppState.Credential) {
-                if ($obj.Authenticated) {
-                    $row.Detail = 'Auth OK'
-                }
-                else {
-                    $row.Detail = "Auth FAILED: $($obj.AuthDetail)"
+            if ($obj.Authenticated) {
+                $row.Detail = 'Auth OK'
+            }
+            elseif ($obj.AuthDetail -and "$($obj.AuthDetail)" -notlike 'not tested*') {
+                $row.Detail = "Auth FAILED: $($obj.AuthDetail)"
 
-                    if ($null -ne $row.PSObject.Properties['Status']) {
-                        $row.Status = 'AuthFail'
-                    }
+                if ($null -ne $row.PSObject.Properties['Status']) {
+                    $row.Status = 'AuthFail'
                 }
+            }
+            else {
+                $row.Detail = 'Discovered'
             }
         }
 
@@ -7722,7 +8676,7 @@ function Add-DevicesToGrid {
     }
 
     if ($noTested.Count -gt 0) {
-        $bits += "Not tested (no creds): $($noTested.Count)"
+        $bits += "Auth deferred to fetch: $($noTested.Count)"
     }
 
     if ($skipped -gt 0) {
@@ -7794,6 +8748,11 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 CurrentOutputHdcp        = ''
                 CurrentOutputResolution  = ''
                 CurrentGlobalEdid        = ''
+                SupportsDisplaySettings  = $false
+                CurrentAutoBrightness    = 'N/A'
+                CurrentBrightness        = 'N/A'
+                CurrentScreensaver       = 'N/A'
+                CurrentStandbyTimeout    = 'N/A'
                 NewHostname              = 'N/A'
                 IPMode                   = 'N/A'
                 DeviceMode               = 'N/A'
@@ -7803,6 +8762,10 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 NewGlobalEdidName        = 'N/A'
                 NewMulticastAddress      = 'N/A'
                 MulticastStreamIndex     = 'N/A'
+                NewAutoBrightness        = 'N/A'
+                NewBrightness            = 'N/A'
+                NewScreensaver           = 'N/A'
+                NewStandbyTimeout        = 'N/A'
                 NewIP                    = 'N/A'
                 SubnetMask               = 'N/A'
                 Gateway                  = 'N/A'
@@ -7859,6 +8822,7 @@ $Script:UI.BlanketReloadButton.Add_Click({
                 Selected            = $true
                 IP                  = $ip
                 Model               = ''
+                Hostname            = ''
                 CurrentDeviceMode   = ''
                 AvApiFamily         = ''
                 AvApiVersion        = ''
@@ -7871,6 +8835,7 @@ $Script:UI.BlanketReloadButton.Add_Click({
                 SupportsCloud       = $false
                 SupportsFusion      = $false
                 SupportsAutoUpdate  = $false
+                SupportsDisplaySettings = $false
                 SupportsIpTable     = $false
                 SupportsNetwork     = $false
                 SupportsWifi        = $false
@@ -7924,26 +8889,45 @@ $dispatcherHandler = {
 
 function Show-ProbingDialog {
     <#
-    Modal dialog with an indeterminate progress bar. Runs the supplied
-    scriptblock after the dialog renders, then closes when the work finishes.
-    Returns whatever the scriptblock returns.
+    Modal dialog with a marquee progress indicator. Device probing runs in a
+    background runspace so the dialog can continue repainting while it works.
     #>
     param(
         [string]$Title = 'Adding devices',
         [string]$Message = 'Working, please wait...',
-        [Parameter(Mandatory)][scriptblock]$Work
+        [string[]]$Ips,
+        [pscredential]$Credential
     )
 
     [xml]$dxaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Working" Width="440" Height="150"
+        Title="Working" Width="460" Height="170"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
-        WindowStyle="ToolWindow">
-    <StackPanel Margin="20" VerticalAlignment="Center">
-        <TextBlock x:Name="ProbingText" Text="Working, please wait..." Margin="0,0,0,10" TextWrapping="Wrap" />
-        <TextBlock x:Name="ProbingStatusText" Text="Starting..." Margin="0,8,0,0" Foreground="#666" />
-    </StackPanel>
+        WindowStyle="ToolWindow"
+        ShowInTaskbar="False">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="ProbingText"
+                   Grid.Row="0"
+                   Text="Working, please wait..."
+                   Margin="0,0,0,12"
+                   TextWrapping="Wrap" />
+        <ContentControl x:Name="ProbingProgressHost"
+                        Grid.Row="1"
+                        Height="18"
+                        Margin="0,0,0,10" />
+        <TextBlock x:Name="ProbingStatusText"
+                   Grid.Row="2"
+                   Text="Starting..."
+                   Foreground="#666"
+                   FontFamily="Consolas"
+                   TextWrapping="Wrap" />
+    </Grid>
 </Window>
 '@
 
@@ -7953,38 +8937,195 @@ function Show-ProbingDialog {
     $dlg.Owner = $window
     $dlg.Title = $Title
 
-    $dlg.FindName('ProbingText').Text = $Message
-    $dlg.FindName('ProbingStatusText').Text = 'Scanning Network...'
+    $probingText = $dlg.FindName('ProbingText')
+    $statusText = $dlg.FindName('ProbingStatusText')
+    $progressHost = $dlg.FindName('ProbingProgressHost')
+
+    $probingText.Text = $Message
+    $statusText.Text = 'Scanning network...'
+    $palette = Get-GuiThemePalette -DarkMode:(Get-GuiDarkModeEnabled)
     Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
+    $marquee = New-MarqueeProgressBar -HostElement $progressHost -Palette $palette
 
-    $script:_probeResult = $null
-    $script:_probeError  = $null
-
-    $dlg.Add_ContentRendered({
-        $dlg.Dispatcher.BeginInvoke(
-            [Action]{
-                try {
-                    $script:_probeResult = & $Work
-                }
-                catch {
-                    $script:_probeError = $_.Exception.Message
-                }
-                finally {
-                    $dlg.DialogResult = $true
-                    $dlg.Close()
-                }
-            },
-            [System.Windows.Threading.DispatcherPriority]::ApplicationIdle
-        ) | Out-Null
-    })
-
-    [void]$dlg.ShowDialog()
-
-    if ($script:_probeError) {
-        throw $script:_probeError
+    $probeResults = [System.Collections.Generic.List[object]]::new()
+    $probeQueue = [System.Collections.Concurrent.ConcurrentQueue[object]]::new()
+    $probeDone = [ref]$false
+    $probeState = [pscustomobject]@{
+        PowerShell = $null
+        Runspace   = $null
+        Async      = $null
+        Error      = $null
+        Closed     = $false
     }
 
-    return $script:_probeResult
+    $startTime = Get-Date
+    $maxSeconds = [Math]::Max(60, [Math]::Min(300, ([Math]::Ceiling([Math]::Max(1, @($Ips).Count) / 64) * 20) + 30))
+    $timer = New-Object System.Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(80)
+    $lastStatusSecond = -1
+
+    $cleanupProbe = {
+        param([bool]$StopWorker)
+
+        if ($probeState.PowerShell) {
+            try {
+                if ($probeState.Async -and $probeState.Async.IsCompleted) {
+                    [void]$probeState.PowerShell.EndInvoke($probeState.Async)
+                }
+                elseif ($StopWorker) {
+                    try {
+                        [void]$probeState.PowerShell.BeginStop($null, $null)
+                    }
+                    catch {
+                        try { $probeState.PowerShell.Stop() } catch { }
+                    }
+                }
+            }
+            catch {
+                if (-not $probeState.Error) {
+                    $probeState.Error = $_.Exception.Message
+                }
+            }
+            finally {
+                try { $probeState.PowerShell.Dispose() } catch { }
+                $probeState.PowerShell = $null
+                $probeState.Async = $null
+            }
+        }
+
+        if ($probeState.Runspace) {
+            try { $probeState.Runspace.Close() } catch { }
+            try { $probeState.Runspace.Dispose() } catch { }
+            $probeState.Runspace = $null
+        }
+    }.GetNewClosure()
+
+    $finishProbe = {
+        param(
+            [string]$ErrorMessage,
+            [bool]$StopWorker
+        )
+
+        if ($probeState.Closed) {
+            return
+        }
+
+        $probeState.Closed = $true
+
+        if ($ErrorMessage) {
+            $probeState.Error = $ErrorMessage
+        }
+
+        try { $timer.Stop() } catch { }
+        & $cleanupProbe $StopWorker
+
+        try { $dlg.DialogResult = $true } catch { }
+        try { $dlg.Close() } catch { }
+    }.GetNewClosure()
+
+    $drainProbeQueue = {
+        $item = $null
+        while ($probeQueue.TryDequeue([ref]$item)) {
+            if ($item -and $item.PSObject.Properties['__error']) {
+                $probeState.Error = "$($item.__error)"
+            }
+            else {
+                [void]$probeResults.Add($item)
+            }
+        }
+    }.GetNewClosure()
+
+    $timer.Add_Tick({
+        try {
+            & $drainProbeQueue
+
+            if ($probeState.Error) {
+                & $finishProbe $probeState.Error $true
+                return
+            }
+
+            if ($probeDone.Value -and $probeQueue.IsEmpty) {
+                & $finishProbe $null $false
+                return
+            }
+
+            $elapsed = [int]((Get-Date) - $startTime).TotalSeconds
+            if ($elapsed -ge $maxSeconds) {
+                & $finishProbe "Device scan timed out after $maxSeconds seconds." $true
+                return
+            }
+
+            if ($elapsed -ne $lastStatusSecond) {
+                $lastStatusSecond = $elapsed
+                $statusText.Text = ("Scanning network... Found: {0}  Elapsed: {1}:{2:D2}" -f $probeResults.Count, ([Math]::Floor($elapsed / 60)), ($elapsed % 60))
+            }
+
+            try {
+                Step-MarqueeProgressBar -Marquee $marquee -Step 10
+            }
+            catch { }
+        }
+        catch {
+            & $finishProbe $_.Exception.Message $true
+        }
+    }.GetNewClosure())
+
+    $dlg.Add_ContentRendered({
+        $timer.Start()
+
+        try {
+            $ipsJson = @($Ips) | ConvertTo-Json -Compress
+            $rs = [runspacefactory]::CreateRunspace()
+            $rs.ApartmentState = 'MTA'
+            $rs.Open()
+            $rs.SessionStateProxy.SetVariable('queue', $probeQueue)
+            $rs.SessionStateProxy.SetVariable('doneRef', $probeDone)
+            $rs.SessionStateProxy.SetVariable('jobIpsJson', $ipsJson)
+            $rs.SessionStateProxy.SetVariable('jobCredential', $Credential)
+            $rs.SessionStateProxy.SetVariable('findDevicesReachableDefinition', ${function:Find-DevicesReachable}.ToString())
+            $rs.SessionStateProxy.SetVariable('moduleManifestPath', $Script:ModuleManifestPath)
+
+            $ps = [powershell]::Create()
+            $ps.Runspace = $rs
+            [void]$ps.AddScript({
+                try {
+                    if ($moduleManifestPath) {
+                        $env:CABS_MODULE_MANIFEST = $moduleManifestPath
+                    }
+
+                    Set-Item -Path Function:\Find-DevicesReachable -Value $findDevicesReachableDefinition
+                    $jobIps = @($jobIpsJson | ConvertFrom-Json)
+                    foreach ($result in @(Find-DevicesReachable -Ips $jobIps -Credential $jobCredential)) {
+                        $queue.Enqueue($result)
+                    }
+                }
+                catch {
+                    $queue.Enqueue([pscustomobject]@{ __error = $_.Exception.Message })
+                }
+                finally {
+                    $doneRef.Value = $true
+                }
+            })
+
+            $probeState.Runspace = $rs
+            $probeState.PowerShell = $ps
+            $probeState.Async = $ps.BeginInvoke()
+        }
+        catch {
+            $probeState.Error = $_.Exception.Message
+        }
+    }.GetNewClosure())
+
+    [void]$dlg.ShowDialog()
+    try { $timer.Stop() } catch { }
+    & $drainProbeQueue
+    & $cleanupProbe $true
+
+    if ($probeState.Error) {
+        throw $probeState.Error
+    }
+
+    return @($probeResults)
 }
 
 function Show-AddDevicesDialog {
@@ -8058,6 +9199,7 @@ function Show-AddDevicesDialog {
     </DockPanel>
 </Window>
 '@
+
     $reader = [System.Xml.XmlNodeReader]::new($dxaml)
     $dlg = [Windows.Markup.XamlReader]::Load($reader)
     $dlg.Owner = $window
@@ -8234,6 +9376,8 @@ function Show-AddDevicesDialog {
     return ,$script:_addResult
 }
 
+
+
 function Expand-CidrToIps ($cidr) {
     # Tiny CIDR-to-IP-list expander. Limited to /22 or smaller (1024 IPs)
     # to prevent runaway expansion.
@@ -8277,8 +9421,11 @@ function Find-DevicesReachable {
 
     if ($Ips.Count -eq 0) { return @() }
 
-    $manifest = (Get-Module CrestronAdminBootstrap).Path
-    if (-not $manifest) {
+    $manifest = $env:CABS_MODULE_MANIFEST
+    if (-not $manifest -or -not (Test-Path -LiteralPath $manifest)) {
+        $manifest = (Get-Module CrestronAdminBootstrap).Path
+    }
+    if (-not $manifest -or -not (Test-Path -LiteralPath $manifest)) {
         $manifest = (Get-Module -ListAvailable CrestronAdminBootstrap | Sort-Object Version -Descending | Select-Object -First 1).Path
     }
 
@@ -8288,13 +9435,20 @@ function Find-DevicesReachable {
         $userPass = $Credential.GetNetworkCredential().Password
     }
 
-    $results = @($Ips | ForEach-Object -ThrottleLimit 64 -Parallel {
-        $ip       = $_
-        $pingTo   = $using:PingTimeoutMs
-        $httpsTo  = $using:HttpsTimeoutSec
-        $mp       = $using:manifest
-        $u        = $using:userName
-        $p        = $using:userPass
+    $throttle = [Math]::Min(64, [Math]::Max(1, @($Ips).Count))
+    $pool = [runspacefactory]::CreateRunspacePool(1, $throttle)
+    $pool.ApartmentState = 'MTA'
+    $pool.Open()
+
+    $worker = {
+        param(
+            [string]$ip,
+            [int]$pingTo,
+            [int]$httpsTo,
+            [string]$mp,
+            [string]$u,
+            [string]$p
+        )
 
         $out = [pscustomobject]@{
             IP            = $ip
@@ -8305,24 +9459,33 @@ function Find-DevicesReachable {
 
         try {
             $ping = [System.Net.NetworkInformation.Ping]::new()
-            $r = $ping.Send($ip, $pingTo)
-            if ($r.Status -ne 'Success') { return $out }
+            try {
+                $r = $ping.Send($ip, $pingTo)
+            }
+            finally {
+                $ping.Dispose()
+            }
+
+            if (-not $r -or $r.Status -ne 'Success') {
+                return $out
+            }
 
             # CresNext probe
             $jar = Join-Path ([IO.Path]::GetTempPath()) "cabs-probe-$([Guid]::NewGuid()).txt"
             try {
-                & curl.exe -k -s -c $jar --max-time $httpsTo -o NUL "https://$ip/" 2>$null | Out-Null
+                & curl.exe -k -s -c $jar --connect-timeout 1 --max-time $httpsTo -o NUL "https://$ip/" 2>$null | Out-Null
                 if (-not ((Test-Path $jar) -and (Select-String -Path $jar -Pattern 'TRACKID' -Quiet))) {
                     return $out
                 }
-            } finally {
+            }
+            finally {
                 Remove-Item $jar -Force -ErrorAction SilentlyContinue
             }
 
             $out.Reachable = $true
 
             # Optional credential test
-            if ($u -and $p -and $mp -and (Test-Path $mp)) {
+            if ($u -and $p -and $mp -and (Test-Path -LiteralPath $mp)) {
                 try {
                     Import-Module $mp -Force -ErrorAction Stop
                     $sec  = ConvertTo-SecureString $p -AsPlainText -Force
@@ -8331,22 +9494,74 @@ function Find-DevicesReachable {
                     try {
                         $out.Authenticated = $true
                         $out.AuthDetail    = 'OK'
-                    } finally {
+                    }
+                    finally {
                         Disconnect-CrestronDevice -Session $sess
                     }
-                } catch {
+                }
+                catch {
                     $out.Authenticated = $false
                     $out.AuthDetail    = $_.Exception.Message
                 }
-            } else {
+            }
+            else {
                 $out.AuthDetail = 'not tested (no credentials)'
             }
-        } catch { }
+        }
+        catch { }
 
         return $out
-    })
+    }
 
-    return $results
+    $jobs = @()
+    try {
+        foreach ($ip in @($Ips)) {
+            $ps = [powershell]::Create()
+            $ps.RunspacePool = $pool
+            [void]$ps.AddScript($worker).
+                AddArgument([string]$ip).
+                AddArgument($PingTimeoutMs).
+                AddArgument($HttpsTimeoutSec).
+                AddArgument($manifest).
+                AddArgument($userName).
+                AddArgument($userPass)
+
+            $jobs += [pscustomobject]@{
+                PowerShell = $ps
+                Handle     = $ps.BeginInvoke()
+                IP         = [string]$ip
+            }
+        }
+
+        $results = foreach ($job in $jobs) {
+            try {
+                foreach ($item in $job.PowerShell.EndInvoke($job.Handle)) {
+                    $item
+                }
+            }
+            catch {
+                [pscustomobject]@{
+                    IP            = $job.IP
+                    Reachable     = $false
+                    Authenticated = $false
+                    AuthDetail    = $_.Exception.Message
+                }
+            }
+            finally {
+                $job.PowerShell.Dispose()
+            }
+        }
+    }
+    finally {
+        foreach ($job in $jobs) {
+            try { $job.PowerShell.Dispose() } catch { }
+        }
+
+        $pool.Close()
+        $pool.Dispose()
+    }
+
+    return @($results)
 }
 
 # ---- Show window -------------------------------------------------------------

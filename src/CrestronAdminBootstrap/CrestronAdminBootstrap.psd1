@@ -1,7 +1,7 @@
 @{
     # Module identity
     RootModule        = 'CrestronAdminBootstrap.psm1'
-    ModuleVersion     = '0.12.0'
+    ModuleVersion     = '0.12.1'
     GUID              = 'b3f7c0d2-1e4a-4f5b-9c8d-7a2e1f0c4b6d'
     Author            = 'Michael Floyd'
     CompanyName       = ''
@@ -21,6 +21,8 @@
         'Set-CrestronSettings',
         'Get-CrestronDeviceState',
         'Get-CrestronDeviceCapabilities',
+        'Get-CrestronDisplaySettings',
+        'Set-CrestronDisplaySettings',
         'Set-CrestronHostname',
         'Set-CrestronNetwork',
         'Restart-CrestronDevice',
