@@ -12,6 +12,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and thi
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-05-19
+
+### Added
+
+- Per-Device Control Subnet section for 4-Series processors exposing `NetworkAdapters.Adapters.ControlSubnet`, including enabled state, DHCP/static IP settings, IGMP version, router mode/prefix/delay/isolation, and capability-detected IGMP proxy.
+- Scan subnet panel now has Select All and Deselect All buttons before running a scan.
+
+### Changed
+
+- Per-Device apply now sends Control Subnet changes only when edited.
+- Add Devices and scan progress handling continue using the indeterminate moving progress style for long-running operations.
+
+### Fixed
+
+- Broadened discovery so AirMedia devices such as AM-3200 are detected during scans.
+- Fixed Add Devices found-count reporting.
+- Preserved dark-mode combo/dropdown readability and editable EDID/resolution values in the GUI.
+
 ## [0.7.0] - 2026-05-13
 
 ### Added

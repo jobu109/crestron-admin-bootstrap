@@ -76,6 +76,7 @@ function Get-CrestronDeviceCapabilities {
     $supportsAutoUpdate = $false
     $avSettings = $null
     $displaySettings = $null
+    $controlSubnetSettings = $null
 
     try {
         $deviceApi = Invoke-CrestronApi -Session $Session -Path '/Device' -Method GET -TimeoutSec $TimeoutSec
@@ -135,6 +136,13 @@ function Get-CrestronDeviceCapabilities {
         }
     }
 
+    try {
+        $controlSubnetSettings = Get-CrestronControlSubnetSettings -Session $Session -TimeoutSec $TimeoutSec
+    }
+    catch {
+        $controlSubnetSettings = $null
+    }
+
     $supportsAvSettings = $false
     $supportsAvMulticast = $false
     $supportsGlobalEdid = $false
@@ -183,6 +191,9 @@ function Get-CrestronDeviceCapabilities {
         SupportsAutoUpdate     = $supportsAutoUpdate
         SupportsDisplaySettings = if ($displaySettings) { [bool]$displaySettings.SupportsDisplaySettings } else { $false }
         DisplayPath            = if ($displaySettings) { "$($displaySettings.DisplayPath)" } else { '' }
+        SupportsControlSubnet  = if ($controlSubnetSettings) { [bool]$controlSubnetSettings.SupportsControlSubnet } else { $false }
+        SupportsControlSubnetRouter = if ($controlSubnetSettings) { [bool]$controlSubnetSettings.SupportsRouter } else { $false }
+        SupportsIgmpProxy      = if ($controlSubnetSettings) { [bool]$controlSubnetSettings.SupportsIgmpProxy } else { $false }
         SupportsAvSettings     = $supportsAvSettings
         SupportsAvMulticast    = $supportsAvMulticast
         SupportsGlobalEdid     = $supportsGlobalEdid

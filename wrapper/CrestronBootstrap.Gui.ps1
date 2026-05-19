@@ -343,6 +343,23 @@ Load-GuiSettings
                                         Padding="10,2" />
                             </Grid>
 
+                            <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="ScanSelectAllCidrs"
+                                        Grid.Column="0"
+                                        Content="Select All"
+                                        Padding="10,2"
+                                        Margin="0,0,3,0" />
+                                <Button x:Name="ScanDeselectAllCidrs"
+                                        Grid.Column="1"
+                                        Content="Deselect All"
+                                        Padding="10,2"
+                                        Margin="3,0,0,0" />
+                            </Grid>
+
                             <Button x:Name="ScanRemoveCidr"
                                     DockPanel.Dock="Bottom"
                                     Content="Remove Checked"
@@ -1158,16 +1175,11 @@ Load-GuiSettings
                                 </DataGridTemplateColumn.CellTemplate>
                                 <DataGridTemplateColumn.CellEditingTemplate>
                                     <DataTemplate>
-                                        <ComboBox SelectedItem="{Binding NewOutputResolution, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                  IsEnabled="{Binding SupportsAvSettings}">
-                                            <ComboBox.Items>
-                                                <sys:String>N/A</sys:String>
-                                                <sys:String>Auto</sys:String>
-                                                <sys:String>1920x1080@60</sys:String>
-                                                <sys:String>3840x2160@30</sys:String>
-                                                <sys:String>3840x2160@60</sys:String>
-                                            </ComboBox.Items>
-                                        </ComboBox>
+                                        <ComboBox Text="{Binding NewOutputResolution, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  ItemsSource="{Binding OutputResolutionOptions}"
+                                                  IsEditable="True"
+                                                  IsTextSearchEnabled="True"
+                                                  IsEnabled="{Binding SupportsAvSettings}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
@@ -1223,6 +1235,208 @@ Load-GuiSettings
                                     <DataTemplate>
                                         <TextBox Text="{Binding NewMulticastAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                  IsEnabled="{Binding SupportsAvMulticast}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    </ScrollViewer>
+                    </GroupBox>
+
+                    <GroupBox Header="Control Subnet" Padding="8" Margin="0,8,0,0">
+                    <ScrollViewer HorizontalScrollBarVisibility="Visible"
+                                  VerticalScrollBarVisibility="Disabled">
+                    <DataGrid x:Name="PerDeviceControlSubnetGrid"
+                              Width="1640"
+                              HorizontalAlignment="Left"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              SelectionMode="Extended"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                              AlternatingRowBackground="#F8F8F8">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="IP"        Binding="{Binding IP}"       Width="120" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Model"     Binding="{Binding Model}"    Width="110" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Hostname"  Binding="{Binding Hostname}" Width="140" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="Enabled" Width="95">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewEnabled}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsControlSubnet}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Enabled</sys:String>
+                                                <sys:String>Disabled</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="IP Mode" Width="95">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding IPMode}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding IPMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsControlSubnet}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>DHCP</sys:String>
+                                                <sys:String>Static</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="IP Address" Width="125">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewIPAddress}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewIPAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsControlSubnet}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Subnet Mask" Width="125">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewSubnetMask}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewSubnetMask, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsControlSubnet}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Gateway" Width="125">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewGateway}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewGateway, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsControlSubnet}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="IGMP Version" Width="115">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewIgmpVersion}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewIgmpVersion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsControlSubnet}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>V2</sys:String>
+                                                <sys:String>V3</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Router Auto" Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewRouterAutomaticMode}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewRouterAutomaticMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsRouter}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Enabled</sys:String>
+                                                <sys:String>Disabled</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Router Prefix" Width="125">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewRouterPrefix}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewRouterPrefix, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsRouter}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Online Delay" Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewRouterOnlineDelay}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewRouterOnlineDelay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding SupportsRouter}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Isolation" Width="95">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewRouterIsolationMode}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewRouterIsolationMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsRouter}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Enabled</sys:String>
+                                                <sys:String>Disabled</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="IGMP Proxy" Width="105">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewIgmpProxy}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewIgmpProxy, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsIgmpProxy}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Enabled</sys:String>
+                                                <sys:String>Disabled</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
@@ -1357,7 +1571,7 @@ $window = [Windows.Markup.XamlReader]::Load($reader)
 
 $Script:UI = @{}
 foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','MainTabs',
-                  'ScanCidrInput','ScanAddCidr','ScanRemoveCidr','ScanCidrList',
+                  'ScanCidrInput','ScanAddCidr','ScanSelectAllCidrs','ScanDeselectAllCidrs','ScanRemoveCidr','ScanCidrList',
                   'ScanStartButton','ScanCancelButton','ScanProgressText',
                   'ScanResultsGrid','ScanSelectAll','ScanSummaryText',
                   'SettingsMostUsedSubnetsBox','SettingsDefaultUsernameBox','SettingsDefaultPasswordBox','SettingsDarkModeBox','SettingsSaveButton','SettingsClearPasswordButton','SettingsStatusText',
@@ -1380,7 +1594,7 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'AvOutputHdcpEnableBox','AvOutputHdcpModeBox',
                   'AvOutputResolutionEnableBox','AvOutputResolutionBox',
                   'AvGlobalEdidEnableBox','AvGlobalEdidNameBox','AvGlobalEdidTypeBox',
-                  'PerDeviceTab','PerDeviceGrid','PerDeviceAvInputGrid','PerDeviceAvOutputGrid','PerDeviceMulticastGrid','PerDeviceSummaryText',
+                  'PerDeviceTab','PerDeviceGrid','PerDeviceAvInputGrid','PerDeviceAvOutputGrid','PerDeviceMulticastGrid','PerDeviceControlSubnetGrid','PerDeviceSummaryText',
                   'PerDeviceApplyButton','PerDeviceRefreshButton','PerDeviceAddButton','PerDeviceClearButton',
                   'PerDeviceCancelButton','PerDeviceProgressText',
                   'ProvisionRebootButton','BlanketRebootButton','PerDeviceRebootButton',
@@ -2109,6 +2323,117 @@ function Set-GuiThemeResourceStyles {
     Set-ImplicitThemeStyle $Root ([System.Windows.Controls.Primitives.StatusBar]) $statusStyle
 }
 
+function Apply-GuiThemeToComboBox {
+    param(
+        [Parameter(Mandatory)][System.Windows.Controls.ComboBox]$Combo,
+        [Parameter(Mandatory)][System.Windows.FrameworkElement]$ResourceRoot,
+        [Parameter(Mandatory)]$Palette
+    )
+
+    if (-not $Combo) { return }
+
+    $Combo.Background = $Palette.ControlBg
+    $Combo.Foreground = $Palette.TextFg
+    $Combo.BorderBrush = $Palette.Border
+
+    $comboStyle = $ResourceRoot.Resources[[System.Windows.Controls.ComboBox]]
+    if ($comboStyle) {
+        $Combo.Style = $comboStyle
+    }
+
+    $comboItemStyle = $ResourceRoot.Resources[[System.Windows.Controls.ComboBoxItem]]
+    if ($comboItemStyle) {
+        $Combo.ItemContainerStyle = $comboItemStyle
+        Set-ImplicitThemeStyle $Combo ([System.Windows.Controls.ComboBoxItem]) $comboItemStyle
+    }
+
+    Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::WindowBrushKey) $Palette.PanelBg
+    Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::ControlBrushKey) $Palette.ControlBg
+    Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::ControlTextBrushKey) $Palette.TextFg
+    Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::WindowTextBrushKey) $Palette.TextFg
+    Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::HighlightBrushKey) $Palette.SelectionBg
+    Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::HighlightTextBrushKey) $Palette.SelectionFg
+
+    if (-not $Combo.Resources.Contains('CabsThemeDropDownHooked')) {
+        $Combo.Add_DropDownOpened({
+            param($sender, $e)
+
+            try {
+                $palette = Get-GuiThemePalette -DarkMode:(Get-GuiDarkModeEnabled)
+                $itemStyle = $sender.Resources[[System.Windows.Controls.ComboBoxItem]]
+
+                if (-not $itemStyle -and $window) {
+                    $itemStyle = $window.Resources[[System.Windows.Controls.ComboBoxItem]]
+                }
+
+                for ($i = 0; $i -lt $sender.Items.Count; $i++) {
+                    $container = $sender.ItemContainerGenerator.ContainerFromIndex($i)
+
+                    if ($container -is [System.Windows.Controls.ComboBoxItem]) {
+                        if ($itemStyle) {
+                            $container.Style = $itemStyle
+                        }
+
+                        $container.Background = $palette.PanelBg
+                        $container.Foreground = $palette.TextFg
+                        $container.BorderBrush = $palette.Border
+                    }
+                }
+
+                foreach ($tb in Find-VisualChildren $sender ([System.Windows.Controls.TextBox])) {
+                    $tb.Background = $palette.ControlBg
+                    $tb.Foreground = $palette.TextFg
+                    $tb.BorderBrush = $palette.Border
+                    $tb.CaretBrush = $palette.TextFg
+                }
+            }
+            catch { }
+        }.GetNewClosure())
+
+        Set-ThemeResourceValue $Combo 'CabsThemeDropDownHooked' $true
+    }
+}
+
+function Apply-GuiThemeToEditElement {
+    param(
+        [Parameter(Mandatory)][System.Windows.FrameworkElement]$Element,
+        [Parameter(Mandatory)][System.Windows.FrameworkElement]$ResourceRoot
+    )
+
+    if (-not $Element) { return }
+
+    $palette = Get-GuiThemePalette -DarkMode:(Get-GuiDarkModeEnabled)
+
+    if ($Element -is [System.Windows.Controls.ComboBox]) {
+        Apply-GuiThemeToComboBox -Combo $Element -ResourceRoot $ResourceRoot -Palette $palette
+    }
+
+    foreach ($combo in Find-VisualChildren $Element ([System.Windows.Controls.ComboBox])) {
+        Apply-GuiThemeToComboBox -Combo $combo -ResourceRoot $ResourceRoot -Palette $palette
+    }
+
+    if ($Element -is [System.Windows.Controls.TextBox]) {
+        $Element.Background = $palette.ControlBg
+        $Element.Foreground = $palette.TextFg
+        $Element.BorderBrush = $palette.Border
+        $Element.CaretBrush = $palette.TextFg
+    }
+
+    foreach ($tb in Find-VisualChildren $Element ([System.Windows.Controls.TextBox])) {
+        $tb.Background = $palette.ControlBg
+        $tb.Foreground = $palette.TextFg
+        $tb.BorderBrush = $palette.Border
+        $tb.CaretBrush = $palette.TextFg
+    }
+
+    foreach ($check in Find-VisualChildren $Element ([System.Windows.Controls.CheckBox])) {
+        $check.Foreground = $palette.TextFg
+        $check.Background = $palette.ControlBg
+        $check.BorderBrush = $palette.Border
+        $check.Style = $ResourceRoot.Resources[[System.Windows.Controls.CheckBox]]
+    }
+}
+
 function Apply-GuiSemanticBrushes {
     param(
         [Parameter(Mandatory)]$Palette
@@ -2223,16 +2548,7 @@ function Apply-GuiThemeToRoot {
     }
 
     foreach ($combo in Find-VisualChildren $Root ([System.Windows.Controls.ComboBox])) {
-        $combo.Background = $palette.ControlBg
-        $combo.Foreground = $palette.TextFg
-        $combo.BorderBrush = $palette.Border
-        $combo.ItemContainerStyle = $Root.Resources[[System.Windows.Controls.ComboBoxItem]]
-        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::WindowBrushKey) $palette.PanelBg
-        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::ControlBrushKey) $palette.ControlBg
-        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::ControlTextBrushKey) $palette.TextFg
-        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::WindowTextBrushKey) $palette.TextFg
-        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::HighlightBrushKey) $palette.SelectionBg
-        Set-ThemeResourceValue $combo ([System.Windows.SystemColors]::HighlightTextBrushKey) $palette.SelectionFg
+        Apply-GuiThemeToComboBox -Combo $combo -ResourceRoot $Root -Palette $palette
     }
 
     foreach ($button in Find-VisualChildren $Root ([System.Windows.Controls.Button])) {
@@ -2296,6 +2612,8 @@ function Apply-GuiThemeToDataGrid {
     Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.DataGridRow]) $ResourceRoot.Resources[[System.Windows.Controls.DataGridRow]]
     Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.CheckBox]) $ResourceRoot.Resources[[System.Windows.Controls.CheckBox]]
     Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.RadioButton]) $ResourceRoot.Resources[[System.Windows.Controls.RadioButton]]
+    Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.ComboBox]) $ResourceRoot.Resources[[System.Windows.Controls.ComboBox]]
+    Set-ImplicitThemeStyle $Grid ([System.Windows.Controls.ComboBoxItem]) $ResourceRoot.Resources[[System.Windows.Controls.ComboBoxItem]]
 
     $Grid.Background = $Palette.PanelBg
     $Grid.Foreground = $Palette.TextFg
@@ -2893,6 +3211,27 @@ function Sync-ScanStateFromCheckedCidrs {
     }
 }
 
+function Set-ScanCidrSelection {
+    param(
+        [Parameter(Mandatory)][bool]$Checked
+    )
+
+    if (-not $Script:UI.ScanCidrList) {
+        return
+    }
+
+    foreach ($child in $Script:UI.ScanCidrList.Children) {
+        if ($child -is [System.Windows.Controls.CheckBox]) {
+            $child.IsChecked = $Checked
+        }
+    }
+
+    Sync-ScanStateFromCheckedCidrs
+
+    $verb = if ($Checked) { 'Selected' } else { 'Deselected' }
+    Update-Status "$verb all scan subnets."
+}
+
 # Seed CIDRs: load from existing subnets.txt or pre-fill 172.22.0.0/24
 function Initialize-ScanCidrs {
     $Script:ScanState.Cidrs.Clear()
@@ -2989,6 +3328,8 @@ function Set-ScanControls ($isScanning) {
     $Script:UI.ScanStartButton.IsEnabled     = -not $isScanning
     $Script:UI.ScanCancelButton.IsEnabled    = $isScanning
     $Script:UI.ScanAddCidr.IsEnabled         = -not $isScanning
+    $Script:UI.ScanSelectAllCidrs.IsEnabled  = -not $isScanning
+    $Script:UI.ScanDeselectAllCidrs.IsEnabled = -not $isScanning
     $Script:UI.ScanRemoveCidr.IsEnabled      = -not $isScanning
     $Script:UI.ScanCidrInput.IsEnabled       = -not $isScanning
     $Script:UI.ScanCidrList.IsEnabled        = -not $isScanning
@@ -3152,6 +3493,8 @@ function Stop-Scan {
 # Wire up Scan tab events
 $Script:UI.ScanAddCidr.Add_Click({ Add-ScanCidr })
 $Script:UI.ScanCidrInput.Add_KeyDown({ param($s,$e) if ($e.Key -eq 'Return') { Add-ScanCidr } })
+$Script:UI.ScanSelectAllCidrs.Add_Click({ Set-ScanCidrSelection -Checked $true })
+$Script:UI.ScanDeselectAllCidrs.Add_Click({ Set-ScanCidrSelection -Checked $false })
 $Script:UI.ScanRemoveCidr.Add_Click({ Remove-ScanCidr })
 $Script:UI.ScanStartButton.Add_Click({ Start-Scan })
 $Script:UI.ScanCancelButton.Add_Click({ Stop-Scan })
@@ -3749,7 +4092,7 @@ $Script:UI.AvInputHdcpModeBox.SelectedIndex = 0
 $Script:UI.AvOutputHdcpModeBox.ItemsSource = @('Auto', 'FollowInput', 'ForceHighest', 'NeverAuthenticate')
 $Script:UI.AvOutputHdcpModeBox.SelectedIndex = 0
 
-$Script:UI.AvOutputResolutionBox.ItemsSource = @(
+$Script:KnownOutputResolutions = @(
     'Auto',
     '3840x2160@60',
     '3840x2160@30',
@@ -3757,10 +4100,35 @@ $Script:UI.AvOutputResolutionBox.ItemsSource = @(
     '1920x1080@30',
     '1280x720@60'
 )
+$Script:UI.AvOutputResolutionBox.ItemsSource = $Script:KnownOutputResolutions
 $Script:UI.AvOutputResolutionBox.SelectedIndex = 0
 
 $Script:UI.AvGlobalEdidTypeBox.ItemsSource = @('Copy', 'System', 'Custom')
 $Script:UI.AvGlobalEdidTypeBox.SelectedIndex = 1
+
+function Get-OutputResolutionOptions {
+    param(
+        [string]$CurrentValue
+    )
+
+    $seen = @{}
+    $options = @()
+
+    foreach ($candidate in @($CurrentValue) + @($Script:KnownOutputResolutions)) {
+        $value = "$candidate".Trim()
+
+        if ([string]::IsNullOrWhiteSpace($value) -or $value -eq 'N/A') {
+            continue
+        }
+
+        if (-not $seen.ContainsKey($value)) {
+            $seen[$value] = $true
+            $options += $value
+        }
+    }
+
+    return $options
+}
 
 function Update-AvGlobalEdidOptions {
     if (-not $Script:UI.AvGlobalEdidNameBox) {
@@ -5224,6 +5592,7 @@ $Script:PerDeviceState = [pscustomobject]@{
     AvInputRows   = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
     AvOutputRows  = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
     MulticastRows = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+    ControlSubnetRows = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
     Runspace      = $null
     PowerShell    = $null
     AsyncHandle   = $null
@@ -5236,6 +5605,7 @@ $Script:UI.PerDeviceGrid.ItemsSource = $Script:PerDeviceState.Rows
 $Script:UI.PerDeviceAvInputGrid.ItemsSource = $Script:PerDeviceState.AvInputRows
 $Script:UI.PerDeviceAvOutputGrid.ItemsSource = $Script:PerDeviceState.AvOutputRows
 $Script:UI.PerDeviceMulticastGrid.ItemsSource = $Script:PerDeviceState.MulticastRows
+$Script:UI.PerDeviceControlSubnetGrid.ItemsSource = $Script:PerDeviceState.ControlSubnetRows
 
 function Test-PerDeviceValue {
     param($Value)
@@ -5270,6 +5640,18 @@ function ConvertFrom-PerDeviceToggleText {
         'Enabled'  { return $true }
         'Disabled' { return $false }
         default    { return $null }
+    }
+}
+
+function ConvertTo-PerDeviceIgmpVersion {
+    param($Value)
+
+    switch -Regex ("$Value".Trim()) {
+        '^(V?2|IGMP\s*V?2|Version\s*2)$' { 'V2'; break }
+        '^(V?3|IGMP\s*V?3|Version\s*3)$' { 'V3'; break }
+        default {
+            if (Test-PerDeviceValue $Value) { "$Value" } else { 'N/A' }
+        }
     }
 }
 
@@ -5441,6 +5823,69 @@ function Test-PerDeviceMulticastChanged {
     return ($modeChanged -or $addressChanged)
 }
 
+function Test-PerDeviceIpv4Address {
+    param($Value)
+
+    $text = "$Value"
+    if ([string]::IsNullOrWhiteSpace($text)) { return $false }
+    if ($text -notmatch '^(\d{1,3}\.){3}\d{1,3}$') { return $false }
+
+    foreach ($octet in ($text -split '\.')) {
+        $n = 0
+        if (-not [int]::TryParse($octet, [ref]$n)) { return $false }
+        if ($n -lt 0 -or $n -gt 255) { return $false }
+    }
+
+    return $true
+}
+
+function Get-PerDeviceControlSubnetCurrentMode {
+    param($Row)
+
+    if (-not $Row) { return 'N/A' }
+    if ($null -eq $Row.CurrentDhcp) { return 'N/A' }
+    if ([bool]$Row.CurrentDhcp) { return 'DHCP' }
+    return 'Static'
+}
+
+function Test-PerDeviceControlSubnetChanged {
+    param($Row)
+
+    if (-not $Row) { return $false }
+
+    $enabledChanged = ($Row.NewEnabled -in 'Enabled','Disabled') -and
+                      "$($Row.NewEnabled)" -ne "$($Row.CurrentEnabled)"
+
+    $ipModeChanged = ($Row.IPMode -in 'DHCP','Static') -and
+                     "$($Row.IPMode)" -ne (Get-PerDeviceControlSubnetCurrentMode $Row)
+
+    $ipValueChanged = ((Test-PerDeviceValue $Row.NewIPAddress) -and "$($Row.NewIPAddress)" -ne "$($Row.CurrentIPAddress)") -or
+                      ((Test-PerDeviceValue $Row.NewSubnetMask) -and "$($Row.NewSubnetMask)" -ne "$($Row.CurrentSubnetMask)") -or
+                      ((Test-PerDeviceValue $Row.NewGateway) -and "$($Row.NewGateway)" -ne "$($Row.CurrentGateway)")
+
+    $igmpChanged = ($Row.NewIgmpVersion -in 'V2','V3') -and
+                   "$($Row.NewIgmpVersion)" -ne "$($Row.CurrentIgmpVersion)"
+
+    $routerAutoChanged = ($Row.NewRouterAutomaticMode -in 'Enabled','Disabled') -and
+                         "$($Row.NewRouterAutomaticMode)" -ne "$($Row.CurrentRouterAutomaticMode)"
+
+    $routerPrefixChanged = (Test-PerDeviceValue $Row.NewRouterPrefix) -and
+                           "$($Row.NewRouterPrefix)" -ne "$($Row.CurrentRouterPrefix)"
+
+    $routerDelayChanged = (Test-PerDeviceValue $Row.NewRouterOnlineDelay) -and
+                          "$($Row.NewRouterOnlineDelay)" -ne "$($Row.CurrentRouterOnlineDelay)"
+
+    $routerIsolationChanged = ($Row.NewRouterIsolationMode -in 'Enabled','Disabled') -and
+                              "$($Row.NewRouterIsolationMode)" -ne "$($Row.CurrentRouterIsolationMode)"
+
+    $igmpProxyChanged = ($Row.NewIgmpProxy -in 'Enabled','Disabled') -and
+                        "$($Row.NewIgmpProxy)" -ne "$($Row.CurrentIgmpProxy)"
+
+    return ($enabledChanged -or $ipModeChanged -or $ipValueChanged -or $igmpChanged -or
+            $routerAutoChanged -or $routerPrefixChanged -or $routerDelayChanged -or
+            $routerIsolationChanged -or $igmpProxyChanged)
+}
+
 function Update-PerDeviceSummary {
     $count = $Script:PerDeviceState.Rows.Count
 
@@ -5487,6 +5932,7 @@ function Update-PerDeviceSummary {
     $edited += (@($Script:PerDeviceState.AvInputRows | Where-Object { Test-PerDeviceAvInputChanged $_ })).Count
     $edited += (@($Script:PerDeviceState.AvOutputRows | Where-Object { Test-PerDeviceAvOutputChanged $_ })).Count
     $edited += (@($Script:PerDeviceState.MulticastRows | Where-Object { Test-PerDeviceMulticastChanged $_ })).Count
+    $edited += (@($Script:PerDeviceState.ControlSubnetRows | Where-Object { Test-PerDeviceControlSubnetChanged $_ })).Count
 
     $ok = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
     $fail = ($Script:PerDeviceState.Rows | Where-Object { $_.Status -and $_.Status -notin 'OK','Pending','Working' }).Count
@@ -5512,6 +5958,7 @@ function Load-PerDeviceFromProvision {
     $Script:PerDeviceState.AvInputRows.Clear()
     $Script:PerDeviceState.AvOutputRows.Clear()
     $Script:PerDeviceState.MulticastRows.Clear()
+    $Script:PerDeviceState.ControlSubnetRows.Clear()
 
     $source = @()
     if ($Script:ProvisionState.Rows.Count -gt 0) {
@@ -5567,6 +6014,7 @@ function Load-PerDeviceFromProvision {
             CurrentInputHdcp         = ''
             CurrentOutputHdcp        = ''
             CurrentOutputResolution  = ''
+            OutputResolutionOptions  = @()
             CurrentGlobalEdid        = ''
             SupportsDisplaySettings  = $false
             CurrentAutoBrightness    = 'N/A'
@@ -5752,6 +6200,7 @@ function Start-PerDeviceFetch {
                         $avInputRows = @()
                         $avOutputRows = @()
                         $multicastRows = @()
+                        $controlSubnetRows = @()
                         $modelText = "$($sess.Model)"
                         if ([string]::IsNullOrWhiteSpace($modelText)) {
                             $modelText = "$($state.Model)"
@@ -5854,6 +6303,10 @@ function Start-PerDeviceFetch {
                                         $inputEdidNames = $edidNames
                                     }
 
+                                    $inputEdidNames = @("$($inputItem.CurrentEdid)" + $inputEdidNames |
+                                        Where-Object { -not [string]::IsNullOrWhiteSpace("$_") -and "$_" -ne 'N/A' } |
+                                        Sort-Object -Unique)
+
                                     $inputLabel = "$($inputItem.InputName)"
                                     if ([string]::IsNullOrWhiteSpace($inputLabel)) {
                                         $inputLabel = "Input $i"
@@ -5901,11 +6354,55 @@ function Start-PerDeviceFetch {
                                         NewOutputHdcp           = "$($outputItem.HdcpTransmitterMode)"
                                         CurrentOutputResolution = "$($outputItem.Resolution)"
                                         NewOutputResolution     = "$($outputItem.Resolution)"
+                                        OutputResolutionOptions = @("$($outputItem.Resolution)")
                                         SupportsAvSettings      = $supportsAvSettings
                                     }
                                 }
                             }
                         }
+
+                        try {
+                            $controlSubnet = Get-CrestronControlSubnetSettings -Session $sess
+
+                            if ($controlSubnet -and [bool]$controlSubnet.SupportsControlSubnet) {
+                                $controlIp = "$($controlSubnet.StaticIPAddress)"
+                                if ([string]::IsNullOrWhiteSpace($controlIp)) {
+                                    $controlIp = "$($controlSubnet.CurrentIPAddress)"
+                                }
+
+                                $controlMask = "$($controlSubnet.StaticSubnetMask)"
+                                if ([string]::IsNullOrWhiteSpace($controlMask)) {
+                                    $controlMask = "$($controlSubnet.CurrentSubnetMask)"
+                                }
+
+                                $controlGateway = "$($controlSubnet.StaticDefaultGateway)"
+                                if ([string]::IsNullOrWhiteSpace($controlGateway)) {
+                                    $controlGateway = "$($controlSubnet.DefaultGateway)"
+                                }
+
+                                $controlSubnetRows += [pscustomobject]@{
+                                    IP                         = $ip
+                                    Model                      = $modelText
+                                    Hostname                   = "$($state.Hostname)"
+                                    SupportsControlSubnet      = [bool]$controlSubnet.SupportsControlSubnet
+                                    SupportsRouter             = [bool]$controlSubnet.SupportsRouter
+                                    SupportsIgmpProxy          = [bool]$controlSubnet.SupportsIgmpProxy
+                                    CurrentEnabled             = $controlSubnet.IsEnabled
+                                    CurrentDhcp                = $controlSubnet.IsDhcpEnabled
+                                    CurrentIPAddress           = $controlIp
+                                    CurrentSubnetMask          = $controlMask
+                                    CurrentGateway             = $controlGateway
+                                    CurrentIgmpVersion         = "$($controlSubnet.IgmpVersion)"
+                                    CurrentRouterAutomaticMode = $controlSubnet.RouterAutomaticMode
+                                    CurrentRouterPrefix        = "$($controlSubnet.RouterPrefix)"
+                                    CurrentRouterOnlineDelay   = "$($controlSubnet.RouterOnlineDelay)"
+                                    CurrentRouterIsolationMode = $controlSubnet.RouterIsolationMode
+                                    CurrentIgmpProxy           = $controlSubnet.IgmpProxyEnabled
+                                    IgmpProxyPropertyName      = "$($controlSubnet.IgmpProxyPropertyName)"
+                                }
+                            }
+                        }
+                        catch { }
 
                         $q.Enqueue([pscustomobject]@{
                             IP                       = $ip
@@ -5949,6 +6446,7 @@ function Start-PerDeviceFetch {
                             AvInputRows              = $avInputRows
                             AvOutputRows             = $avOutputRows
                             MulticastRows            = $multicastRows
+                            ControlSubnetRows        = $controlSubnetRows
                             Status                   = "OK"
                             Detail                   = "OK"
                         })
@@ -6020,6 +6518,7 @@ function Start-PerDeviceFetch {
                 'CurrentInputHdcp',
                 'CurrentOutputHdcp',
                 'CurrentOutputResolution',
+                'OutputResolutionOptions',
                 'CurrentGlobalEdid',
                 'SupportsDisplaySettings',
                 'CurrentAutoBrightness',
@@ -6067,6 +6566,7 @@ function Start-PerDeviceFetch {
                         'CurrentInputHdcp' { '' }
                         'CurrentOutputHdcp' { '' }
                         'CurrentOutputResolution' { '' }
+                        'OutputResolutionOptions' { @() }
                         'CurrentGlobalEdid' { '' }
                         'SupportsDisplaySettings' { $false }
                         'CurrentAutoBrightness' { 'N/A' }
@@ -6134,6 +6634,7 @@ function Start-PerDeviceFetch {
                 $row.CurrentInputHdcp         = ConvertTo-PerDeviceInputHdcpMode $item.CurrentInputHdcp
                 $row.CurrentOutputHdcp        = ConvertTo-PerDeviceOutputHdcpMode $item.CurrentOutputHdcp
                 $row.CurrentOutputResolution  = "$($item.CurrentOutputResolution)"
+                $row.OutputResolutionOptions  = Get-OutputResolutionOptions $row.CurrentOutputResolution
                 $row.CurrentGlobalEdid        = "$($item.CurrentGlobalEdid)"
                 $row.SupportsDisplaySettings  = [bool]$item.SupportsDisplaySettings
 
@@ -6251,6 +6752,7 @@ function Start-PerDeviceFetch {
                 Remove-PerDeviceSectionRowsByIP -Collection $Script:PerDeviceState.AvInputRows -IP $item.IP
                 Remove-PerDeviceSectionRowsByIP -Collection $Script:PerDeviceState.AvOutputRows -IP $item.IP
                 Remove-PerDeviceSectionRowsByIP -Collection $Script:PerDeviceState.MulticastRows -IP $item.IP
+                Remove-PerDeviceSectionRowsByIP -Collection $Script:PerDeviceState.ControlSubnetRows -IP $item.IP
 
                 foreach ($inputRow in @($item.AvInputRows)) {
                     $currentInputHdcp = ConvertTo-PerDeviceInputHdcpMode $inputRow.CurrentInputHdcp
@@ -6289,6 +6791,7 @@ function Start-PerDeviceFetch {
                         NewOutputHdcp           = $newOutputHdcp
                         CurrentOutputResolution = $currentOutputResolution
                         NewOutputResolution     = if (Test-PerDeviceValue $currentOutputResolution) { $currentOutputResolution } else { 'N/A' }
+                        OutputResolutionOptions = Get-OutputResolutionOptions $currentOutputResolution
                         SupportsAvSettings      = [bool]$outputRow.SupportsAvSettings
                     })
                 }
@@ -6308,6 +6811,60 @@ function Start-PerDeviceFetch {
                         CurrentMulticastAddress = $currentMc
                         NewMulticastAddress     = if (Test-PerDeviceValue $currentMc) { $currentMc } else { 'N/A' }
                         SupportsAvMulticast     = [bool]$mcRow.SupportsAvMulticast
+                    })
+                }
+
+                foreach ($controlRow in @($item.ControlSubnetRows)) {
+                    $currentEnabled = ConvertTo-PerDeviceToggleText $controlRow.CurrentEnabled
+                    $currentMode = if ($null -eq $controlRow.CurrentDhcp) {
+                        'N/A'
+                    }
+                    elseif ([bool]$controlRow.CurrentDhcp) {
+                        'DHCP'
+                    }
+                    else {
+                        'Static'
+                    }
+                    $currentIp = "$($controlRow.CurrentIPAddress)"
+                    $currentMask = "$($controlRow.CurrentSubnetMask)"
+                    $currentGateway = "$($controlRow.CurrentGateway)"
+                    $currentIgmpVersion = ConvertTo-PerDeviceIgmpVersion $controlRow.CurrentIgmpVersion
+                    $currentRouterAuto = ConvertTo-PerDeviceToggleText $controlRow.CurrentRouterAutomaticMode
+                    $currentRouterPrefix = "$($controlRow.CurrentRouterPrefix)"
+                    $currentRouterDelay = "$($controlRow.CurrentRouterOnlineDelay)"
+                    $currentRouterIsolation = ConvertTo-PerDeviceToggleText $controlRow.CurrentRouterIsolationMode
+                    $currentIgmpProxy = ConvertTo-PerDeviceToggleText $controlRow.CurrentIgmpProxy
+
+                    [void]$Script:PerDeviceState.ControlSubnetRows.Add([pscustomobject]@{
+                        IP                         = "$($controlRow.IP)"
+                        Model                      = "$($controlRow.Model)"
+                        Hostname                   = "$($controlRow.Hostname)"
+                        SupportsControlSubnet      = [bool]$controlRow.SupportsControlSubnet
+                        SupportsRouter             = [bool]$controlRow.SupportsRouter
+                        SupportsIgmpProxy          = [bool]$controlRow.SupportsIgmpProxy
+                        CurrentEnabled             = $currentEnabled
+                        NewEnabled                 = $currentEnabled
+                        CurrentDhcp                = $controlRow.CurrentDhcp
+                        IPMode                     = $currentMode
+                        CurrentIPAddress           = if (Test-PerDeviceValue $currentIp) { $currentIp } else { 'N/A' }
+                        NewIPAddress               = if (Test-PerDeviceValue $currentIp) { $currentIp } else { 'N/A' }
+                        CurrentSubnetMask          = if (Test-PerDeviceValue $currentMask) { $currentMask } else { 'N/A' }
+                        NewSubnetMask              = if (Test-PerDeviceValue $currentMask) { $currentMask } else { 'N/A' }
+                        CurrentGateway             = if (Test-PerDeviceValue $currentGateway) { $currentGateway } else { 'N/A' }
+                        NewGateway                 = if (Test-PerDeviceValue $currentGateway) { $currentGateway } else { 'N/A' }
+                        CurrentIgmpVersion         = $currentIgmpVersion
+                        NewIgmpVersion             = $currentIgmpVersion
+                        CurrentRouterAutomaticMode = $currentRouterAuto
+                        NewRouterAutomaticMode     = $currentRouterAuto
+                        CurrentRouterPrefix        = if (Test-PerDeviceValue $currentRouterPrefix) { $currentRouterPrefix } else { 'N/A' }
+                        NewRouterPrefix            = if (Test-PerDeviceValue $currentRouterPrefix) { $currentRouterPrefix } else { 'N/A' }
+                        CurrentRouterOnlineDelay   = if (Test-PerDeviceValue $currentRouterDelay) { $currentRouterDelay } else { 'N/A' }
+                        NewRouterOnlineDelay       = if (Test-PerDeviceValue $currentRouterDelay) { $currentRouterDelay } else { 'N/A' }
+                        CurrentRouterIsolationMode = $currentRouterIsolation
+                        NewRouterIsolationMode     = $currentRouterIsolation
+                        CurrentIgmpProxy           = $currentIgmpProxy
+                        NewIgmpProxy               = $currentIgmpProxy
+                        IgmpProxyPropertyName      = "$($controlRow.IgmpProxyPropertyName)"
                     })
                 }
 
@@ -6336,6 +6893,7 @@ function Start-PerDeviceFetch {
         $Script:UI.PerDeviceAvInputGrid.Items.Refresh()
         $Script:UI.PerDeviceAvOutputGrid.Items.Refresh()
         $Script:UI.PerDeviceMulticastGrid.Items.Refresh()
+        $Script:UI.PerDeviceControlSubnetGrid.Items.Refresh()
         Update-PerDeviceSummary
         $okCount = ($Script:PerDeviceState.Rows | Where-Object {
             $_.Status -eq 'OK' -or $_.Detail -eq 'OK'
@@ -6506,6 +7064,70 @@ function Test-PerDeviceMulticastRow ($row) {
     return $null
 }
 
+function Test-PerDeviceControlSubnetRow ($row) {
+    if (-not (Test-PerDeviceControlSubnetChanged $row)) {
+        return $null
+    }
+
+    if (-not [bool]$row.SupportsControlSubnet) {
+        return "Control Subnet selected, but this device does not expose ControlSubnet"
+    }
+
+    $ipValueChanged = ((Test-PerDeviceValue $row.NewIPAddress) -and "$($row.NewIPAddress)" -ne "$($row.CurrentIPAddress)") -or
+                      ((Test-PerDeviceValue $row.NewSubnetMask) -and "$($row.NewSubnetMask)" -ne "$($row.CurrentSubnetMask)") -or
+                      ((Test-PerDeviceValue $row.NewGateway) -and "$($row.NewGateway)" -ne "$($row.CurrentGateway)")
+    $ipModeChanged = ($row.IPMode -in 'DHCP','Static') -and
+                     "$($row.IPMode)" -ne (Get-PerDeviceControlSubnetCurrentMode $row)
+
+    if ($ipValueChanged -and $row.IPMode -ne 'Static') {
+        return "Control Subnet IP Mode must be Static when changing IP address settings"
+    }
+
+    if (($ipModeChanged -or $ipValueChanged) -and $row.IPMode -eq 'Static') {
+        if (-not (Test-PerDeviceIpv4Address $row.NewIPAddress)) {
+            return "Invalid Control Subnet IP Address"
+        }
+        if (-not (Test-PerDeviceIpv4Address $row.NewSubnetMask)) {
+            return "Invalid Control Subnet Subnet Mask"
+        }
+        if (-not (Test-PerDeviceIpv4Address $row.NewGateway)) {
+            return "Invalid Control Subnet Gateway"
+        }
+    }
+    elseif ($row.IPMode -notin 'DHCP','N/A') {
+        return "Control Subnet IP Mode must be DHCP or Static"
+    }
+
+    if ((Test-PerDeviceValue $row.NewIgmpVersion) -and $row.NewIgmpVersion -notin 'V2','V3') {
+        return "IGMP Version must be V2 or V3"
+    }
+
+    $routerChanged = (($row.NewRouterAutomaticMode -in 'Enabled','Disabled') -and "$($row.NewRouterAutomaticMode)" -ne "$($row.CurrentRouterAutomaticMode)") -or
+                     ((Test-PerDeviceValue $row.NewRouterPrefix) -and "$($row.NewRouterPrefix)" -ne "$($row.CurrentRouterPrefix)") -or
+                     ((Test-PerDeviceValue $row.NewRouterOnlineDelay) -and "$($row.NewRouterOnlineDelay)" -ne "$($row.CurrentRouterOnlineDelay)") -or
+                     (($row.NewRouterIsolationMode -in 'Enabled','Disabled') -and "$($row.NewRouterIsolationMode)" -ne "$($row.CurrentRouterIsolationMode)")
+
+    if ($routerChanged -and -not [bool]$row.SupportsRouter) {
+        return "Router settings selected, but this device does not expose Router settings"
+    }
+
+    if ((Test-PerDeviceValue $row.NewRouterOnlineDelay) -and "$($row.NewRouterOnlineDelay)" -ne "$($row.CurrentRouterOnlineDelay)") {
+        $delay = 0
+        if (-not [int]::TryParse("$($row.NewRouterOnlineDelay)", [ref]$delay) -or $delay -lt 0) {
+            return "Router Online Delay must be a number 0 or greater"
+        }
+    }
+
+    $proxyChanged = ($row.NewIgmpProxy -in 'Enabled','Disabled') -and
+                    "$($row.NewIgmpProxy)" -ne "$($row.CurrentIgmpProxy)"
+
+    if ($proxyChanged -and -not [bool]$row.SupportsIgmpProxy) {
+        return "IGMP Proxy selected, but this device does not expose an editable IGMP proxy property"
+    }
+
+    return $null
+}
+
 function Start-PerDeviceApply {
     if ($Script:PerDeviceState.IsRunning) { return }
 
@@ -6555,11 +7177,13 @@ function Start-PerDeviceApply {
     $inputRowsToApply = @($Script:PerDeviceState.AvInputRows | Where-Object { Test-PerDeviceAvInputChanged $_ })
     $outputRowsToApply = @($Script:PerDeviceState.AvOutputRows | Where-Object { Test-PerDeviceAvOutputChanged $_ })
     $multicastRowsToApply = @($Script:PerDeviceState.MulticastRows | Where-Object { Test-PerDeviceMulticastChanged $_ })
+    $controlSubnetRowsToApply = @($Script:PerDeviceState.ControlSubnetRows | Where-Object { Test-PerDeviceControlSubnetChanged $_ })
     $applyIps = @()
     $applyIps += @($rowsToApply | ForEach-Object { "$($_.IP)" })
     $applyIps += @($inputRowsToApply | ForEach-Object { "$($_.IP)" })
     $applyIps += @($outputRowsToApply | ForEach-Object { "$($_.IP)" })
     $applyIps += @($multicastRowsToApply | ForEach-Object { "$($_.IP)" })
+    $applyIps += @($controlSubnetRowsToApply | ForEach-Object { "$($_.IP)" })
     $applyIps = @($applyIps |
         Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
         Sort-Object -Unique)
@@ -6590,6 +7214,10 @@ function Start-PerDeviceApply {
     foreach ($r in $multicastRowsToApply) {
         $err = Test-PerDeviceMulticastRow $r
         if ($err) { $errors += "$($r.IP) $($r.Direction): $err" }
+    }
+    foreach ($r in $controlSubnetRowsToApply) {
+        $err = Test-PerDeviceControlSubnetRow $r
+        if ($err) { $errors += "$($r.IP) Control Subnet: $err" }
     }
 
     if ($errors.Count -gt 0) {
@@ -6738,6 +7366,39 @@ function Start-PerDeviceApply {
                     CurrentMulticastAddress = $_.CurrentMulticastAddress
                     NewMulticastAddress     = $_.NewMulticastAddress
                     SupportsAvMulticast     = [bool]$_.SupportsAvMulticast
+                }
+            })
+            ControlSubnetRows        = @($controlSubnetRowsToApply | Where-Object { "$($_.IP)" -eq $rowIp } | ForEach-Object {
+                @{
+                    IP                         = $_.IP
+                    Model                      = $_.Model
+                    Hostname                   = $_.Hostname
+                    SupportsControlSubnet      = [bool]$_.SupportsControlSubnet
+                    SupportsRouter             = [bool]$_.SupportsRouter
+                    SupportsIgmpProxy          = [bool]$_.SupportsIgmpProxy
+                    CurrentEnabled             = $_.CurrentEnabled
+                    NewEnabled                 = $_.NewEnabled
+                    CurrentDhcp                = $_.CurrentDhcp
+                    IPMode                     = $_.IPMode
+                    CurrentIPAddress           = $_.CurrentIPAddress
+                    NewIPAddress               = $_.NewIPAddress
+                    CurrentSubnetMask          = $_.CurrentSubnetMask
+                    NewSubnetMask              = $_.NewSubnetMask
+                    CurrentGateway             = $_.CurrentGateway
+                    NewGateway                 = $_.NewGateway
+                    CurrentIgmpVersion         = $_.CurrentIgmpVersion
+                    NewIgmpVersion             = $_.NewIgmpVersion
+                    CurrentRouterAutomaticMode = $_.CurrentRouterAutomaticMode
+                    NewRouterAutomaticMode     = $_.NewRouterAutomaticMode
+                    CurrentRouterPrefix        = $_.CurrentRouterPrefix
+                    NewRouterPrefix            = $_.NewRouterPrefix
+                    CurrentRouterOnlineDelay   = $_.CurrentRouterOnlineDelay
+                    NewRouterOnlineDelay       = $_.NewRouterOnlineDelay
+                    CurrentRouterIsolationMode = $_.CurrentRouterIsolationMode
+                    NewRouterIsolationMode     = $_.NewRouterIsolationMode
+                    CurrentIgmpProxy           = $_.CurrentIgmpProxy
+                    NewIgmpProxy               = $_.NewIgmpProxy
+                    IgmpProxyPropertyName      = $_.IgmpProxyPropertyName
                 }
             })
         }
@@ -7356,6 +8017,123 @@ function Start-PerDeviceApply {
                             }
                         }
 
+                        foreach ($controlRow in @($row.ControlSubnetRows)) {
+                            try {
+                                if (-not [bool]$controlRow.SupportsControlSubnet) {
+                                    $stepResults += "ControlSubnet=skipped; unsupported"
+                                    $allOk = $false
+                                    continue
+                                }
+
+                                $controlArgs = @{
+                                    Session = $sess
+                                }
+
+                                if (($controlRow.NewEnabled -in 'Enabled','Disabled') -and "$($controlRow.NewEnabled)" -ne "$($controlRow.CurrentEnabled)") {
+                                    $controlArgs.Enabled = ConvertFrom-PerDeviceToggleText $controlRow.NewEnabled
+                                }
+
+                                $currentControlMode = if ($null -eq $controlRow.CurrentDhcp) {
+                                    'N/A'
+                                }
+                                elseif ([bool]$controlRow.CurrentDhcp) {
+                                    'DHCP'
+                                }
+                                else {
+                                    'Static'
+                                }
+
+                                $ipModeChanged = ($controlRow.IPMode -in 'DHCP','Static') -and
+                                                 "$($controlRow.IPMode)" -ne "$currentControlMode"
+
+                                $ipValueChanged = ((Test-PerDeviceValue $controlRow.NewIPAddress) -and "$($controlRow.NewIPAddress)" -ne "$($controlRow.CurrentIPAddress)") -or
+                                                  ((Test-PerDeviceValue $controlRow.NewSubnetMask) -and "$($controlRow.NewSubnetMask)" -ne "$($controlRow.CurrentSubnetMask)") -or
+                                                  ((Test-PerDeviceValue $controlRow.NewGateway) -and "$($controlRow.NewGateway)" -ne "$($controlRow.CurrentGateway)")
+
+                                if ($ipModeChanged -or $ipValueChanged) {
+                                    $controlArgs.IPMode = $controlRow.IPMode
+
+                                    if ($controlRow.IPMode -eq 'Static') {
+                                        $controlArgs.IPAddress = $controlRow.NewIPAddress
+                                        $controlArgs.SubnetMask = $controlRow.NewSubnetMask
+                                        $controlArgs.Gateway = $controlRow.NewGateway
+                                    }
+                                }
+
+                                if (($controlRow.NewIgmpVersion -in 'V2','V3') -and "$($controlRow.NewIgmpVersion)" -ne "$($controlRow.CurrentIgmpVersion)") {
+                                    $controlArgs.IgmpVersion = $controlRow.NewIgmpVersion
+                                }
+
+                                if (($controlRow.NewRouterAutomaticMode -in 'Enabled','Disabled') -and "$($controlRow.NewRouterAutomaticMode)" -ne "$($controlRow.CurrentRouterAutomaticMode)") {
+                                    if (-not [bool]$controlRow.SupportsRouter) {
+                                        $stepResults += "ControlSubnet.RouterAuto=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $controlArgs.RouterAutomaticMode = ConvertFrom-PerDeviceToggleText $controlRow.NewRouterAutomaticMode
+                                    }
+                                }
+
+                                if ((Test-PerDeviceValue $controlRow.NewRouterPrefix) -and "$($controlRow.NewRouterPrefix)" -ne "$($controlRow.CurrentRouterPrefix)") {
+                                    if (-not [bool]$controlRow.SupportsRouter) {
+                                        $stepResults += "ControlSubnet.RouterPrefix=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $controlArgs.RouterPrefix = $controlRow.NewRouterPrefix
+                                    }
+                                }
+
+                                if ((Test-PerDeviceValue $controlRow.NewRouterOnlineDelay) -and "$($controlRow.NewRouterOnlineDelay)" -ne "$($controlRow.CurrentRouterOnlineDelay)") {
+                                    if (-not [bool]$controlRow.SupportsRouter) {
+                                        $stepResults += "ControlSubnet.RouterDelay=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $controlArgs.RouterOnlineDelay = [int]$controlRow.NewRouterOnlineDelay
+                                    }
+                                }
+
+                                if (($controlRow.NewRouterIsolationMode -in 'Enabled','Disabled') -and "$($controlRow.NewRouterIsolationMode)" -ne "$($controlRow.CurrentRouterIsolationMode)") {
+                                    if (-not [bool]$controlRow.SupportsRouter) {
+                                        $stepResults += "ControlSubnet.Isolation=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $controlArgs.RouterIsolationMode = ConvertFrom-PerDeviceToggleText $controlRow.NewRouterIsolationMode
+                                    }
+                                }
+
+                                if (($controlRow.NewIgmpProxy -in 'Enabled','Disabled') -and "$($controlRow.NewIgmpProxy)" -ne "$($controlRow.CurrentIgmpProxy)") {
+                                    if (-not [bool]$controlRow.SupportsIgmpProxy) {
+                                        $stepResults += "ControlSubnet.IgmpProxy=skipped; unsupported"
+                                        $allOk = $false
+                                    }
+                                    else {
+                                        $controlArgs.IgmpProxyEnabled = ConvertFrom-PerDeviceToggleText $controlRow.NewIgmpProxy
+                                        $controlArgs.IgmpProxyPropertyName = $controlRow.IgmpProxyPropertyName
+                                    }
+                                }
+
+                                if ($controlArgs.Count -gt 1) {
+                                    $rControl = Set-CrestronControlSubnetSettings @controlArgs
+                                    $stepResults += "ControlSubnet=$(if($rControl.Success){'OK'}else{$rControl.Status})"
+
+                                    if (Test-ResultNeedsReboot $rControl) {
+                                        $needsReboot = $true
+                                    }
+
+                                    if (-not $rControl.Success) {
+                                        $allOk = $false
+                                    }
+                                }
+                            }
+                            catch {
+                                $stepResults += "ControlSubnet=ERR: $($_.Exception.Message)"
+                                $allOk = $false
+                            }
+                        }
+
                         $currentMulticastAddress = ''
                         $modeForCurrentMulticast = "$($row.CurrentDeviceMode)"
 
@@ -7483,6 +8261,7 @@ function Start-PerDeviceApply {
         $Script:UI.PerDeviceAvInputGrid.Items.Refresh()
         $Script:UI.PerDeviceAvOutputGrid.Items.Refresh()
         $Script:UI.PerDeviceMulticastGrid.Items.Refresh()
+        $Script:UI.PerDeviceControlSubnetGrid.Items.Refresh()
         Update-PerDeviceSummary
 
         if ($Script:PerDeviceState.DoneRef.Value -and $Script:PerDeviceState.Queue.IsEmpty) {
@@ -7581,7 +8360,21 @@ $Script:UI.PerDeviceGrid.Add_CurrentCellChanged({
     Update-PerDeviceSummary
 })
 
-foreach ($grid in @($Script:UI.PerDeviceAvInputGrid, $Script:UI.PerDeviceAvOutputGrid, $Script:UI.PerDeviceMulticastGrid)) {
+foreach ($grid in @($Script:UI.PerDeviceGrid, $Script:UI.PerDeviceAvInputGrid, $Script:UI.PerDeviceAvOutputGrid, $Script:UI.PerDeviceMulticastGrid, $Script:UI.PerDeviceControlSubnetGrid)) {
+    $grid.Add_PreparingCellForEdit({
+        param($sender, $e)
+
+        $editingElement = $e.EditingElement
+        $sender.Dispatcher.BeginInvoke([Action]{
+            try {
+                Apply-GuiThemeToEditElement -Element $editingElement -ResourceRoot $window
+            }
+            catch { }
+        }, [System.Windows.Threading.DispatcherPriority]::Background) | Out-Null
+    })
+}
+
+foreach ($grid in @($Script:UI.PerDeviceAvInputGrid, $Script:UI.PerDeviceAvOutputGrid, $Script:UI.PerDeviceMulticastGrid, $Script:UI.PerDeviceControlSubnetGrid)) {
     $grid.Add_CellEditEnding({
         $Script:UI.PerDeviceGrid.Dispatcher.BeginInvoke([Action]{
             Update-PerDeviceSummary
@@ -8656,7 +9449,13 @@ function Add-DevicesToGrid {
                 }
             }
             else {
-                $row.Detail = 'Discovered'
+                $probeDetail = "$($obj.ProbeDetail)".Trim()
+                if ($probeDetail) {
+                    $row.Detail = "Discovered: $probeDetail"
+                }
+                else {
+                    $row.Detail = 'Discovered'
+                }
             }
         }
 
@@ -8747,6 +9546,7 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 CurrentInputHdcp         = ''
                 CurrentOutputHdcp        = ''
                 CurrentOutputResolution  = ''
+                OutputResolutionOptions  = @()
                 CurrentGlobalEdid        = ''
                 SupportsDisplaySettings  = $false
                 CurrentAutoBrightness    = 'N/A'
@@ -8804,6 +9604,7 @@ $Script:UI.PerDeviceClearButton.Add_Click({
         $Script:PerDeviceState.AvInputRows.Clear()
         $Script:PerDeviceState.AvOutputRows.Clear()
         $Script:PerDeviceState.MulticastRows.Clear()
+        $Script:PerDeviceState.ControlSubnetRows.Clear()
         Update-PerDeviceSummary
         Update-Status "Cleared $count device(s) from Per-Device tab."
     }
@@ -8950,6 +9751,7 @@ function Show-ProbingDialog {
     $probeResults = [System.Collections.Generic.List[object]]::new()
     $probeQueue = [System.Collections.Concurrent.ConcurrentQueue[object]]::new()
     $probeDone = [ref]$false
+    $reachableCount = [ref]0
     $probeState = [pscustomobject]@{
         PowerShell = $null
         Runspace   = $null
@@ -9031,6 +9833,10 @@ function Show-ProbingDialog {
             }
             else {
                 [void]$probeResults.Add($item)
+
+                if ($item.PSObject.Properties['Reachable'] -and [bool]$item.Reachable) {
+                    $reachableCount.Value++
+                }
             }
         }
     }.GetNewClosure()
@@ -9044,20 +9850,21 @@ function Show-ProbingDialog {
                 return
             }
 
+            $elapsed = [int]((Get-Date) - $startTime).TotalSeconds
+            if ($elapsed -ne $lastStatusSecond) {
+                $lastStatusSecond = $elapsed
+                $statusText.Text = ("Scanning network... Found: {0}  Elapsed: {1}:{2:D2}" -f $reachableCount.Value, ([Math]::Floor($elapsed / 60)), ($elapsed % 60))
+            }
+
             if ($probeDone.Value -and $probeQueue.IsEmpty) {
+                $statusText.Text = ("Scanning network... Found: {0}  Complete." -f $reachableCount.Value)
                 & $finishProbe $null $false
                 return
             }
 
-            $elapsed = [int]((Get-Date) - $startTime).TotalSeconds
             if ($elapsed -ge $maxSeconds) {
                 & $finishProbe "Device scan timed out after $maxSeconds seconds." $true
                 return
-            }
-
-            if ($elapsed -ne $lastStatusSecond) {
-                $lastStatusSecond = $elapsed
-                $statusText.Text = ("Scanning network... Found: {0}  Elapsed: {1}:{2:D2}" -f $probeResults.Count, ([Math]::Floor($elapsed / 60)), ($elapsed % 60))
             }
 
             try {
@@ -9095,8 +9902,10 @@ function Show-ProbingDialog {
 
                     Set-Item -Path Function:\Find-DevicesReachable -Value $findDevicesReachableDefinition
                     $jobIps = @($jobIpsJson | ConvertFrom-Json)
-                    foreach ($result in @(Find-DevicesReachable -Ips $jobIps -Credential $jobCredential)) {
+                    Find-DevicesReachable -Ips $jobIps -Credential $jobCredential | ForEach-Object {
+                        $result = $_
                         $queue.Enqueue($result)
+                        Start-Sleep -Milliseconds 1
                     }
                 }
                 catch {
@@ -9407,9 +10216,8 @@ function Expand-CidrToIps ($cidr) {
 
 function Find-DevicesReachable {
     <#
-    Pings each IP, then probes responsive ones with HTTPS GET /. Returns
-    one object per responsive IP with:
-      IP, Reachable, Authenticated, AuthDetail.
+    Probes each IP for Crestron/AirMedia web signatures. Returns one object per
+    input IP with IP, Reachable, Authenticated, AuthDetail, and ProbeDetail.
     If Credential is supplied, also attempts login and reports auth status.
     #>
     param(
@@ -9455,34 +10263,85 @@ function Find-DevicesReachable {
             Reachable     = $false
             Authenticated = $false
             AuthDetail    = ''
+            ProbeDetail   = ''
         }
 
         try {
+            $pingOk = $false
             $ping = [System.Net.NetworkInformation.Ping]::new()
             try {
                 $r = $ping.Send($ip, $pingTo)
+                $pingOk = ($r -and $r.Status -eq 'Success')
             }
             finally {
                 $ping.Dispose()
             }
 
-            if (-not $r -or $r.Status -ne 'Success') {
+            $signals = @()
+            $probeTargets = @(
+                "https://$ip/",
+                "http://$ip/"
+            )
+
+            if ($pingOk) {
+                $probeTargets += @(
+                    "https://$ip/userlogin.html",
+                    "https://$ip/Device/DeviceInfo"
+                )
+            }
+
+            foreach ($url in $probeTargets) {
+                $jar = Join-Path ([IO.Path]::GetTempPath()) "cabs-probe-$([Guid]::NewGuid()).txt"
+                $headers = Join-Path ([IO.Path]::GetTempPath()) "cabs-probe-$([Guid]::NewGuid()).headers"
+
+                try {
+                    $body = & curl.exe -k -s -L -D $headers -c $jar --connect-timeout 1 --max-time $httpsTo $url 2>$null
+                    $headerText = if (Test-Path -LiteralPath $headers) {
+                        (Get-Content -LiteralPath $headers -Raw -ErrorAction SilentlyContinue)
+                    }
+                    else {
+                        ''
+                    }
+                    $bodyText = if ($body) { ($body -join "`n") } else { '' }
+                    $probeText = "$headerText`n$bodyText"
+
+                    if ((Test-Path -LiteralPath $jar) -and (Select-String -Path $jar -Pattern 'TRACKID' -Quiet)) {
+                        $signals += 'TRACKID'
+                    }
+
+                    if ($probeText -match '(?i)\bAirMedia\b|AM[-_ ]?3?200|AM[-_ ]?\d{3,4}') {
+                        $signals += 'AirMedia'
+                    }
+
+                    if ($probeText -match '(?i)\bCrestron\b|CresNext|CREST-XSRF-TOKEN|userlogin\.html|createUser\.html') {
+                        $signals += 'Crestron'
+                    }
+
+                    if ($probeText -match '(?i)"DeviceInfo"|DeviceInfo|Device\.DeviceInfo') {
+                        $signals += 'DeviceInfo'
+                    }
+
+                    if ($signals.Count -gt 0) {
+                        break
+                    }
+                }
+                catch { }
+                finally {
+                    Remove-Item $jar -Force -ErrorAction SilentlyContinue
+                    Remove-Item $headers -Force -ErrorAction SilentlyContinue
+                }
+            }
+
+            if ($signals.Count -eq 0) {
+                if ($pingOk) {
+                    $out.ProbeDetail = 'Ping only; no Crestron/AirMedia web signature'
+                }
+
                 return $out
             }
 
-            # CresNext probe
-            $jar = Join-Path ([IO.Path]::GetTempPath()) "cabs-probe-$([Guid]::NewGuid()).txt"
-            try {
-                & curl.exe -k -s -c $jar --connect-timeout 1 --max-time $httpsTo -o NUL "https://$ip/" 2>$null | Out-Null
-                if (-not ((Test-Path $jar) -and (Select-String -Path $jar -Pattern 'TRACKID' -Quiet))) {
-                    return $out
-                }
-            }
-            finally {
-                Remove-Item $jar -Force -ErrorAction SilentlyContinue
-            }
-
             $out.Reachable = $true
+            $out.ProbeDetail = (@($signals | Sort-Object -Unique) -join ', ')
 
             # Optional credential test
             if ($u -and $p -and $mp -and (Test-Path -LiteralPath $mp)) {
@@ -9533,7 +10392,7 @@ function Find-DevicesReachable {
             }
         }
 
-        $results = foreach ($job in $jobs) {
+        foreach ($job in $jobs) {
             try {
                 foreach ($item in $job.PowerShell.EndInvoke($job.Handle)) {
                     $item
@@ -9545,6 +10404,7 @@ function Find-DevicesReachable {
                     Reachable     = $false
                     Authenticated = $false
                     AuthDetail    = $_.Exception.Message
+                    ProbeDetail   = ''
                 }
             }
             finally {
@@ -9561,7 +10421,7 @@ function Find-DevicesReachable {
         $pool.Dispose()
     }
 
-    return @($results)
+    return
 }
 
 # ---- Show window -------------------------------------------------------------
