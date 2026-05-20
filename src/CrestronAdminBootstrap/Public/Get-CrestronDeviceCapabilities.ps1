@@ -76,6 +76,7 @@ function Get-CrestronDeviceCapabilities {
     $supportsAutoUpdate = $false
     $avSettings = $null
     $displaySettings = $null
+    $avFrameworkSettings = $null
     $controlSubnetSettings = $null
 
     try {
@@ -147,6 +148,24 @@ function Get-CrestronDeviceCapabilities {
         $controlSubnetSettings = $null
     }
 
+    if ($state -and
+        ($state.PSObject.Properties.Name -contains 'SupportsAvFrameworkSettings') -and
+        [bool]$state.SupportsAvFrameworkSettings) {
+        $avFrameworkSettings = [pscustomobject]@{
+            SupportsAvFrameworkSettings = [bool]$state.SupportsAvFrameworkSettings
+            AvFrameworkEnabled          = if ($state.PSObject.Properties.Name -contains 'CurrentAvFrameworkEnabled') { $state.CurrentAvFrameworkEnabled } else { $null }
+            Path                        = if ($state.PSObject.Properties.Name -contains 'AvFrameworkPath') { "$($state.AvFrameworkPath)" } else { '' }
+        }
+    }
+    else {
+        try {
+            $avFrameworkSettings = Get-CrestronAvFrameworkSettings -Session $Session -TimeoutSec $TimeoutSec
+        }
+        catch {
+            $avFrameworkSettings = $null
+        }
+    }
+
     $supportsAvSettings = $false
     $supportsAvMulticast = $false
     $supportsGlobalEdid = $false
@@ -195,8 +214,11 @@ function Get-CrestronDeviceCapabilities {
         SupportsAutoUpdate     = $supportsAutoUpdate
         SupportsDisplaySettings = if ($displaySettings) { [bool]$displaySettings.SupportsDisplaySettings } else { $false }
         SupportsToolbarSettings = if ($displaySettings) { [bool]$displaySettings.SupportsToolbarSettings } else { $false }
+        SupportsAvFrameworkSettings = if ($avFrameworkSettings) { [bool]$avFrameworkSettings.SupportsAvFrameworkSettings } else { $false }
+        CurrentAvFrameworkEnabled = if ($avFrameworkSettings) { $avFrameworkSettings.AvFrameworkEnabled } else { $null }
         DisplayPath            = if ($displaySettings) { "$($displaySettings.DisplayPath)" } else { '' }
         ToolbarPath            = if ($displaySettings) { "$($displaySettings.ToolbarPath)" } else { '' }
+        AvFrameworkPath        = if ($avFrameworkSettings) { "$($avFrameworkSettings.Path)" } else { '' }
         SupportsControlSubnet  = if ($controlSubnetSettings) { [bool]$controlSubnetSettings.SupportsControlSubnet } else { $false }
         SupportsControlSubnetRouter = if ($controlSubnetSettings) { [bool]$controlSubnetSettings.SupportsRouter } else { $false }
         SupportsIgmpProxy      = if ($controlSubnetSettings) { [bool]$controlSubnetSettings.SupportsIgmpProxy } else { $false }

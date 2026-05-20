@@ -12,6 +12,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and thi
 
 ## [Unreleased]
 
+## [0.12.6] - 2026-05-20
+
+### Added
+
+- Added AV Framework capability detection plus Blanket Settings and Per-Device enable/disable controls.
+- Added broader DM-NAX network parsing for adapter payloads that expose IP, subnet, gateway, DHCP, and DNS fields directly or in CIDR format.
+
+### Changed
+
+- Per-Device DNS2 now stays blank unless a user enters it, preventing discovered secondary/DHCP DNS annotations from being reapplied unexpectedly.
+
+### Fixed
+
+- Stripped DHCP/static annotations from discovered DNS values before they reach the GUI.
+- Improved direct adapter and adapter-list handling so non-NVX devices can populate network fields without manual entry.
+
 ## [0.12.5] - 2026-05-20
 
 ### Added

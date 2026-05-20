@@ -511,7 +511,7 @@ Load-GuiSettings
                             <ScrollViewer HorizontalScrollBarVisibility="Visible"
                                           VerticalScrollBarVisibility="Disabled">
                                 <DataGrid x:Name="BlanketGrid"
-                                          Width="1810"
+                                          Width="1870"
                                           HorizontalAlignment="Left"
                                           AutoGenerateColumns="False"
                                           CanUserAddRows="False"
@@ -535,6 +535,7 @@ Load-GuiSettings
                                       <DataGridCheckBoxColumn Header="Auto?"         Binding="{Binding SupportsAutoUpdate}"  Width="60"  IsReadOnly="True" />
                                       <DataGridCheckBoxColumn Header="Display?"      Binding="{Binding SupportsDisplaySettings}" Width="70" IsReadOnly="True" />
                                       <DataGridCheckBoxColumn Header="Toolbar?"      Binding="{Binding SupportsToolbarSettings}" Width="75" IsReadOnly="True" />
+                                      <DataGridCheckBoxColumn Header="AVF?"          Binding="{Binding SupportsAvFrameworkSettings}" Width="60" IsReadOnly="True" />
                                       <DataGridCheckBoxColumn Header="TX/RX Mode?"   Binding="{Binding SupportsModeChange}"  Width="70"  IsReadOnly="True" />
                                     <DataGridCheckBoxColumn Header="Fetched?"      Binding="{Binding CapabilitiesFetched}" Width="75"  IsReadOnly="True" />
                                     <DataGridTextColumn     Header="Status"        Binding="{Binding Status}"              Width="90"  IsReadOnly="True" />
@@ -711,6 +712,27 @@ Load-GuiSettings
                                 </StackPanel>
                             </Border>
 
+                            <!-- AV Framework -->
+                            <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" Margin="0,0,0,8">
+                                <StackPanel>
+                                    <CheckBox x:Name="AvFrameworkEnableBox"
+                                              Content="Apply AV Framework toggle"
+                                              FontWeight="Bold" />
+                                    <StackPanel Orientation="Horizontal"
+                                                Margin="20,8,0,0"
+                                                IsEnabled="{Binding ElementName=AvFrameworkEnableBox, Path=IsChecked}">
+                                        <RadioButton x:Name="AvFrameworkOnRadio"
+                                                     GroupName="AvFrameworkRadios"
+                                                     Content="Enable AV Framework"
+                                                     IsChecked="True"
+                                                     Margin="0,0,16,0" />
+                                        <RadioButton x:Name="AvFrameworkOffRadio"
+                                                     GroupName="AvFrameworkRadios"
+                                                     Content="Disable AV Framework" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
                             <!-- DM-NVX Device Mode -->
                             <GroupBox Header="DM-NVX Device Mode" Margin="0,0,0,8" Padding="8">
                                 <StackPanel>
@@ -862,7 +884,7 @@ Load-GuiSettings
                     <ScrollViewer HorizontalScrollBarVisibility="Visible"
                                   VerticalScrollBarVisibility="Disabled">
                     <DataGrid x:Name="PerDeviceGrid"
-                              Width="1990"
+                              Width="2100"
                               HorizontalAlignment="Left"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
@@ -1063,6 +1085,25 @@ Load-GuiSettings
                                     <DataTemplate>
                                         <ComboBox SelectedItem="{Binding NewToolbar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                   IsEnabled="{Binding SupportsToolbarSettings}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Enabled</sys:String>
+                                                <sys:String>Disabled</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="AV Framework" Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewAvFramework}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewAvFramework, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsAvFrameworkSettings}">
                                             <ComboBox.Items>
                                                 <sys:String>N/A</sys:String>
                                                 <sys:String>Enabled</sys:String>
@@ -1630,6 +1671,7 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'DisplayEnableBox','DisplayAutoBrightnessOnRadio','DisplayAutoBrightnessOffRadio',
                   'DisplayBrightnessBox','DisplayScreensaverOnRadio','DisplayScreensaverOffRadio','DisplayStandbyTimeoutBox',
                   'DisplayToolbarOnRadio','DisplayToolbarOffRadio',
+                  'AvFrameworkEnableBox','AvFrameworkOnRadio','AvFrameworkOffRadio',
                   'ModeEnableBox','ModeTransmitterRadio','ModeReceiverRadio',
                   'AvInputHdcpEnableBox','AvInputHdcpModeBox',
                   'AvOutputHdcpEnableBox','AvOutputHdcpModeBox',
@@ -4341,6 +4383,7 @@ function Load-BlanketFromProvision {
             SupportsAutoUpdate   = $false
             SupportsDisplaySettings = $false
             SupportsToolbarSettings = $false
+            SupportsAvFrameworkSettings = $false
             SupportsIpTable      = $false
             SupportsNetwork      = $false
             SupportsWifi         = $false
@@ -4369,6 +4412,7 @@ function Save-BlanketCsv {
                       AvApiFamily, AvApiVersion, SupportsAvSettings, SupportsAvMulticast, SupportsGlobalEdid,
                       EdidNames,
                       SupportsNtp, SupportsCloud, SupportsFusion, SupportsAutoUpdate, SupportsDisplaySettings, SupportsToolbarSettings,
+                      SupportsAvFrameworkSettings,
                       SupportsIpTable, SupportsNetwork, SupportsWifi, SupportsModeChange,
                       CapabilitiesFetched,
                       Status, Detail, NeedsReboot, Timestamp |
@@ -4498,6 +4542,7 @@ function Start-BlanketCapabilityFetch {
                             SupportsAutoUpdate  = [bool]$caps.SupportsAutoUpdate
                             SupportsDisplaySettings = [bool]$caps.SupportsDisplaySettings
                             SupportsToolbarSettings = [bool]$caps.SupportsToolbarSettings
+                            SupportsAvFrameworkSettings = [bool]$caps.SupportsAvFrameworkSettings
                             SupportsIpTable     = [bool]$caps.SupportsIpTable
                             SupportsNetwork     = [bool]$caps.SupportsNetwork
                             SupportsWifi        = [bool]$caps.SupportsWifi
@@ -4531,6 +4576,7 @@ function Start-BlanketCapabilityFetch {
                         SupportsAutoUpdate  = $false
                         SupportsDisplaySettings = $false
                         SupportsToolbarSettings = $false
+                        SupportsAvFrameworkSettings = $false
                         SupportsIpTable     = $false
                         SupportsNetwork     = $false
                         SupportsWifi        = $false
@@ -4590,6 +4636,7 @@ function Start-BlanketCapabilityFetch {
                 'SupportsAutoUpdate',
                 'SupportsDisplaySettings',
                 'SupportsToolbarSettings',
+                'SupportsAvFrameworkSettings',
                 'SupportsIpTable',
                 'SupportsNetwork',
                 'SupportsWifi',
@@ -4614,6 +4661,7 @@ function Start-BlanketCapabilityFetch {
                         'SupportsAutoUpdate'  { $false }
                         'SupportsDisplaySettings' { $false }
                         'SupportsToolbarSettings' { $false }
+                        'SupportsAvFrameworkSettings' { $false }
                         'SupportsIpTable'     { $false }
                         'SupportsNetwork'     { $false }
                         'SupportsWifi'        { $false }
@@ -4644,6 +4692,7 @@ function Start-BlanketCapabilityFetch {
                 $row.SupportsAutoUpdate  = [bool]$item.SupportsAutoUpdate
                 $row.SupportsDisplaySettings = [bool]$item.SupportsDisplaySettings
                 $row.SupportsToolbarSettings = [bool]$item.SupportsToolbarSettings
+                $row.SupportsAvFrameworkSettings = [bool]$item.SupportsAvFrameworkSettings
                 $row.SupportsIpTable     = [bool]$item.SupportsIpTable
                 $row.SupportsNetwork     = [bool]$item.SupportsNetwork
                 $row.SupportsWifi        = [bool]$item.SupportsWifi
@@ -4879,6 +4928,7 @@ function Start-BlanketApply {
     $applyFusion = [bool]$Script:UI.FusionEnableBox.IsChecked
     $applyAuto   = [bool]$Script:UI.AutoUpdateEnableBox.IsChecked
     $applyDisplay = [bool]$Script:UI.DisplayEnableBox.IsChecked
+    $applyAvFramework = [bool]$Script:UI.AvFrameworkEnableBox.IsChecked
     $applyMode   = [bool]$Script:UI.ModeEnableBox.IsChecked
     $applyInputHdcp = [bool]$Script:UI.AvInputHdcpEnableBox.IsChecked
     $applyOutputHdcp = [bool]$Script:UI.AvOutputHdcpEnableBox.IsChecked
@@ -4886,7 +4936,7 @@ function Start-BlanketApply {
     $applyGlobalEdid = [bool]$Script:UI.AvGlobalEdidEnableBox.IsChecked
 
     if (-not (
-        $applyNtp -or $applyCloud -or $applyFusion -or $applyAuto -or $applyDisplay -or $applyMode -or
+        $applyNtp -or $applyCloud -or $applyFusion -or $applyAuto -or $applyDisplay -or $applyAvFramework -or $applyMode -or
         $applyInputHdcp -or $applyOutputHdcp -or $applyOutputResolution -or $applyGlobalEdid
     )) {
         [System.Windows.MessageBox]::Show("Enable at least one settings section before applying.", "Nothing to apply", 'OK', 'Warning') | Out-Null
@@ -4960,6 +5010,11 @@ function Start-BlanketApply {
         }
     }
 
+    $avFramework = $null
+    if ($applyAvFramework) {
+        $avFramework = [bool]$Script:UI.AvFrameworkOnRadio.IsChecked
+    }
+
     $deviceMode = $null
     if ($applyMode) {
         $deviceMode = if ([bool]$Script:UI.ModeReceiverRadio.IsChecked) {
@@ -5007,6 +5062,7 @@ function Start-BlanketApply {
         }
         $bits += $displayBit
     }
+    if ($applyAvFramework) { $bits += "AVFramework=$(if ($avFramework) { 'ON' } else { 'OFF' })" }
     if ($applyMode)   { $bits += "Mode=$deviceMode" }
     if ($applyInputHdcp) { $bits += "InputHDCP=$inputHdcpMode" }
     if ($applyOutputHdcp) { $bits += "OutputHDCP=$outputHdcpMode" }
@@ -5084,6 +5140,7 @@ function Start-BlanketApply {
                 SupportsAutoUpdate  = [bool]$rowForApply.SupportsAutoUpdate
                 SupportsDisplaySettings = [bool]$rowForApply.SupportsDisplaySettings
                 SupportsToolbarSettings = [bool]$rowForApply.SupportsToolbarSettings
+                SupportsAvFrameworkSettings = [bool]$rowForApply.SupportsAvFrameworkSettings
                 SupportsModeChange  = [bool]$rowForApply.SupportsModeChange
                 CapabilitiesFetched = [bool]$rowForApply.CapabilitiesFetched
             }
@@ -5104,6 +5161,7 @@ function Start-BlanketApply {
     $rs.SessionStateProxy.SetVariable('fusionArg',    $fusion)
     $rs.SessionStateProxy.SetVariable('autoUpdate',   $autoUpdate)
     $rs.SessionStateProxy.SetVariable('displaySettings', $displaySettings)
+    $rs.SessionStateProxy.SetVariable('avFrameworkArg', $avFramework)
     $rs.SessionStateProxy.SetVariable('deviceMode',   $deviceMode)
     $rs.SessionStateProxy.SetVariable('inputHdcpMode', $inputHdcpMode)
     $rs.SessionStateProxy.SetVariable('outputHdcpMode', $outputHdcpMode)
@@ -5149,6 +5207,7 @@ function Start-BlanketApply {
                 $fArg     = $using:fusionArg
                 $auArg    = $using:autoUpdate
                 $displayArg = $using:displaySettings
+                $avFramework = $using:avFrameworkArg
                 $modeArg  = $using:deviceMode
                 $inHdcpArg = $using:inputHdcpMode
                 $outHdcpArg = $using:outputHdcpMode
@@ -5367,6 +5426,32 @@ function Start-BlanketApply {
                             catch {
                                 $allOk = $false
                                 $stepResults += "Display=ERR: $($_.Exception.Message)"
+                            }
+                        }
+
+                        if ($null -ne $avFramework) {
+                            try {
+                                if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsAvFrameworkSettings) {
+                                    $stepResults += "AVFramework=skipped; unsupported on $($rowArg.Model)"
+                                }
+                                else {
+                                    $rAvFramework = Set-CrestronAvFrameworkSettings -Session $sess -Enabled ([bool]$avFramework)
+
+                                    if (-not $rAvFramework.Success) {
+                                        $allOk = $false
+                                    }
+
+                                    if (Test-ResultNeedsReboot $rAvFramework) {
+                                        $needsReboot = $true
+                                    }
+
+                                    $sections += 'AVFramework'
+                                    $stepResults += Get-StepResultDetail -Name 'AVFramework' -Result $rAvFramework -Target $(if ([bool]$avFramework) { 'Enabled' } else { 'Disabled' })
+                                }
+                            }
+                            catch {
+                                $allOk = $false
+                                $stepResults += "AVFramework=ERR: $($_.Exception.Message)"
                             }
                         }
 
@@ -5894,6 +5979,15 @@ function Test-PerDeviceDisplayChanged {
     return ($autoChanged -or $brightnessChanged -or $screensaverChanged -or $standbyChanged -or $toolbarChanged)
 }
 
+function Test-PerDeviceAvFrameworkChanged {
+    param($Row)
+
+    if (-not $Row) { return $false }
+
+    return (($Row.NewAvFramework -in 'Enabled','Disabled') -and
+            "$($Row.NewAvFramework)" -ne "$($Row.CurrentAvFramework)")
+}
+
 function ConvertTo-PerDeviceInputHdcpMode {
     param($Value)
 
@@ -6141,6 +6235,7 @@ function Update-PerDeviceSummary {
                                ((Test-PerDeviceValue $_.SecondaryDns) -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
 
         $displayChanged = Test-PerDeviceDisplayChanged $_
+        $avFrameworkChanged = Test-PerDeviceAvFrameworkChanged $_
 
         $hostnameChanged -or
         $ipModeChanged -or
@@ -6148,6 +6243,7 @@ function Update-PerDeviceSummary {
         $ipTableChanged -or
         $networkValueChanged -or
         $displayChanged -or
+        $avFrameworkChanged -or
         $_.DisableWifi
     }).Count
 
@@ -6240,11 +6336,13 @@ function Load-PerDeviceFromProvision {
             CurrentGlobalEdid        = ''
             SupportsDisplaySettings  = $false
             SupportsToolbarSettings  = $false
+            SupportsAvFrameworkSettings = $false
             CurrentAutoBrightness    = 'N/A'
             CurrentBrightness        = 'N/A'
             CurrentScreensaver       = 'N/A'
             CurrentStandbyTimeout    = 'N/A'
             CurrentToolbar           = 'N/A'
+            CurrentAvFramework       = 'N/A'
 
             NewHostname              = 'N/A'
             IPMode                   = 'N/A'
@@ -6260,6 +6358,7 @@ function Load-PerDeviceFromProvision {
             NewScreensaver           = 'N/A'
             NewStandbyTimeout        = 'N/A'
             NewToolbar               = 'N/A'
+            NewAvFramework           = 'N/A'
             NewIP                    = 'N/A'
             SubnetMask               = 'N/A'
             Gateway                  = 'N/A'
@@ -6294,11 +6393,12 @@ function Save-PerDeviceCsv {
                     SupportsAvMulticast, CurrentTransmitMulticast, CurrentReceiveMulticast,
                     CurrentInputHdcp, CurrentOutputHdcp, CurrentOutputResolution, CurrentGlobalEdid,
                     SupportsDisplaySettings, SupportsToolbarSettings,
-                    CurrentAutoBrightness, CurrentBrightness, CurrentScreensaver, CurrentStandbyTimeout, CurrentToolbar,
+                    SupportsAvFrameworkSettings,
+                    CurrentAutoBrightness, CurrentBrightness, CurrentScreensaver, CurrentStandbyTimeout, CurrentToolbar, CurrentAvFramework,
                     NewHostname, IPMode, DeviceMode,
                     NewInputHdcp, NewOutputHdcp, NewOutputResolution, NewGlobalEdidName,
                     NewMulticastAddress, MulticastStreamIndex,
-                    NewAutoBrightness, NewBrightness, NewScreensaver, NewStandbyTimeout, NewToolbar,
+                    NewAutoBrightness, NewBrightness, NewScreensaver, NewStandbyTimeout, NewToolbar, NewAvFramework,
                     NewIP, SubnetMask, Gateway,
                     PrimaryDns, SecondaryDns, DisableWifi,
                     NewIpId, NewControlSystemAddr, NewRoomId,
@@ -6400,6 +6500,7 @@ function Start-PerDeviceFetch {
                         $state = Get-CrestronDeviceState -Session $sess
                         $av = $null
                         $displaySettings = $null
+                        $avFrameworkSettings = $null
 
                         try {
                             $av = Get-CrestronAvSettings -Session $sess
@@ -6415,9 +6516,16 @@ function Start-PerDeviceFetch {
                             $displaySettings = $null
                         }
 
+                        try {
+                            $avFrameworkSettings = Get-CrestronAvFrameworkSettings -Session $sess
+                        }
+                        catch {
+                            $avFrameworkSettings = $null
+                        }
+
                         $dnsArr = @($state.DnsServers)
                         $dns1 = if ($dnsArr.Count -ge 1) { $dnsArr[0] } else { '' }
-                        $dns2 = if ($dnsArr.Count -ge 2) { $dnsArr[1] } else { '' }
+                        $dns2 = ''
                         $txMulticast = ''
                         $rxMulticast = ''
                         $supportsAvMulticast = $false
@@ -6517,6 +6625,19 @@ function Start-PerDeviceFetch {
                         $supportsToolbarSettings =
                             ($null -ne $currentToolbar) -or
                             ($modelLooksDisplayCapable -and $toolbarEndpointFound)
+
+                        $supportsAvFrameworkSettings =
+                            (($avFrameworkSettings -and [bool]$avFrameworkSettings.SupportsAvFrameworkSettings) -or
+                             [bool]$state.SupportsAvFrameworkSettings)
+                        $currentAvFramework = if ($avFrameworkSettings -and $null -ne $avFrameworkSettings.AvFrameworkEnabled) {
+                            $avFrameworkSettings.AvFrameworkEnabled
+                        }
+                        elseif ($state.PSObject.Properties.Name -contains 'CurrentAvFrameworkEnabled') {
+                            $state.CurrentAvFrameworkEnabled
+                        }
+                        else {
+                            $null
+                        }
 
                         $toolbarDebugJson = ''
                         if ($modelLooksDisplayCapable -and $toolbarEndpointFound -and $null -eq $currentToolbar -and $displaySettings) {
@@ -6771,12 +6892,14 @@ function Start-PerDeviceFetch {
                             CurrentGlobalEdid        = $currentGlobalEdid
                             SupportsDisplaySettings  = [bool]$supportsDisplaySettings
                             SupportsToolbarSettings  = [bool]$supportsToolbarSettings
+                            SupportsAvFrameworkSettings = [bool]$supportsAvFrameworkSettings
                             ToolbarDebugJson         = $toolbarDebugJson
                             CurrentAutoBrightness    = $currentAutoBrightness
                             CurrentBrightness        = $currentBrightness
                             CurrentScreensaver       = $currentScreensaver
                             CurrentStandbyTimeout    = $currentStandbyTimeout
                             CurrentToolbar           = $currentToolbar
+                            CurrentAvFramework       = $currentAvFramework
                             AvInputRows              = $avInputRows
                             AvOutputRows             = $avOutputRows
                             MulticastRows            = $multicastRows
@@ -6867,11 +6990,13 @@ function Start-PerDeviceFetch {
                 'CurrentGlobalEdid',
                 'SupportsDisplaySettings',
                 'SupportsToolbarSettings',
+                'SupportsAvFrameworkSettings',
                 'CurrentAutoBrightness',
                 'CurrentBrightness',
                 'CurrentScreensaver',
                 'CurrentStandbyTimeout',
                 'CurrentToolbar',
+                'CurrentAvFramework',
                 'NewHostname',
                 'IPMode',
                 'NewInputHdcp',
@@ -6885,6 +7010,7 @@ function Start-PerDeviceFetch {
                 'NewScreensaver',
                 'NewStandbyTimeout',
                 'NewToolbar',
+                'NewAvFramework',
                 'DeviceMode',
                 'Status',
                 'NeedsReboot'
@@ -6918,11 +7044,13 @@ function Start-PerDeviceFetch {
                         'CurrentGlobalEdid' { '' }
                         'SupportsDisplaySettings' { $false }
                         'SupportsToolbarSettings' { $false }
+                        'SupportsAvFrameworkSettings' { $false }
                         'CurrentAutoBrightness' { 'N/A' }
                         'CurrentBrightness' { 'N/A' }
                         'CurrentScreensaver' { 'N/A' }
                         'CurrentStandbyTimeout' { 'N/A' }
                         'CurrentToolbar' { 'N/A' }
+                        'CurrentAvFramework' { 'N/A' }
                         'NewHostname' { 'N/A' }
                         'IPMode' { 'N/A' }
                         'NewInputHdcp' { 'N/A' }
@@ -6936,6 +7064,7 @@ function Start-PerDeviceFetch {
                         'NewScreensaver' { 'N/A' }
                         'NewStandbyTimeout' { 'N/A' }
                         'NewToolbar' { 'N/A' }
+                        'NewAvFramework' { 'N/A' }
                         'DeviceMode'         { 'N/A' }
                         'Status'             { '' }
                         'NeedsReboot'        { $false }
@@ -6989,6 +7118,7 @@ function Start-PerDeviceFetch {
                 $row.CurrentGlobalEdid        = "$($item.CurrentGlobalEdid)"
                 $row.SupportsDisplaySettings  = [bool]$item.SupportsDisplaySettings
                 $row.SupportsToolbarSettings  = [bool]$item.SupportsToolbarSettings
+                $row.SupportsAvFrameworkSettings = [bool]$item.SupportsAvFrameworkSettings
 
                 if ([bool]$item.SupportsDisplaySettings) {
                     $itemScreensaver = if ($item.PSObject.Properties.Name -contains 'CurrentScreensaver') {
@@ -7025,6 +7155,15 @@ function Start-PerDeviceFetch {
                 else {
                     $row.CurrentToolbar = 'N/A'
                     $row.NewToolbar = 'N/A'
+                }
+
+                if ([bool]$item.SupportsAvFrameworkSettings) {
+                    $row.CurrentAvFramework = ConvertTo-PerDeviceToggleText $item.CurrentAvFramework
+                    $row.NewAvFramework = "$($row.CurrentAvFramework)"
+                }
+                else {
+                    $row.CurrentAvFramework = 'N/A'
+                    $row.NewAvFramework = 'N/A'
                 }
 
                 if ([bool]$item.SupportsNetwork) {
@@ -7381,6 +7520,12 @@ function Test-PerDeviceRow ($row) {
         }
     }
 
+    if (Test-PerDeviceAvFrameworkChanged $row) {
+        if (-not [bool]$row.SupportsAvFrameworkSettings) {
+            return "AV Framework selected, but this device does not expose AV Framework settings"
+        }
+    }
+
     return $null
 }
 
@@ -7545,6 +7690,7 @@ function Start-PerDeviceApply {
                             ((Test-PerDeviceValue $_.SecondaryDns) -and "$($_.SecondaryDns)" -ne "$($_.CurrentDns2)")
 
         $displayChanged = Test-PerDeviceDisplayChanged $_
+        $avFrameworkChanged = Test-PerDeviceAvFrameworkChanged $_
 
         $hostnameChanged -or
         $ipModeChanged -or
@@ -7552,6 +7698,7 @@ function Start-PerDeviceApply {
         $ipTableChanged -or
         $networkValueChanged -or
         $displayChanged -or
+        $avFrameworkChanged -or
         $_.DisableWifi
     })
 
@@ -7692,6 +7839,7 @@ function Start-PerDeviceApply {
             CurrentGlobalEdid        = $_.CurrentGlobalEdid
             SupportsDisplaySettings  = [bool]$_.SupportsDisplaySettings
             SupportsToolbarSettings  = [bool]$_.SupportsToolbarSettings
+            SupportsAvFrameworkSettings = [bool]$_.SupportsAvFrameworkSettings
             NewAutoBrightness        = $_.NewAutoBrightness
             CurrentAutoBrightness    = $_.CurrentAutoBrightness
             NewBrightness            = $_.NewBrightness
@@ -7702,6 +7850,8 @@ function Start-PerDeviceApply {
             CurrentStandbyTimeout    = $_.CurrentStandbyTimeout
             NewToolbar               = $_.NewToolbar
             CurrentToolbar           = $_.CurrentToolbar
+            NewAvFramework           = $_.NewAvFramework
+            CurrentAvFramework       = $_.CurrentAvFramework
             SupportsAvMulticast      = [bool]$_.SupportsAvMulticast
             CurrentTransmitMulticast = $_.CurrentTransmitMulticast
             CurrentReceiveMulticast  = $_.CurrentReceiveMulticast
@@ -8067,6 +8217,37 @@ function Start-PerDeviceApply {
                             }
                             catch {
                                 $stepResults += "Display=ERR: $($_.Exception.Message)"
+                                $allOk = $false
+                            }
+                        }
+
+                        $avFrameworkChanged = ($row.NewAvFramework -in 'Enabled','Disabled') -and
+                                              "$($row.NewAvFramework)" -ne "$($row.CurrentAvFramework)"
+
+                        if ($avFrameworkChanged) {
+                            try {
+                                if (-not [bool]$row.SupportsAvFrameworkSettings) {
+                                    $stepResults += "AVFramework=skipped; unsupported"
+                                    $allOk = $false
+                                }
+                                else {
+                                    $rAvFramework = Set-CrestronAvFrameworkSettings `
+                                        -Session $sess `
+                                        -Enabled (ConvertFrom-PerDeviceToggleText $row.NewAvFramework)
+
+                                    $stepResults += "AVFramework=$(if($rAvFramework.Success){'OK'}else{$rAvFramework.Status}) -> $($row.NewAvFramework)"
+
+                                    if (Test-ResultNeedsReboot $rAvFramework) {
+                                        $needsReboot = $true
+                                    }
+
+                                    if (-not $rAvFramework.Success) {
+                                        $allOk = $false
+                                    }
+                                }
+                            }
+                            catch {
+                                $stepResults += "AVFramework=ERR: $($_.Exception.Message)"
                                 $allOk = $false
                             }
                         }
@@ -8799,11 +8980,18 @@ $Script:UI.PerDeviceGrid.Add_BeginningEdit({
         }
     }
 
-    if ($header -in @('Auto Brightness','Brightness','Screensaver','Standby Timeout','Toolbar')) {
+    if ($header -in @('Auto Brightness','Brightness','Screensaver','Standby Timeout','Toolbar','AV Framework')) {
         $row = $e.Row.Item
 
         if (-not $row) {
             $e.Cancel = $true
+            return
+        }
+
+        if ($header -eq 'AV Framework') {
+            if (-not [bool]$row.SupportsAvFrameworkSettings) {
+                $e.Cancel = $true
+            }
             return
         }
 
@@ -10151,11 +10339,13 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 CurrentGlobalEdid        = ''
                 SupportsDisplaySettings  = $false
                 SupportsToolbarSettings  = $false
+                SupportsAvFrameworkSettings = $false
                 CurrentAutoBrightness    = 'N/A'
                 CurrentBrightness        = 'N/A'
                 CurrentScreensaver       = 'N/A'
                 CurrentStandbyTimeout    = 'N/A'
                 CurrentToolbar           = 'N/A'
+                CurrentAvFramework       = 'N/A'
                 NewHostname              = 'N/A'
                 IPMode                   = 'N/A'
                 DeviceMode               = 'N/A'
@@ -10170,6 +10360,7 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 NewScreensaver           = 'N/A'
                 NewStandbyTimeout        = 'N/A'
                 NewToolbar               = 'N/A'
+                NewAvFramework           = 'N/A'
                 NewIP                    = 'N/A'
                 SubnetMask               = 'N/A'
                 Gateway                  = 'N/A'
@@ -10242,6 +10433,7 @@ $Script:UI.BlanketReloadButton.Add_Click({
                 SupportsAutoUpdate  = $false
                 SupportsDisplaySettings = $false
                 SupportsToolbarSettings = $false
+                SupportsAvFrameworkSettings = $false
                 SupportsIpTable     = $false
                 SupportsNetwork     = $false
                 SupportsWifi        = $false

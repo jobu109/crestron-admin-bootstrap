@@ -90,6 +90,14 @@ function Get-CrestronDeviceState {
         $displaySettings = $null
     }
 
+    $avFrameworkSettings = $null
+    try {
+        $avFrameworkSettings = Get-CrestronAvFrameworkSettings -Session $Session -TimeoutSec $TimeoutSec
+    }
+    catch {
+        $avFrameworkSettings = $null
+    }
+
     $na = $api.BodyJson.Device.NetworkAdapters
 
     # The Adapters dictionary is keyed by device/firmware-specific adapter names
@@ -248,13 +256,16 @@ function Get-CrestronDeviceState {
         SupportsWifi             = $hasWifi
         SupportsDisplaySettings  = if ($displaySettings) { [bool]$displaySettings.SupportsDisplaySettings } else { $false }
         SupportsToolbarSettings  = if ($displaySettings) { [bool]$displaySettings.SupportsToolbarSettings } else { $false }
+        SupportsAvFrameworkSettings = if ($avFrameworkSettings) { [bool]$avFrameworkSettings.SupportsAvFrameworkSettings } else { $false }
         DisplayPath              = if ($displaySettings) { "$($displaySettings.DisplayPath)" } else { '' }
         ToolbarPath              = if ($displaySettings) { "$($displaySettings.ToolbarPath)" } else { '' }
+        AvFrameworkPath          = if ($avFrameworkSettings) { "$($avFrameworkSettings.Path)" } else { '' }
         CurrentAutoBrightness    = if ($displaySettings) { $displaySettings.AutoBrightness } else { $null }
         CurrentBrightness        = if ($displaySettings) { $displaySettings.Brightness } else { $null }
         CurrentScreensaverEnabled = if ($displaySettings) { $displaySettings.ScreensaverEnabled } else { $null }
         CurrentStandbyTimeout    = if ($displaySettings) { $displaySettings.StandbyTimeout } else { $null }
         CurrentToolbarEnabled    = if ($displaySettings) { $displaySettings.ToolbarEnabled } else { $null }
+        CurrentAvFrameworkEnabled = if ($avFrameworkSettings) { $avFrameworkSettings.AvFrameworkEnabled } else { $null }
 
         RawJson                  = $api.BodyJson
         FetchedAt                = (Get-Date).ToString('s')
