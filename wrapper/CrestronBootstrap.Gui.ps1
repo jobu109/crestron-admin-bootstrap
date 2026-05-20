@@ -13,7 +13,8 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$WorkingDirectory = (Get-Location).Path
+    [string]$WorkingDirectory = (Get-Location).Path,
+    [string]$ModuleManifestPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -40,10 +41,15 @@ Add-Type -AssemblyName System.Windows.Forms
 
 function Resolve-CrestronAdminBootstrapManifest {
     param(
-        [Parameter(Mandatory)][string]$WorkspaceDirectory
+        [Parameter(Mandatory)][string]$WorkspaceDirectory,
+        [string]$PreferredManifestPath
     )
 
     $candidates = @()
+
+    if (-not [string]::IsNullOrWhiteSpace($PreferredManifestPath)) {
+        $candidates += $PreferredManifestPath
+    }
 
     if ($PSScriptRoot) {
         $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -72,7 +78,9 @@ function Resolve-CrestronAdminBootstrapManifest {
 }
 
 # Module
-$Script:ModuleManifestPath = Resolve-CrestronAdminBootstrapManifest -WorkspaceDirectory $WorkingDirectory
+$Script:ModuleManifestPath = Resolve-CrestronAdminBootstrapManifest `
+    -WorkspaceDirectory $WorkingDirectory `
+    -PreferredManifestPath $ModuleManifestPath
 $env:CABS_MODULE_MANIFEST = $Script:ModuleManifestPath
 
 if (-not $Script:ModuleManifestPath) {

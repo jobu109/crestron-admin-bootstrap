@@ -7,7 +7,8 @@
     bridge that, this build process:
       1. Reads wrapper\CrestronBootstrap.Launcher.ps1 (text menu)
          and wrapper\CrestronBootstrap.Gui.ps1 (WPF GUI, if present).
-      2. Base64-encodes each and injects them into a copy of
+      2. Zips the module source, base64-encodes the scripts and module, and
+         injects them into a copy of
          wrapper\CrestronBootstrap.Bootstrapper.ps1 (the PS 5.1 stub).
       3. Compiles the merged bootstrapper into dist\CrestronBootstrap.exe.
       4. Signs the .exe with the configured code-signing cert.
@@ -51,13 +52,14 @@ $RepoRoot         = Split-Path -Parent $ScriptRoot
 $LauncherPath     = Join-Path $ScriptRoot 'CrestronBootstrap.Launcher.ps1'
 $GuiPath          = Join-Path $ScriptRoot 'CrestronBootstrap.Gui.ps1'
 $BootstrapperPath = Join-Path $ScriptRoot 'CrestronBootstrap.Bootstrapper.ps1'
+$ModulePath       = Join-Path $RepoRoot 'src\CrestronAdminBootstrap'
 $Manifest         = Join-Path $RepoRoot 'src\CrestronAdminBootstrap\CrestronAdminBootstrap.psd1'
 $IconPath         = Join-Path $ScriptRoot 'app.ico'
 
 if (-not $OutputDir) { $OutputDir = Join-Path $RepoRoot 'dist' }
 $ExePath = Join-Path $OutputDir 'CrestronBootstrap.exe'
 
-foreach ($p in @($LauncherPath, $BootstrapperPath, $Manifest)) {
+foreach ($p in @($LauncherPath, $BootstrapperPath, $ModulePath, $Manifest)) {
     if (-not (Test-Path $p)) { throw "Required file not found: $p" }
 }
 $guiExists = Test-Path $GuiPath
@@ -83,6 +85,7 @@ Write-Host '==> Build settings' -ForegroundColor Cyan
 Write-Host "    Launcher     : $LauncherPath"
 Write-Host "    GUI          : $(if ($guiExists) { $GuiPath } else { '(missing; .exe will use text menu only)' })"
 Write-Host "    Bootstrapper : $BootstrapperPath"
+Write-Host "    Module       : $ModulePath"
 Write-Host "    Output       : $ExePath"
 Write-Host "    Version      : $Version"
 if ($cert) {
@@ -91,10 +94,28 @@ if ($cert) {
     Write-Host '    Cert         : (signing skipped)'
 }
 
-# Embed scripts into a copy of the bootstrapper
+$tempBuildDir = Join-Path $env:TEMP "cabs-build-$([Guid]::NewGuid())"
+New-Item -ItemType Directory -Path $tempBuildDir -Force | Out-Null
+
+# Embed scripts and module into a copy of the bootstrapper
 Write-Host '==> Embedding scripts' -ForegroundColor Cyan
 $launcherB64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($LauncherPath))
 $guiB64      = if ($guiExists) { [Convert]::ToBase64String([IO.File]::ReadAllBytes($GuiPath)) } else { '' }
+
+Write-Host '==> Embedding module' -ForegroundColor Cyan
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$moduleStagingRoot = Join-Path $tempBuildDir 'module-staging'
+$moduleZipPath = Join-Path $tempBuildDir 'CrestronAdminBootstrap.zip'
+New-Item -ItemType Directory -Path $moduleStagingRoot -Force | Out-Null
+Copy-Item -LiteralPath $ModulePath -Destination $moduleStagingRoot -Recurse -Force
+[System.IO.Compression.ZipFile]::CreateFromDirectory(
+    $moduleStagingRoot,
+    $moduleZipPath,
+    [System.IO.Compression.CompressionLevel]::Optimal,
+    $false
+)
+$moduleB64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($moduleZipPath))
+Write-Host "    Module zip   : $([math]::Round((Get-Item $moduleZipPath).Length/1KB,1)) KB"
 
 $bootstrapText = Get-Content -Path $BootstrapperPath -Raw
 if ($bootstrapText -notmatch '__LAUNCHER_BASE64_PLACEHOLDER__') {
@@ -103,11 +124,13 @@ if ($bootstrapText -notmatch '__LAUNCHER_BASE64_PLACEHOLDER__') {
 if ($bootstrapText -notmatch '__GUI_BASE64_PLACEHOLDER__') {
     throw "Bootstrapper is missing __GUI_BASE64_PLACEHOLDER__ marker."
 }
+if ($bootstrapText -notmatch '__MODULE_ZIP_BASE64_PLACEHOLDER__') {
+    throw "Bootstrapper is missing __MODULE_ZIP_BASE64_PLACEHOLDER__ marker."
+}
 $mergedText = $bootstrapText.Replace('__LAUNCHER_BASE64_PLACEHOLDER__', $launcherB64)
 $mergedText = $mergedText.Replace('__GUI_BASE64_PLACEHOLDER__',      $guiB64)
+$mergedText = $mergedText.Replace('__MODULE_ZIP_BASE64_PLACEHOLDER__', $moduleB64)
 
-$tempBuildDir = Join-Path $env:TEMP "cabs-build-$([Guid]::NewGuid())"
-New-Item -ItemType Directory -Path $tempBuildDir -Force | Out-Null
 $mergedScript = Join-Path $tempBuildDir 'CrestronBootstrap.Merged.ps1'
 Set-Content -Path $mergedScript -Value $mergedText -Encoding UTF8 -NoNewline
 Write-Host "    Merged script: $mergedScript ($([math]::Round((Get-Item $mergedScript).Length/1KB,1)) KB)"
@@ -187,8 +210,7 @@ try {
     Write-Host ''
     Write-Host 'Done.' -ForegroundColor Green
     if ($cert) {
-        Write-Host 'Distribute the .exe alongside signing\jobu109-codesigning.cer.'
-        Write-Host 'End users: install the .cer into Cert:\CurrentUser\TrustedPublisher (and Root for full trust).'
+        Write-Host 'Distribute CrestronBootstrap.exe. The module source is bundled into the executable.'
     }
 } finally {
     Remove-Item $tempBuildDir -Recurse -Force -ErrorAction SilentlyContinue

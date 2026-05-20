@@ -7,8 +7,8 @@
     CrestronAdminBootstrap module requires PowerShell 7. This bootstrapper
     is a thin PS 5.1 stub that:
       1. Confirms PowerShell 7 is installed (offers winget install if not)
-      2. Confirms the CrestronAdminBootstrap module is installed
-         (offers to run the install one-liner if not)
+      2. Extracts the bundled CrestronAdminBootstrap module when present
+         (falls back to an installed module only for older builds)
       3. Picks UI mode:
          - default: WPF GUI (Gui.ps1)
          - '--text' command-line arg: text menu (Launcher.ps1)
@@ -19,9 +19,10 @@
 
 $ErrorActionPreference = 'Stop'
 
-# {{LAUNCHER_BASE64}} and {{GUI_BASE64}} are replaced at build time.
-$LauncherBase64 = '__LAUNCHER_BASE64_PLACEHOLDER__'
-$GuiBase64      = '__GUI_BASE64_PLACEHOLDER__'
+# {{LAUNCHER_BASE64}}, {{GUI_BASE64}}, and {{MODULE_ZIP_BASE64}} are replaced at build time.
+$LauncherBase64  = '__LAUNCHER_BASE64_PLACEHOLDER__'
+$GuiBase64       = '__GUI_BASE64_PLACEHOLDER__'
+$ModuleZipBase64 = '__MODULE_ZIP_BASE64_PLACEHOLDER__'
 
 function Write-Step ($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 function Write-Ok   ($msg) { Write-Host "    $msg" -ForegroundColor Green }
@@ -30,6 +31,10 @@ function Pause-Exit ($code = 0) {
     Write-Host ""
     Read-Host "Press Enter to close"
     exit $code
+}
+
+function Test-EmbeddedPayload ($b64) {
+    return -not ([string]::IsNullOrWhiteSpace($b64) -or $b64.Length -lt 16 -or $b64 -like '__*_PLACEHOLDER__')
 }
 
 # ---- UI mode selection -------------------------------------------------------
@@ -89,41 +94,38 @@ if (-not $pwshExe) {
 }
 Write-Ok "Found: $pwshExe"
 
-# ---- 2. Module installed? ----------------------------------------------------
+# ---- 2. Module available? ----------------------------------------------------
 Write-Step 'Checking CrestronAdminBootstrap module'
 
-$modCheck = & $pwshExe -NoProfile -Command "[bool](Get-Module -ListAvailable CrestronAdminBootstrap)" 2>$null
-if ($modCheck -ne 'True') {
-    Write-Warn 'Module is not installed for PowerShell 7.'
-    $ans = Read-Host 'Install it now from GitHub? (Y/N)'
-    if ($ans -match '^[Yy]') {
-        $installCmd = 'iex (irm https://raw.githubusercontent.com/jobu109/crestron-admin-bootstrap/main/install.ps1)'
-        & $pwshExe -NoProfile -Command $installCmd
-        $modCheck = & $pwshExe -NoProfile -Command "[bool](Get-Module -ListAvailable CrestronAdminBootstrap)" 2>$null
-        if ($modCheck -ne 'True') {
-            Write-Warn 'Install appears to have failed.'
+$hasBundledModule = Test-EmbeddedPayload $ModuleZipBase64
+if ($hasBundledModule) {
+    Write-Ok 'Bundled module payload found.'
+} else {
+    $modCheck = & $pwshExe -NoProfile -Command "[bool](Get-Module -ListAvailable CrestronAdminBootstrap)" 2>$null
+    if ($modCheck -ne 'True') {
+        Write-Warn 'Module is not installed for PowerShell 7, and this executable has no bundled module.'
+        $ans = Read-Host 'Install it now from GitHub? (Y/N)'
+        if ($ans -match '^[Yy]') {
+            $installCmd = 'iex (irm https://raw.githubusercontent.com/jobu109/crestron-admin-bootstrap/main/install.ps1)'
+            & $pwshExe -NoProfile -Command $installCmd
+            $modCheck = & $pwshExe -NoProfile -Command "[bool](Get-Module -ListAvailable CrestronAdminBootstrap)" 2>$null
+            if ($modCheck -ne 'True') {
+                Write-Warn 'Install appears to have failed.'
+                Pause-Exit 1
+            }
+            Write-Ok 'Module installed.'
+        } else {
             Pause-Exit 1
         }
-        Write-Ok 'Module installed.'
     } else {
-        Pause-Exit 1
+        Write-Ok 'Installed module fallback found.'
     }
-} else {
-    Write-Ok 'Module is installed.'
 }
 
 # ---- 3. Extract selected script and hand off to pwsh -------------------------
 $selectedB64  = if ($mode -eq 'gui') { $GuiBase64 } else { $LauncherBase64 }
 $selectedName = if ($mode -eq 'gui') { 'Gui.ps1' }  else { 'Launcher.ps1' }
 Write-Step "Launching $($mode.ToUpper()) ($selectedName)"
-
-# Build-time placeholders look like __XXX_BASE64_PLACEHOLDER__. After Build-Exe
-# runs, real base64 values sit in the $LauncherBase64 and $GuiBase64 variables
-# above. An "empty" payload means the script wasn't embedded — easy to detect
-# because base64 strings are always longer than a few characters.
-function Test-EmbeddedPayload ($b64) {
-    return -not ([string]::IsNullOrWhiteSpace($b64) -or $b64.Length -lt 16 -or $b64 -like '__*_PLACEHOLDER__')
-}
 
 if (-not (Test-EmbeddedPayload $selectedB64)) {
     Write-Warn "No embedded $selectedName payload found. This .exe was built without the $mode script."
@@ -149,8 +151,29 @@ if ([string]::IsNullOrWhiteSpace($exeDir)) {
 
 $tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP "cabs-launcher-$([Guid]::NewGuid())") -Force
 $scriptPath = Join-Path $tmp $selectedName
+$moduleManifestPath = $null
 
 try {
+    if ($hasBundledModule) {
+        Write-Step 'Extracting bundled module'
+        $moduleZipPath = Join-Path $tmp 'CrestronAdminBootstrap.zip'
+        $moduleRoot = Join-Path $tmp 'module'
+        New-Item -ItemType Directory -Path $moduleRoot -Force | Out-Null
+        [IO.File]::WriteAllBytes($moduleZipPath, [Convert]::FromBase64String($ModuleZipBase64))
+
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($moduleZipPath, $moduleRoot)
+
+        $manifest = Get-ChildItem -Path $moduleRoot -Recurse -Filter 'CrestronAdminBootstrap.psd1' |
+            Select-Object -First 1
+        if (-not $manifest) {
+            throw 'Bundled module did not contain CrestronAdminBootstrap.psd1.'
+        }
+
+        $moduleManifestPath = $manifest.FullName
+        Write-Ok "Bundled module: $moduleManifestPath"
+    }
+
     [IO.File]::WriteAllBytes($scriptPath, [Convert]::FromBase64String($selectedB64))
 
     $pwshArgs = @(
@@ -159,6 +182,10 @@ try {
         '-File', $scriptPath,
         '-WorkingDirectory', $exeDir
     )
+
+    if ($moduleManifestPath) {
+        $pwshArgs += @('-ModuleManifestPath', $moduleManifestPath)
+    }
 
     # GUI mode: hide pwsh's console (only the WPF window is visible).
     # Text mode: launch pwsh with a normal window so the user can see the menu.

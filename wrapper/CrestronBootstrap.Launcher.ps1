@@ -17,7 +17,8 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$WorkingDirectory = (Get-Location).Path
+    [string]$WorkingDirectory = (Get-Location).Path,
+    [string]$ModuleManifestPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,6 +32,13 @@ $ErrorActionPreference = 'Stop'
 
 # ---- Module discovery --------------------------------------------------------
 function Initialize-Module {
+    if (-not [string]::IsNullOrWhiteSpace($ModuleManifestPath) -and
+        (Test-Path -LiteralPath $ModuleManifestPath)) {
+        $env:CABS_MODULE_MANIFEST = (Resolve-Path -LiteralPath $ModuleManifestPath).Path
+        Import-Module $env:CABS_MODULE_MANIFEST -Force
+        return
+    }
+
     if (-not (Get-Module -ListAvailable CrestronAdminBootstrap)) {
         Write-Host "CrestronAdminBootstrap module is not installed." -ForegroundColor Yellow
         Write-Host "Run the installer first:" -ForegroundColor Yellow

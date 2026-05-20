@@ -12,6 +12,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and thi
 
 ## [Unreleased]
 
+## [0.12.4] - 2026-05-19
+
+### Fixed
+
+- Fixed the release executable so it bundles and imports the matching `CrestronAdminBootstrap` module source instead of using an older module already installed on the workstation.
+- Fixed release builds where the GUI could show stale `N/A` capability fields because the embedded GUI was newer than the imported module.
+
 ## [0.12.3] - 2026-05-19
 
 ### Added
