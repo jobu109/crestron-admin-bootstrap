@@ -21,7 +21,8 @@ function Set-CrestronHostname {
         Per-request timeout in seconds. Default 30.
 
     .OUTPUTS
-        PSCustomObject: IP, Status, Success, SectionResults, Response, Timestamp.
+        PSCustomObject: IP, Status, Success, Hostname, NeedsReboot,
+        SectionResults, Response, Timestamp.
 
     .EXAMPLE
         $session = Connect-CrestronDevice -IP 172.22.0.21 -Credential $cred
@@ -60,6 +61,7 @@ function Set-CrestronHostname {
     # Parse per-section StatusId (same pattern as Set-CrestronSettings)
     $sectionResults = @()
     $overallSuccess = $true
+    $needsReboot    = $false
 
     if ($api.BodyJson -and $api.BodyJson.Actions) {
         foreach ($action in $api.BodyJson.Actions) {
@@ -68,6 +70,9 @@ function Set-CrestronHostname {
                 $sid   = [int]$r.StatusId
                 $rOk   = $sid -in 0,1,5,-4
                 if (-not $rOk) { $overallSuccess = $false }
+                if ($sid -eq 1 -or "$($r.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
+                    $needsReboot = $true
+                }
                 $sectionResults += [pscustomobject]@{
                     Path       = $rPath
                     StatusId   = $sid
@@ -81,6 +86,11 @@ function Set-CrestronHostname {
     }
 
     if (-not $api.Success) { $overallSuccess = $false }
+    if ($overallSuccess -and -not $needsReboot) {
+        # Hostname changes do not fully take effect until reboot, and some
+        # devices return a plain OK instead of a reboot-required status.
+        $needsReboot = $true
+    }
 
     $bodyPreview = if ($api.Body) {
         $clean = ($api.Body -replace '\s+', ' ').Trim()
@@ -92,6 +102,7 @@ function Set-CrestronHostname {
         Status         = $api.Status
         Success        = $overallSuccess
         Hostname       = $Hostname
+        NeedsReboot    = $needsReboot
         SectionResults = $sectionResults
         Response       = $bodyPreview
         Timestamp      = (Get-Date).ToString('s')

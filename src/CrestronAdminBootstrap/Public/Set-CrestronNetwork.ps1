@@ -92,7 +92,36 @@ function Set-CrestronNetwork {
         }
     }
 
-    # Build EthernetLan IPv4 block
+    $adapterName = 'EthernetLan'
+    $wifiAdapterName = 'Wifi'
+
+    try {
+        $currentApi = Invoke-CrestronApi -Session $Session -Path '/Device/NetworkAdapters' `
+                                      -Method GET -TimeoutSec $TimeoutSec
+        if ($currentApi.Success -and $currentApi.BodyJson.Device.NetworkAdapters) {
+            $currentNetworkAdapters = $currentApi.BodyJson.Device.NetworkAdapters
+            $primaryAdapter = Get-CrestronNetworkAdapterInfo `
+                -NetworkAdapters $currentNetworkAdapters `
+                -SessionIP $Session.IP
+            $wifiAdapter = Get-CrestronNetworkAdapterInfo `
+                -NetworkAdapters $currentNetworkAdapters `
+                -SessionIP $Session.IP `
+                -Wifi
+
+            if ($primaryAdapter -and -not [string]::IsNullOrWhiteSpace("$($primaryAdapter.Name)")) {
+                $adapterName = "$($primaryAdapter.Name)"
+            }
+
+            if ($wifiAdapter -and -not [string]::IsNullOrWhiteSpace("$($wifiAdapter.Name)")) {
+                $wifiAdapterName = "$($wifiAdapter.Name)"
+            }
+        }
+    }
+    catch {
+        # Fall back to the original EthernetLan/Wifi adapter names.
+    }
+
+    # Build primary Ethernet IPv4 block
     $ipv4 = @{
         IsDhcpEnabled = ($IPMode -eq 'DHCP')
     }
@@ -109,9 +138,11 @@ function Set-CrestronNetwork {
         IsAdapterEnabled = $true
     }
 
-    $adapters = @{ EthernetLan = $eth }
+    $adapters = @{}
+    $adapters[$adapterName] = $eth
+
     if ($DisableWifi) {
-        $adapters.Wifi = @{ IsAdapterEnabled = $false }
+        $adapters[$wifiAdapterName] = @{ IsAdapterEnabled = $false }
     }
 
     $na = @{

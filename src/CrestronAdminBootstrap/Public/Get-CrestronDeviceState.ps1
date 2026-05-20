@@ -93,74 +93,58 @@ function Get-CrestronDeviceState {
     $na = $api.BodyJson.Device.NetworkAdapters
 
     # The Adapters dictionary is keyed by device/firmware-specific adapter names
-    # such as EthernetLan, Vlan00, Wifi, Wlan, etc.
-    $eth = $null
-    $wifi = $null
+    # such as EthernetLan, Ethernet, Lan, Vlan00, Wifi, Wlan, etc.  Prefer the
+    # adapter that contains the connected session IP, which keeps DM-NAX and
+    # other non-NVX devices from being mistaken for a secondary/control adapter.
+    $ethInfo = Get-CrestronNetworkAdapterInfo -NetworkAdapters $na -SessionIP $Session.IP
+    $wifiInfo = Get-CrestronNetworkAdapterInfo -NetworkAdapters $na -SessionIP $Session.IP -Wifi
+    $eth = if ($ethInfo) { $ethInfo.Adapter } else { $null }
+    $wifi = if ($wifiInfo) { $wifiInfo.Adapter } else { $null }
 
-    if ($na.Adapters) {
-        $adapterProps = @($na.Adapters | Get-Member -MemberType NoteProperty -ErrorAction SilentlyContinue)
-
-        foreach ($p in $adapterProps) {
-            $a = $na.Adapters.$($p.Name)
-            $isWifi = $p.Name -match 'Wifi|Wireless|Wlan'
-
-            if ($isWifi -and -not $wifi) {
-                $wifi = $a
-            }
-            elseif (-not $isWifi -and -not $eth -and $a.IPv4) {
-                if (($a.IsActive -and $a.IsAdapterEnabled) -or -not $eth) {
-                    $eth = $a
-                }
-            }
-        }
+    $ethCurrentIp = if ($ethInfo -and $ethInfo.CurrentIP) {
+        $ethInfo.CurrentIP
+    }
+    elseif ($ethInfo) {
+        $ethInfo.StaticIP
+    }
+    else {
+        ''
     }
 
-    # Current Ethernet IP.
-    $ethCurrentIp = $null
+    $ethStaticIp = if ($ethInfo) { $ethInfo.StaticIP } else { '' }
 
-    if ($eth -and $eth.IPv4 -and $eth.IPv4.Addresses) {
-        $first = @($eth.IPv4.Addresses)[0]
-
-        if ($first -and $first.Address) {
-            $ethCurrentIp = $first.Address
-        }
+    $ethSubnet = if ($ethInfo -and $ethInfo.IsDhcpEnabled -eq $true) {
+        if ($ethInfo.CurrentSubnetMask) { $ethInfo.CurrentSubnetMask } else { $ethInfo.StaticSubnetMask }
+    }
+    elseif ($ethInfo) {
+        if ($ethInfo.StaticSubnetMask) { $ethInfo.StaticSubnetMask } else { $ethInfo.CurrentSubnetMask }
+    }
+    else {
+        ''
     }
 
-    # Current WiFi IP.
-    $wifiCurrentIp = $null
-
-    if ($wifi -and $wifi.IPv4 -and $wifi.IPv4.Addresses) {
-        $first = @($wifi.IPv4.Addresses)[0]
-
-        if ($first -and $first.Address) {
-            $wifiCurrentIp = $first.Address
-        }
+    $ethGateway = if ($ethInfo -and $ethInfo.IsDhcpEnabled -eq $true) {
+        if ($ethInfo.DefaultGateway) { $ethInfo.DefaultGateway } else { $ethInfo.StaticDefaultGateway }
+    }
+    elseif ($ethInfo) {
+        if ($ethInfo.StaticDefaultGateway) { $ethInfo.StaticDefaultGateway } else { $ethInfo.DefaultGateway }
+    }
+    else {
+        ''
     }
 
-    # Configured static Ethernet IP/subnet.
-    $ethStaticIp = $null
-    $ethStaticMask = $null
-
-    if ($eth -and $eth.IPv4 -and $eth.IPv4.StaticAddresses) {
-        $sa = @($eth.IPv4.StaticAddresses)[0]
-
-        if ($sa) {
-            $ethStaticIp = $sa.Address
-            $ethStaticMask = $sa.SubnetMask
-        }
+    $wifiCurrentIp = if ($wifiInfo -and $wifiInfo.CurrentIP) {
+        $wifiInfo.CurrentIP
+    }
+    elseif ($wifiInfo) {
+        $wifiInfo.StaticIP
+    }
+    else {
+        ''
     }
 
-    # DNS.
-    $dnsServers = @()
-
-    if ($na.DnsSettings -and $na.DnsSettings.IPv4 -and $na.DnsSettings.IPv4.StaticDns) {
-        $dnsServers = @($na.DnsSettings.IPv4.StaticDns | Where-Object {
-            $_ -and $_.Trim() -ne ''
-        })
-    }
-
-    # Whether the device actually has a WiFi adapter.
-    $hasWifi = [bool]$wifi
+    $dnsServers = Get-CrestronNetworkDnsServers -NetworkAdapters $na
+    $hasWifi = [bool]$wifiInfo
 
     # Extract first IP-table entry for GUI prefill.
     $currentIpId = $null
@@ -235,27 +219,21 @@ function Get-CrestronDeviceState {
         IP                       = $Session.IP
         Model                    = $Session.Model
         Hostname                 = $na.HostName
-        DomainName               = if ($eth) { $eth.DomainName } else { '' }
+        DomainName               = if ($ethInfo) { $ethInfo.DomainName } else { '' }
 
-        EthernetLanEnabled       = if ($eth) { [bool]$eth.IsAdapterEnabled } else { $false }
-        EthernetLanDhcp          = if ($eth -and $eth.IPv4) { [bool]$eth.IPv4.IsDhcpEnabled } else { $false }
+        EthernetAdapterName      = if ($ethInfo) { $ethInfo.Name } else { '' }
+        EthernetLanEnabled       = if ($ethInfo -and $null -ne $ethInfo.IsAdapterEnabled) { [bool]$ethInfo.IsAdapterEnabled } else { [bool]$eth }
+        EthernetLanDhcp          = if ($ethInfo -and $null -ne $ethInfo.IsDhcpEnabled) { [bool]$ethInfo.IsDhcpEnabled } else { $false }
         EthernetLanIP            = $ethCurrentIp
         EthernetLanStaticIP      = $ethStaticIp
-        EthernetLanSubnet        = $ethStaticMask
-        EthernetLanGateway       = if ($eth -and $eth.IPv4 -and $eth.IPv4.DefaultGateway) {
-            $eth.IPv4.DefaultGateway
-        }
-        elseif ($eth -and $eth.IPv4) {
-            $eth.IPv4.StaticDefaultGateway
-        }
-        else {
-            ''
-        }
+        EthernetLanSubnet        = $ethSubnet
+        EthernetLanGateway       = $ethGateway
 
         DnsServers               = $dnsServers
 
         HasWifi                  = $hasWifi
-        WifiEnabled              = if ($wifi) { [bool]$wifi.IsAdapterEnabled } else { $false }
+        WifiAdapterName          = if ($wifiInfo) { $wifiInfo.Name } else { '' }
+        WifiEnabled              = if ($wifiInfo -and $null -ne $wifiInfo.IsAdapterEnabled) { [bool]$wifiInfo.IsAdapterEnabled } else { $false }
         WifiIP                   = $wifiCurrentIp
 
         CurrentIpId              = $currentIpId

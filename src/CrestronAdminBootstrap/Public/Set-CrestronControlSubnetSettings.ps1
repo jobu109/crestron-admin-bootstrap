@@ -23,6 +23,7 @@ function Set-CrestronControlSubnetSettings {
         [Nullable[bool]]$RouterIsolationMode,
         [Nullable[bool]]$IgmpProxyEnabled,
         [string]$IgmpProxyPropertyName,
+        [pscredential]$Credential,
         [int]$TimeoutSec = 30
     )
 
@@ -76,7 +77,15 @@ function Set-CrestronControlSubnetSettings {
         throw "RouterOnlineDelay must be 0 or greater."
     }
 
-    $current = Get-CrestronControlSubnetSettings -Session $Session -TimeoutSec $TimeoutSec
+    $currentArgs = @{
+        Session    = $Session
+        TimeoutSec = $TimeoutSec
+    }
+    if ($Credential) {
+        $currentArgs.Credential = $Credential
+    }
+
+    $current = Get-CrestronControlSubnetSettings @currentArgs
 
     if (-not $current.SupportsControlSubnet) {
         throw "Device $($Session.IP) does not expose NetworkAdapters.Adapters.ControlSubnet."
@@ -86,6 +95,8 @@ function Set-CrestronControlSubnetSettings {
     $networkAdapters = @{}
     $adapterBody = @{}
     $appliedSections = @()
+    $telnetCommand = ''
+    $telnetResult = $null
 
     if ($hasEnabled) {
         $adapterBody.IsAdapterEnabled = [bool]$Enabled
@@ -155,24 +166,29 @@ function Set-CrestronControlSubnetSettings {
         }
 
         if (-not $proxyProperty) {
-            throw "Device $($Session.IP) does not expose a detected IGMP proxy property."
-        }
+            if (-not $Credential) {
+                throw "Device $($Session.IP) does not expose a detected IGMP proxy web API property. Provide -Credential to use the IGMPPROXY telnet command fallback."
+            }
 
-        $currentProxy = if ($current.RawRouter -and $proxyProperty) {
-            $current.RawRouter.$proxyProperty
+            $telnetCommand = if ([bool]$IgmpProxyEnabled) { 'IGMPPROXY ON' } else { 'IGMPPROXY OFF' }
         }
         else {
-            $null
-        }
+            $currentProxy = if ($current.RawRouter -and $proxyProperty) {
+                $current.RawRouter.$proxyProperty
+            }
+            else {
+                $null
+            }
 
-        if ($currentProxy -and $currentProxy.PSObject.Properties.Name -contains 'IsEnabled') {
-            $routerBody[$proxyProperty] = @{ IsEnabled = [bool]$IgmpProxyEnabled }
-        }
-        elseif ($currentProxy -and $currentProxy.PSObject.Properties.Name -contains 'Enabled') {
-            $routerBody[$proxyProperty] = @{ Enabled = [bool]$IgmpProxyEnabled }
-        }
-        else {
-            $routerBody[$proxyProperty] = [bool]$IgmpProxyEnabled
+            if ($currentProxy -and $currentProxy.PSObject.Properties.Name -contains 'IsEnabled') {
+                $routerBody[$proxyProperty] = @{ IsEnabled = [bool]$IgmpProxyEnabled }
+            }
+            elseif ($currentProxy -and $currentProxy.PSObject.Properties.Name -contains 'Enabled') {
+                $routerBody[$proxyProperty] = @{ Enabled = [bool]$IgmpProxyEnabled }
+            }
+            else {
+                $routerBody[$proxyProperty] = [bool]$IgmpProxyEnabled
+            }
         }
     }
 
@@ -181,19 +197,24 @@ function Set-CrestronControlSubnetSettings {
         $appliedSections += 'Router'
     }
 
-    if ($deviceBody.Count -eq 0) {
+    if ($deviceBody.Count -eq 0 -and [string]::IsNullOrWhiteSpace($telnetCommand)) {
         throw "No control subnet payload was built."
     }
 
-    $payload = @{ Device = $deviceBody }
+    $payload = if ($deviceBody.Count -gt 0) { @{ Device = $deviceBody } } else { $null }
 
-    $api = Invoke-CrestronApi -Session $Session -Path '/Device' -Method POST -Body $payload -TimeoutSec $TimeoutSec
+    $api = if ($payload) {
+        Invoke-CrestronApi -Session $Session -Path '/Device' -Method POST -Body $payload -TimeoutSec $TimeoutSec
+    }
+    else {
+        $null
+    }
 
     $sectionResults = @()
-    $overallSuccess = $api.Success
+    $overallSuccess = if ($api) { $api.Success } else { $true }
     $needsReboot = $false
 
-    if ($api.BodyJson -and $api.BodyJson.Actions) {
+    if ($api -and $api.BodyJson -and $api.BodyJson.Actions) {
         foreach ($action in @($api.BodyJson.Actions)) {
             foreach ($r in @($action.Results)) {
                 $path = "$($r.Path)"
@@ -223,12 +244,43 @@ function Set-CrestronControlSubnetSettings {
         }
     }
 
-    if (-not $api.Success) {
+    if ($api -and -not $api.Success) {
         $overallSuccess = $false
     }
 
-    $bodyPreview = if ($api.Body) {
+    if (-not [string]::IsNullOrWhiteSpace($telnetCommand)) {
+        try {
+            $telnetResult = Invoke-CrestronTelnetCommand `
+                -IP $Session.IP `
+                -Credential $Credential `
+                -Command $telnetCommand `
+                -TimeoutSec $TimeoutSec
+
+            $appliedSections += 'IGMPPROXY (Telnet)'
+            $sectionResults += [pscustomobject]@{
+                Path       = 'IGMPPROXY'
+                StatusId   = 0
+                StatusInfo = 'Command sent through telnet'
+                Ok         = $true
+            }
+        }
+        catch {
+            $overallSuccess = $false
+            $sectionResults += [pscustomobject]@{
+                Path       = 'IGMPPROXY'
+                StatusId   = -1
+                StatusInfo = "$($_.Exception.Message)"
+                Ok         = $false
+            }
+        }
+    }
+
+    $bodyPreview = if ($api -and $api.Body) {
         $clean = ($api.Body -replace '\s+', ' ').Trim()
+        $clean.Substring(0, [Math]::Min(300, $clean.Length))
+    }
+    elseif ($telnetResult -and $telnetResult.Output) {
+        $clean = ($telnetResult.Output -replace '\s+', ' ').Trim()
         $clean.Substring(0, [Math]::Min(300, $clean.Length))
     }
     else {
@@ -237,7 +289,7 @@ function Set-CrestronControlSubnetSettings {
 
     [pscustomobject]@{
         IP              = $Session.IP
-        Status          = $api.Status
+        Status          = if ($api) { $api.Status } elseif ($overallSuccess) { 200 } else { 0 }
         Success         = $overallSuccess
         Setting         = 'ControlSubnet'
         AppliedSections = @($appliedSections | Select-Object -Unique)

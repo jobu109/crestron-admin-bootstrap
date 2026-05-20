@@ -308,6 +308,20 @@ function Get-CrestronVirtualButtonsToolbarBoolValue {
         return $null
     }
 
+    $value = Get-CrestronDisplayBoolValue -Object $virtualButtons -Names @(
+        'IsEnabled',
+        'Enabled',
+        'Enable',
+        'IsVisible',
+        'Visible',
+        'Show',
+        'Value',
+        'State'
+    )
+    if ($null -ne $value) {
+        return $value
+    }
+
     $value = Get-CrestronDisplayBoolValue -Object $virtualButtons -Names (Get-CrestronToolbarWakeConditionPropertyNames)
     if ($null -ne $value) {
         return $value
@@ -1238,6 +1252,22 @@ function Get-CrestronDisplayObject {
         @{ Path = '/Device/DeviceSpecific'; Name = 'DeviceSpecific' }
     )
 
+    try {
+        $deviceApi = Invoke-CrestronApi -Session $Session -Path '/Device' -Method GET -TimeoutSec $TimeoutSec
+        if ($deviceApi.Success -and $deviceApi.BodyJson) {
+            $found = Get-CrestronDisplayObjectFromBody -BodyJson $deviceApi.BodyJson -CandidateNames $candidateNames
+            if ($found -and (Test-CrestronDisplayObjectSupported $found.Object)) {
+                return [pscustomobject]@{
+                    Path     = "/Device/$($found.PathName)"
+                    PathName = $found.PathName
+                    Object   = $found.Object
+                    RawJson  = $deviceApi.BodyJson
+                }
+            }
+        }
+    }
+    catch { }
+
     foreach ($candidate in $candidatePaths) {
         try {
             $api = Invoke-CrestronApi -Session $Session -Path $candidate.Path -Method GET -TimeoutSec $TimeoutSec
@@ -1286,22 +1316,6 @@ function Get-CrestronDisplayObject {
         }
         catch { }
     }
-
-    try {
-        $deviceApi = Invoke-CrestronApi -Session $Session -Path '/Device' -Method GET -TimeoutSec $TimeoutSec
-        if ($deviceApi.Success -and $deviceApi.BodyJson) {
-            $found = Get-CrestronDisplayObjectFromBody -BodyJson $deviceApi.BodyJson -CandidateNames $candidateNames
-            if ($found -and (Test-CrestronDisplayObjectSupported $found.Object)) {
-                return [pscustomobject]@{
-                    Path     = "/Device/$($found.PathName)"
-                    PathName = $found.PathName
-                    Object   = $found.Object
-                    RawJson  = $deviceApi.BodyJson
-                }
-            }
-        }
-    }
-    catch { }
 
     return $null
 }
@@ -1383,6 +1397,23 @@ function Get-CrestronToolbarObject {
         @{ Path = '/Device/DeviceSpecific';      Name = 'DeviceSpecific' }
     )
 
+    try {
+        $deviceApi = Invoke-CrestronApi -Session $Session -Path '/Device' -Method GET -TimeoutSec $TimeoutSec
+        if ($deviceApi.Success -and $deviceApi.BodyJson) {
+            $found = Get-CrestronToolbarObjectFromBody -BodyJson $deviceApi.BodyJson -CandidateNames $candidateNames
+            if ($found) {
+                return [pscustomobject]@{
+                    Path             = "/Device/$($found.PathName)"
+                    PathName         = $found.PathName
+                    Object           = $found.Object
+                    IsDirectProperty = [bool]$found.IsDirectProperty
+                    RawJson          = $deviceApi.BodyJson
+                }
+            }
+        }
+    }
+    catch { }
+
     foreach ($candidate in $candidatePaths) {
         try {
             $api = Invoke-CrestronApi -Session $Session -Path $candidate.Path -Method GET -TimeoutSec $TimeoutSec
@@ -1403,23 +1434,6 @@ function Get-CrestronToolbarObject {
         }
         catch { }
     }
-
-    try {
-        $deviceApi = Invoke-CrestronApi -Session $Session -Path '/Device' -Method GET -TimeoutSec $TimeoutSec
-        if ($deviceApi.Success -and $deviceApi.BodyJson) {
-            $found = Get-CrestronToolbarObjectFromBody -BodyJson $deviceApi.BodyJson -CandidateNames $candidateNames
-            if ($found) {
-                return [pscustomobject]@{
-                    Path             = "/Device/$($found.PathName)"
-                    PathName         = $found.PathName
-                    Object           = $found.Object
-                    IsDirectProperty = [bool]$found.IsDirectProperty
-                    RawJson          = $deviceApi.BodyJson
-                }
-            }
-        }
-    }
-    catch { }
 
     return $null
 }
@@ -1527,6 +1541,7 @@ function New-CrestronVirtualButtonsToolbarPayload {
         $payload = @{}
     }
 
+    $payload['IsEnabled'] = $ToolbarEnabled
     $payload['IsShowOnWakeEnabled'] = $ToolbarEnabled
     $payload['IsShowDuringStandbyEnabled'] = $ToolbarEnabled
     return $payload

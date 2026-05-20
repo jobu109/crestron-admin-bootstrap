@@ -1910,6 +1910,7 @@ function Get-GuiThemePalette {
             SelectionFg = New-Brush '#FFFFFF'
             ButtonHover = New-Brush '#46484F'
             ButtonDown  = New-Brush '#315A86'
+            DisabledBg  = New-Brush '#242529'
             DisabledFg  = New-Brush '#8E8E8E'
         }
     }
@@ -1932,6 +1933,7 @@ function Get-GuiThemePalette {
         SelectionFg = New-Brush '#FFFFFF'
         ButtonHover = New-Brush '#E5F1FB'
         ButtonDown  = New-Brush '#CCE4F7'
+        DisabledBg  = New-Brush '#F4F4F4'
         DisabledFg  = New-Brush '#888888'
     }
 }
@@ -2019,6 +2021,7 @@ function Set-GuiThemeResourceStyles {
     Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::WindowBrushKey) $Palette.PanelBg
     Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::ControlBrushKey) $Palette.ControlBg
     Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::ControlTextBrushKey) $Palette.TextFg
+    Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::GrayTextBrushKey) $Palette.DisabledFg
     Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::WindowTextBrushKey) $Palette.TextFg
     Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::HighlightBrushKey) $Palette.SelectionBg
     Set-ThemeResourceValue $Root ([System.Windows.SystemColors]::HighlightTextBrushKey) $Palette.SelectionFg
@@ -2234,6 +2237,15 @@ function Set-GuiThemeResourceStyles {
     Add-StyleSetter $comboStyle ([System.Windows.Controls.Control]::BackgroundProperty) $Palette.ControlBg
     Add-StyleSetter $comboStyle ([System.Windows.Controls.Control]::ForegroundProperty) $Palette.TextFg
     Add-StyleSetter $comboStyle ([System.Windows.Controls.Control]::BorderBrushProperty) $Palette.Border
+    [void]$comboStyle.Triggers.Add((New-PropertyTrigger `
+        -Property ([System.Windows.Controls.Control]::IsEnabledProperty) `
+        -Value $false `
+        -Setters @(
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::BackgroundProperty, $Palette.DisabledBg),
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::ForegroundProperty, $Palette.DisabledFg),
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::BorderBrushProperty, $Palette.Border),
+            [System.Windows.Setter]::new([System.Windows.UIElement]::OpacityProperty, [double]1)
+        )))
     Set-ImplicitThemeStyle $Root ([System.Windows.Controls.ComboBox]) $comboStyle
 
     $comboItemStyle = [System.Windows.Style]::new([System.Windows.Controls.ComboBoxItem])
@@ -2255,6 +2267,13 @@ function Set-GuiThemeResourceStyles {
         -Setters @(
             [System.Windows.Setter]::new([System.Windows.Controls.Control]::BackgroundProperty, $Palette.SelectionBg),
             [System.Windows.Setter]::new([System.Windows.Controls.Control]::ForegroundProperty, $Palette.SelectionFg)
+        )))
+    [void]$comboItemStyle.Triggers.Add((New-PropertyTrigger `
+        -Property ([System.Windows.Controls.Control]::IsEnabledProperty) `
+        -Value $false `
+        -Setters @(
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::BackgroundProperty, $Palette.DisabledBg),
+            [System.Windows.Setter]::new([System.Windows.Controls.Control]::ForegroundProperty, $Palette.DisabledFg)
         )))
     Set-ImplicitThemeStyle $Root ([System.Windows.Controls.ComboBoxItem]) $comboItemStyle
 
@@ -2373,8 +2392,15 @@ function Apply-GuiThemeToComboBox {
 
     if (-not $Combo) { return }
 
-    $Combo.Background = $Palette.ControlBg
-    $Combo.Foreground = $Palette.TextFg
+    if ([bool]$Combo.IsEnabled) {
+        $Combo.Background = $Palette.ControlBg
+        $Combo.Foreground = $Palette.TextFg
+    }
+    else {
+        $Combo.Background = $Palette.DisabledBg
+        $Combo.Foreground = $Palette.DisabledFg
+    }
+
     $Combo.BorderBrush = $Palette.Border
 
     $comboStyle = $ResourceRoot.Resources[[System.Windows.Controls.ComboBox]]
@@ -2391,11 +2417,53 @@ function Apply-GuiThemeToComboBox {
     Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::WindowBrushKey) $Palette.PanelBg
     Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::ControlBrushKey) $Palette.ControlBg
     Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::ControlTextBrushKey) $Palette.TextFg
+    Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::GrayTextBrushKey) $Palette.DisabledFg
     Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::WindowTextBrushKey) $Palette.TextFg
     Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::HighlightBrushKey) $Palette.SelectionBg
     Set-ThemeResourceValue $Combo ([System.Windows.SystemColors]::HighlightTextBrushKey) $Palette.SelectionFg
 
+    foreach ($tb in Find-VisualChildren $Combo ([System.Windows.Controls.TextBlock])) {
+        $tb.Foreground = if ([bool]$Combo.IsEnabled) { $Palette.TextFg } else { $Palette.DisabledFg }
+    }
+
+    foreach ($tb in Find-VisualChildren $Combo ([System.Windows.Controls.TextBox])) {
+        $tb.Background = if ([bool]$Combo.IsEnabled) { $Palette.ControlBg } else { $Palette.DisabledBg }
+        $tb.Foreground = if ([bool]$Combo.IsEnabled) { $Palette.TextFg } else { $Palette.DisabledFg }
+        $tb.BorderBrush = $Palette.Border
+        $tb.CaretBrush = $Palette.TextFg
+    }
+
     if (-not $Combo.Resources.Contains('CabsThemeDropDownHooked')) {
+        $Combo.Add_IsEnabledChanged({
+            param($sender, $e)
+
+            try {
+                $palette = Get-GuiThemePalette -DarkMode:(Get-GuiDarkModeEnabled)
+                if ([bool]$sender.IsEnabled) {
+                    $sender.Background = $palette.ControlBg
+                    $sender.Foreground = $palette.TextFg
+                }
+                else {
+                    $sender.Background = $palette.DisabledBg
+                    $sender.Foreground = $palette.DisabledFg
+                }
+
+                $sender.BorderBrush = $palette.Border
+
+                foreach ($tb in Find-VisualChildren $sender ([System.Windows.Controls.TextBlock])) {
+                    $tb.Foreground = if ([bool]$sender.IsEnabled) { $palette.TextFg } else { $palette.DisabledFg }
+                }
+
+                foreach ($tb in Find-VisualChildren $sender ([System.Windows.Controls.TextBox])) {
+                    $tb.Background = if ([bool]$sender.IsEnabled) { $palette.ControlBg } else { $palette.DisabledBg }
+                    $tb.Foreground = if ([bool]$sender.IsEnabled) { $palette.TextFg } else { $palette.DisabledFg }
+                    $tb.BorderBrush = $palette.Border
+                    $tb.CaretBrush = $palette.TextFg
+                }
+            }
+            catch { }
+        }.GetNewClosure())
+
         $Combo.Add_DropDownOpened({
             param($sender, $e)
 
@@ -4795,7 +4863,11 @@ function Invoke-RebootNeededRows {
 function Start-BlanketApply {
     if ($Script:BlanketState.IsRunning) { return }
 
-    $selectedIPs = @($Script:BlanketState.Rows | Where-Object Selected | Select-Object -ExpandProperty IP)
+    $selectedIPs = @($Script:BlanketState.Rows |
+        Where-Object Selected |
+        ForEach-Object { "$($_.IP)".Trim() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Sort-Object -Unique)
     if ($selectedIPs.Count -eq 0) {
         [System.Windows.MessageBox]::Show("No devices selected.", "Nothing to apply", 'OK', 'Warning') | Out-Null
         return
@@ -4950,6 +5022,10 @@ function Start-BlanketApply {
 
     # Mark selected rows
     foreach ($ip in $selectedIPs) {
+        if (-not $Script:BlanketState.RowsByIP.ContainsKey($ip)) {
+            continue
+        }
+
         $row = $Script:BlanketState.RowsByIP[$ip]
         if ($row) {
             $row.Status      = 'Pending'
@@ -4982,26 +5058,37 @@ function Start-BlanketApply {
     $queue   = [System.Collections.Concurrent.ConcurrentQueue[object]]::new()
     $doneRef = [ref]$false
 
-    $selectedRows = @($Script:BlanketState.Rows | Where-Object Selected | ForEach-Object {
-        @{
-            IP                  = $_.IP
-            Model               = $_.Model
-            Hostname            = $_.Hostname
-            AvApiFamily         = $_.AvApiFamily
-            AvApiVersion        = $_.AvApiVersion
-            SupportsAvSettings  = [bool]$_.SupportsAvSettings
-            SupportsAvMulticast = [bool]$_.SupportsAvMulticast
-            SupportsGlobalEdid  = [bool]$_.SupportsGlobalEdid
-            SupportsNtp         = [bool]$_.SupportsNtp
-            SupportsCloud       = [bool]$_.SupportsCloud
-            SupportsFusion      = [bool]$_.SupportsFusion
-            SupportsAutoUpdate  = [bool]$_.SupportsAutoUpdate
-            SupportsDisplaySettings = [bool]$_.SupportsDisplaySettings
-            SupportsToolbarSettings = [bool]$_.SupportsToolbarSettings
-            SupportsModeChange  = [bool]$_.SupportsModeChange
-            CapabilitiesFetched = [bool]$_.CapabilitiesFetched
+    $selectedRows = @(
+        foreach ($ip in $selectedIPs) {
+            if (-not $Script:BlanketState.RowsByIP.ContainsKey($ip)) {
+                continue
+            }
+
+            $rowForApply = $Script:BlanketState.RowsByIP[$ip]
+            if (-not $rowForApply) {
+                continue
+            }
+
+            @{
+                IP                  = "$($rowForApply.IP)".Trim()
+                Model               = $rowForApply.Model
+                Hostname            = $rowForApply.Hostname
+                AvApiFamily         = $rowForApply.AvApiFamily
+                AvApiVersion        = $rowForApply.AvApiVersion
+                SupportsAvSettings  = [bool]$rowForApply.SupportsAvSettings
+                SupportsAvMulticast = [bool]$rowForApply.SupportsAvMulticast
+                SupportsGlobalEdid  = [bool]$rowForApply.SupportsGlobalEdid
+                SupportsNtp         = [bool]$rowForApply.SupportsNtp
+                SupportsCloud       = [bool]$rowForApply.SupportsCloud
+                SupportsFusion      = [bool]$rowForApply.SupportsFusion
+                SupportsAutoUpdate  = [bool]$rowForApply.SupportsAutoUpdate
+                SupportsDisplaySettings = [bool]$rowForApply.SupportsDisplaySettings
+                SupportsToolbarSettings = [bool]$rowForApply.SupportsToolbarSettings
+                SupportsModeChange  = [bool]$rowForApply.SupportsModeChange
+                CapabilitiesFetched = [bool]$rowForApply.CapabilitiesFetched
+            }
         }
-    })
+    )
 
     $rs = [runspacefactory]::CreateRunspace()
     $rs.ApartmentState = 'STA'
@@ -5493,7 +5580,20 @@ function Start-BlanketApply {
                 continue
             }
 
-            $row = $Script:BlanketState.RowsByIP[$item.IP]
+            $itemIp = ''
+            if ($item.PSObject.Properties.Name -contains 'IP') {
+                $itemIp = "$($item.IP)".Trim()
+            }
+
+            if ([string]::IsNullOrWhiteSpace($itemIp)) {
+                continue
+            }
+
+            if (-not $Script:BlanketState.RowsByIP.ContainsKey($itemIp)) {
+                continue
+            }
+
+            $row = $Script:BlanketState.RowsByIP[$itemIp]
             if (-not $row) { continue }
 
             if (-not ($row.PSObject.Properties.Name -contains 'NeedsReboot')) {
@@ -5512,7 +5612,12 @@ function Start-BlanketApply {
 
         $Script:UI.BlanketGrid.Items.Refresh()
         Update-BlanketSummary
-        $applyRows = @($selectedIPs | ForEach-Object { $Script:BlanketState.RowsByIP[$_] } | Where-Object { $_ })
+        $applyRows = @($selectedIPs | ForEach-Object {
+            $ip = "$_".Trim()
+            if (-not [string]::IsNullOrWhiteSpace($ip) -and $Script:BlanketState.RowsByIP.ContainsKey($ip)) {
+                $Script:BlanketState.RowsByIP[$ip]
+            }
+        } | Where-Object { $_ })
         $okCount = @($applyRows | Where-Object { $_.Status -eq 'OK' }).Count
         $errorCount = @($applyRows | Where-Object { @('Partial','Error') -contains $_.Status -or $_.Detail -like 'ERROR:*' }).Count
         $doneCount = $okCount + $errorCount
@@ -5571,7 +5676,13 @@ function Stop-BlanketApply {
 }
 
 $Script:UI.BlanketTab.Add_GotFocus({
-    if ($Script:BlanketState.Rows.Count -eq 0) { Load-BlanketFromProvision }
+    # Standalone Blanket Settings should start empty. Full Workflow explicitly
+    # calls Load-BlanketFromProvision so provisioned IPs still carry forward there.
+    if ($Script:BlanketState.Rows.Count -eq 0 -and
+        (-not $Script:WorkflowState -or -not [bool]$Script:WorkflowState.IsRunning)) {
+        Update-Status 'Blanket Settings has no devices loaded. Use Add Devices to run a fresh scan, paste IPs, or load the provisioning CSV.'
+    }
+
     Update-AvGlobalEdidOptions
 })
 
@@ -5757,6 +5868,7 @@ function ConvertTo-PerDeviceIgmpVersion {
     switch -Regex ("$Value".Trim()) {
         '^(V?2|IGMP\s*V?2|Version\s*2)$' { 'V2'; break }
         '^(V?3|IGMP\s*V?3|Version\s*3)$' { 'V3'; break }
+        '^(V?0|0|false|off|disabled)$' { 'N/A'; break }
         default {
             if (Test-PerDeviceValue $Value) { "$Value" } else { 'N/A' }
         }
@@ -6522,7 +6634,7 @@ function Start-PerDeviceFetch {
                                         $inputEdidNames = $edidNames
                                     }
 
-                                    $inputEdidNames = @("$($inputItem.CurrentEdid)" + $inputEdidNames |
+                                    $inputEdidNames = @(@("$($inputItem.CurrentEdid)") + @($inputEdidNames) |
                                         Where-Object { -not [string]::IsNullOrWhiteSpace("$_") -and "$_" -ne 'N/A' } |
                                         Sort-Object -Unique)
 
@@ -6581,7 +6693,7 @@ function Start-PerDeviceFetch {
                         }
 
                         try {
-                            $controlSubnet = Get-CrestronControlSubnetSettings -Session $sess
+                            $controlSubnet = Get-CrestronControlSubnetSettings -Session $sess -Credential $cred
 
                             if ($controlSubnet -and [bool]$controlSubnet.SupportsControlSubnet) {
                                 $controlIp = "$($controlSubnet.StaticIPAddress)"
@@ -7391,7 +7503,7 @@ function Test-PerDeviceControlSubnetRow ($row) {
                     "$($row.NewIgmpProxy)" -ne "$($row.CurrentIgmpProxy)"
 
     if ($proxyChanged -and -not [bool]$row.SupportsIgmpProxy) {
-        return "IGMP Proxy selected, but this device does not expose an editable IGMP proxy property"
+        return "IGMP Proxy selected, but this device does not support IGMP proxy editing"
     }
 
     return $null
@@ -8434,6 +8546,7 @@ function Start-PerDeviceApply {
                                     else {
                                         $controlArgs.IgmpProxyEnabled = ConvertFrom-PerDeviceToggleText $controlRow.NewIgmpProxy
                                         $controlArgs.IgmpProxyPropertyName = $controlRow.IgmpProxyPropertyName
+                                        $controlArgs.Credential = $cred
                                     }
                                 }
 
@@ -8639,15 +8752,17 @@ function Stop-PerDeviceApply {
     Close-BusyDialog -Key 'PerDeviceFetch'
 }
 
-# Auto-load on tab focus, then auto-fetch if device state hasn't been pulled yet
+# Standalone Per-Device should start empty. Full Workflow explicitly calls
+# Load-PerDeviceFromProvision so provisioned IPs still carry forward there.
 $Script:UI.PerDeviceTab.Add_GotFocus({
-    if ($Script:PerDeviceState.Rows.Count -eq 0) {
-        Load-PerDeviceFromProvision
-    }
     # Auto-fetch state for any row missing a model
     $needFetch = @($Script:PerDeviceState.Rows | Where-Object { -not $_.Model -and -not $_.Detail })
     if ($needFetch.Count -gt 0 -and $Script:AppState.Credential) {
         Start-PerDeviceFetch
+    }
+    elseif ($Script:PerDeviceState.Rows.Count -eq 0 -and
+            (-not $Script:WorkflowState -or -not [bool]$Script:WorkflowState.IsRunning)) {
+        Update-Status 'Per-Device has no devices loaded. Use Add Devices to run a fresh scan, paste IPs, or load the provisioning CSV.'
     }
 })
 
@@ -9004,7 +9119,7 @@ function Invoke-RebootBulk {
         -Key 'RebootSend' `
         -Title 'Sending reboot commands' `
         -Message "Sending reboot command to $($targetIps.Count) device(s)..." `
-        -Status "Processed 0/$($targetIps.Count)  Accepted: 0  Errors: 0"
+        -Status "Queued: $($targetIps.Count)  Started: 0/$($targetIps.Count)  Completed: 0/$($targetIps.Count)  Accepted: 0  Errors: 0"
 
     $modManifest = (Get-Module CrestronAdminBootstrap).Path
     if (-not $modManifest) {
@@ -9033,13 +9148,23 @@ function Invoke-RebootBulk {
                 $p  = $using:userPass
                 $mp = $using:manifest
                 try {
+                    $q.Enqueue([pscustomobject]@{
+                        __phase = 'Started'
+                        IP      = $ip
+                    })
+
                     if (-not $mp -or -not (Test-Path $mp)) { throw "Module manifest path missing: '$mp'" }
                     Import-Module $mp -Force -ErrorAction Stop
                     $sec  = ConvertTo-SecureString $p -AsPlainText -Force
                     $cred = [pscredential]::new($u, $sec)
                     $sess = Connect-CrestronDevice -IP $ip -Credential $cred
                     try {
-                        $r = Restart-CrestronDevice -Session $sess
+                        $q.Enqueue([pscustomobject]@{
+                            __phase = 'Sending'
+                            IP      = $ip
+                        })
+
+                        $r = Restart-CrestronDevice -Session $sess -TimeoutSec 5
                         $q.Enqueue([pscustomobject]@{
                             IP      = $ip
                             Status  = "$($r.Status)"
@@ -9072,6 +9197,8 @@ function Invoke-RebootBulk {
     $processedCount = 0
     $acceptedCount = 0
     $errorCount = 0
+    $startedIps = @{}
+    $sendingIps = @{}
 
     $timer = New-Object System.Windows.Threading.DispatcherTimer
     $timer.Interval = [TimeSpan]::FromMilliseconds(250)
@@ -9090,12 +9217,37 @@ function Invoke-RebootBulk {
                 $errorCount++
                 Update-BusyDialog `
                     -Key 'RebootSend' `
-                    -Status "Processed $processedCount/$($targetIps.Count)  Accepted: $acceptedCount  Errors: $errorCount"
+                    -Status "Started: $($startedIps.Count)/$($targetIps.Count)  Sending: $($sendingIps.Count)  Completed: $processedCount/$($targetIps.Count)  Accepted: $acceptedCount  Errors: $errorCount"
                 [System.Windows.MessageBox]::Show("Reboot failed: $($item.__error)", "Error", 'OK', 'Error') | Out-Null
                 continue
             }
 
+            if ($item.__phase) {
+                $phaseIp = "$($item.IP)".Trim()
+
+                if (-not [string]::IsNullOrWhiteSpace($phaseIp)) {
+                    if ($item.__phase -eq 'Started') {
+                        $startedIps[$phaseIp] = $true
+                    }
+                    elseif ($item.__phase -eq 'Sending') {
+                        $startedIps[$phaseIp] = $true
+                        $sendingIps[$phaseIp] = $true
+                    }
+                }
+
+                Update-BusyDialog `
+                    -Key 'RebootSend' `
+                    -Status "Started: $($startedIps.Count)/$($targetIps.Count)  Sending: $($sendingIps.Count)  Completed: $processedCount/$($targetIps.Count)  Accepted: $acceptedCount  Errors: $errorCount"
+                continue
+            }
+
             $processedCount++
+            $finalIp = "$($item.IP)".Trim()
+            if (-not [string]::IsNullOrWhiteSpace($finalIp)) {
+                $startedIps[$finalIp] = $true
+                [void]$sendingIps.Remove($finalIp)
+            }
+
             if ($item.Success -eq 'True') {
                 $Script:RebootWaitAcceptedCount++
                 $acceptedCount++
@@ -9110,7 +9262,7 @@ function Invoke-RebootBulk {
 
             Update-BusyDialog `
                 -Key 'RebootSend' `
-                -Status "Processed $processedCount/$($targetIps.Count)  Accepted: $acceptedCount  Errors: $errorCount"
+                -Status "Started: $($startedIps.Count)/$($targetIps.Count)  Sending: $($sendingIps.Count)  Completed: $processedCount/$($targetIps.Count)  Accepted: $acceptedCount  Errors: $errorCount"
         }
 
         if ($doneRef.Value -and $queueRef.IsEmpty) {
@@ -10061,8 +10213,8 @@ $Script:UI.PerDeviceClearButton.Add_Click({
         Update-Status "Cleared $count device(s) from Per-Device tab."
     }
 })
-# Blanket Settings uses the shared add-device dialog while still auto-loading
-# provisioned devices the first time the tab is focused.
+# Blanket Settings uses the shared add-device dialog for standalone fresh scans,
+# pasted IPs, or explicit provisioning CSV loads.
 $Script:UI.BlanketReloadButton.Add_Click({
     $beforeCount = $Script:BlanketState.Rows.Count
 

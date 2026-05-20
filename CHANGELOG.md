@@ -12,6 +12,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and thi
 
 ## [Unreleased]
 
+## [0.12.5] - 2026-05-20
+
+### Added
+
+- Added broader primary network adapter detection so non-NVX devices such as DM-NAX can read IP, subnet mask, gateway, DNS, and DHCP state from the adapter that owns the connected session IP.
+- Added telnet-backed IGMP proxy read/write fallback for 4-Series Control Subnet devices when the web API does not expose an editable IGMP proxy property.
+
+### Changed
+
+- Network writes now target the detected primary adapter name instead of always posting to `NetworkAdapters.Adapters.EthernetLan`.
+- Reboot command progress now reports Started, Sending, Completed, Accepted, and Errors so the dialog shows movement before the reboot wait timer begins.
+- Display and toolbar capability probes try the aggregate `/Device` object first to reduce slow per-device fetches.
+
+### Fixed
+
+- Fixed Per-Device EDID dropdowns where EDID names could collapse into one long horizontal item instead of individual selectable values.
+- Fixed hostname changes not always triggering the reboot-needed prompt when devices returned plain OK rather than reboot-required status text.
+- Fixed dark-mode disabled combo boxes/dropdowns becoming hard to read.
+- Hardened Blanket Settings apply against missing rows during Full Workflow.
+
 ## [0.12.4] - 2026-05-19
 
 ### Fixed
