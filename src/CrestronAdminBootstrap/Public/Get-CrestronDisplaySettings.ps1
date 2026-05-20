@@ -20,18 +20,23 @@ function Get-CrestronDisplaySettings {
 
     $display = Get-CrestronDisplayObject -Session $Session -TimeoutSec $TimeoutSec
     $screenSaver = Get-CrestronDeviceObjectByName -Session $Session -Name 'ScreenSaver' -TimeoutSec $TimeoutSec
+    $toolbar = Get-CrestronToolbarObject -Session $Session -TimeoutSec $TimeoutSec
 
-    if (-not $display -and -not $screenSaver) {
+    if (-not $display -and -not $screenSaver -and -not $toolbar) {
         return [pscustomobject]@{
             IP                       = $Session.IP
             Model                    = $Session.Model
             SupportsDisplaySettings  = $false
+            SupportsToolbarSettings  = $false
             DisplayPath              = ''
             DisplayPathName          = ''
+            ToolbarPath              = ''
+            ToolbarPathName          = ''
             AutoBrightness           = $null
             Brightness               = $null
             ScreensaverEnabled       = $null
             StandbyTimeout           = $null
+            ToolbarEnabled           = $null
             RawJson                  = $null
             FetchedAt                = (Get-Date).ToString('s')
         }
@@ -45,14 +50,25 @@ function Get-CrestronDisplaySettings {
         'AutoBrightnessEnabled',
         'IsAutoBrightnessEnabled',
         'EnableAutoBrightness',
-        'AdaptiveBrightness'
+        'AdaptiveBrightness',
+        'AutoBrightnessMode',
+        'IsAdaptiveBrightnessEnabled',
+        'AmbientLightSensor',
+        'AmbientLightSensorEnabled'
     )
 
     $brightness = Get-CrestronDisplayIntValueDeep -Object $obj -SectionNames $lcdSectionNames -Names @(
         'Brightness',
         'BrightnessLevel',
+        'Backlight',
+        'BackLight',
+        'BacklightLevel',
+        'BackLightLevel',
         'BacklightBrightness',
         'ScreenBrightness',
+        'ScreenBrightnessLevel',
+        'LcdBrightness',
+        'DisplayBrightness',
         'LCDBacklightBrightness'
     )
 
@@ -65,8 +81,11 @@ function Get-CrestronDisplaySettings {
             'Screensaver',
             'ScreenSaverEnabled',
             'ScreensaverEnabled',
+            'ScreenSaverEnable',
+            'ScreensaverEnable',
             'IsScreenSaverEnabled',
-            'EnableScreenSaver'
+            'EnableScreenSaver',
+            'EnableScreensaver'
         )
     }
 
@@ -78,8 +97,11 @@ function Get-CrestronDisplaySettings {
             'Enabled',
             'ScreenSaverEnabled',
             'ScreensaverEnabled',
+            'ScreenSaverEnable',
+            'ScreensaverEnable',
             'IsScreenSaverEnabled',
-            'EnableScreenSaver'
+            'EnableScreenSaver',
+            'EnableScreensaver'
         )
     }
 
@@ -91,20 +113,47 @@ function Get-CrestronDisplaySettings {
         'StandbyTimer',
         'StandbyTimerMinutes',
         'DisplayStandbyTimeout',
-        'DisplayStandbyTimeoutMinutes'
+        'DisplayStandbyTimeoutMinutes',
+        'DisplayOffTimeout',
+        'IdleTimeout',
+        'SleepTimeout'
+    )
+
+    $toolbarEnabled = if ($toolbar) {
+        Get-CrestronToolbarBoolValue -Object $toolbar.Object
+    }
+    else {
+        $null
+    }
+    if ($null -eq $toolbarEnabled -and $toolbar -and $toolbar.RawJson) {
+        $toolbarEnabled = Get-CrestronVirtualButtonsToolbarBoolValue -Object $toolbar.RawJson
+    }
+    if ($null -eq $toolbarEnabled -and $display -and $display.RawJson) {
+        $toolbarEnabled = Get-CrestronVirtualButtonsToolbarBoolValue -Object $display.RawJson
+    }
+    $modelLooksToolbarCapable = "$($Session.Model)".Trim().ToUpperInvariant() -match '^(TS|TSW|TSS|TST|DGE)(-|$)'
+    $familyLooksToolbarCapable = "$($Session.DeviceFamily)" -match '(?i)touch|panel|display'
+    $supportsToolbarSettings = [bool]$toolbar -and (
+        ($null -ne $toolbarEnabled) -or
+        $modelLooksToolbarCapable -or
+        $familyLooksToolbarCapable
     )
 
     [pscustomobject]@{
         IP                       = $Session.IP
         Model                    = $Session.Model
-        SupportsDisplaySettings  = $true
+        SupportsDisplaySettings  = [bool]($display -or $screenSaver)
+        SupportsToolbarSettings  = [bool]$supportsToolbarSettings
         DisplayPath              = if ($display) { $display.Path } elseif ($screenSaver) { $screenSaver.Path } else { '' }
         DisplayPathName          = if ($display) { $display.PathName } elseif ($screenSaver) { $screenSaver.PathName } else { '' }
+        ToolbarPath              = if ($toolbar) { $toolbar.Path } else { '' }
+        ToolbarPathName          = if ($toolbar) { $toolbar.PathName } else { '' }
         AutoBrightness           = $autoBrightness
         Brightness               = $brightness
         ScreensaverEnabled       = $screensaverEnabled
         StandbyTimeout           = $standbyTimeout
-        RawJson                  = if ($display) { $display.RawJson } elseif ($screenSaver) { $screenSaver.RawJson } else { $null }
+        ToolbarEnabled           = $toolbarEnabled
+        RawJson                  = if ($display) { $display.RawJson } elseif ($screenSaver) { $screenSaver.RawJson } elseif ($toolbar) { $toolbar.RawJson } else { $null }
         FetchedAt                = (Get-Date).ToString('s')
     }
 }

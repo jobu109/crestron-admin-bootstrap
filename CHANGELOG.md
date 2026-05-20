@@ -12,6 +12,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and thi
 
 ## [Unreleased]
 
+## [0.12.3] - 2026-05-19
+
+### Added
+
+- Added touch-panel toolbar enable/disable support to Blanket Settings and Per-Device apply.
+- Added per-device toolbar apply diagnostics in local `crestron-toolbar-apply-debug.jsonl` for troubleshooting device API responses.
+
+### Fixed
+
+- Fixed TS/TSW touch panel toolbar readback so it uses the real `VirtualButtons.IsShowOnWakeEnabled` / `IsShowDuringStandbyEnabled` values instead of generic device fallbacks.
+- Fixed toolbar apply by preserving the device's existing `VirtualButtons` payload shape while changing only the toolbar visibility fields.
+- Restored per-device display setting editability for supported touch panels.
+
 ## [0.12.2] - 2026-05-19
 
 ### Added

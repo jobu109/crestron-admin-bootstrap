@@ -503,7 +503,7 @@ Load-GuiSettings
                             <ScrollViewer HorizontalScrollBarVisibility="Visible"
                                           VerticalScrollBarVisibility="Disabled">
                                 <DataGrid x:Name="BlanketGrid"
-                                          Width="1740"
+                                          Width="1810"
                                           HorizontalAlignment="Left"
                                           AutoGenerateColumns="False"
                                           CanUserAddRows="False"
@@ -524,9 +524,10 @@ Load-GuiSettings
                                     <DataGridCheckBoxColumn Header="NTP?"          Binding="{Binding SupportsNtp}"         Width="55"  IsReadOnly="True" />
                                      <DataGridCheckBoxColumn Header="Cloud?"        Binding="{Binding SupportsCloud}"       Width="65"  IsReadOnly="True" />
                                      <DataGridCheckBoxColumn Header="Fusion?"       Binding="{Binding SupportsFusion}"      Width="65"  IsReadOnly="True" />
-                                     <DataGridCheckBoxColumn Header="Auto?"         Binding="{Binding SupportsAutoUpdate}"  Width="60"  IsReadOnly="True" />
-                                     <DataGridCheckBoxColumn Header="Display?"      Binding="{Binding SupportsDisplaySettings}" Width="70" IsReadOnly="True" />
-                                     <DataGridCheckBoxColumn Header="TX/RX Mode?"   Binding="{Binding SupportsModeChange}"  Width="70"  IsReadOnly="True" />
+                                      <DataGridCheckBoxColumn Header="Auto?"         Binding="{Binding SupportsAutoUpdate}"  Width="60"  IsReadOnly="True" />
+                                      <DataGridCheckBoxColumn Header="Display?"      Binding="{Binding SupportsDisplaySettings}" Width="70" IsReadOnly="True" />
+                                      <DataGridCheckBoxColumn Header="Toolbar?"      Binding="{Binding SupportsToolbarSettings}" Width="75" IsReadOnly="True" />
+                                      <DataGridCheckBoxColumn Header="TX/RX Mode?"   Binding="{Binding SupportsModeChange}"  Width="70"  IsReadOnly="True" />
                                     <DataGridCheckBoxColumn Header="Fetched?"      Binding="{Binding CapabilitiesFetched}" Width="75"  IsReadOnly="True" />
                                     <DataGridTextColumn     Header="Status"        Binding="{Binding Status}"              Width="90"  IsReadOnly="True" />
                                     <DataGridCheckBoxColumn Header="Reboot?"       Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70" />
@@ -620,7 +621,7 @@ Load-GuiSettings
                             <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" Margin="0,0,0,8">
                                 <StackPanel>
                                     <CheckBox x:Name="DisplayEnableBox"
-                                              Content="Apply Display / Screensaver settings"
+                                              Content="Apply Display / Screensaver / Toolbar settings"
                                               FontWeight="Bold" />
 
                                     <Grid Margin="20,8,0,0"
@@ -678,15 +679,27 @@ Load-GuiSettings
                                                  Width="80"
                                                  Padding="4,2"
                                                  Margin="0,0,0,6"
-                                                 HorizontalAlignment="Left"
-                                                 Text="10" />
+                                                  HorizontalAlignment="Left"
+                                                  Text="10" />
+
+                                        <TextBlock Text="Toolbar" Grid.Row="2" Grid.Column="0" Margin="0,0,8,6" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,0,16,6">
+                                            <RadioButton x:Name="DisplayToolbarOnRadio"
+                                                         GroupName="DisplayToolbarRadios"
+                                                         Content="Enable"
+                                                         IsChecked="True"
+                                                         Margin="0,0,16,0" />
+                                            <RadioButton x:Name="DisplayToolbarOffRadio"
+                                                         GroupName="DisplayToolbarRadios"
+                                                         Content="Disable" />
+                                        </StackPanel>
                                     </Grid>
 
                                     <TextBlock Margin="20,2,0,0"
                                                Foreground="#888"
                                                FontSize="11"
                                                TextWrapping="Wrap"
-                                               Text="Brightness is sent only when Auto-Brightness is disabled. Devices without a display settings object are skipped." />
+                                               Text="Brightness is sent only when Auto-Brightness is disabled. Toolbar is sent only to touch panels that expose a toolbar setting." />
                                 </StackPanel>
                             </Border>
 
@@ -841,7 +854,7 @@ Load-GuiSettings
                     <ScrollViewer HorizontalScrollBarVisibility="Visible"
                                   VerticalScrollBarVisibility="Disabled">
                     <DataGrid x:Name="PerDeviceGrid"
-                              Width="1890"
+                              Width="1990"
                               HorizontalAlignment="Left"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
@@ -1029,6 +1042,25 @@ Load-GuiSettings
                                     <DataTemplate>
                                         <TextBox Text="{Binding NewStandbyTimeout, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                  IsEnabled="{Binding SupportsDisplaySettings}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Toolbar" Width="95">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding NewToolbar}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedItem="{Binding NewToolbar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding SupportsToolbarSettings}">
+                                            <ComboBox.Items>
+                                                <sys:String>N/A</sys:String>
+                                                <sys:String>Enabled</sys:String>
+                                                <sys:String>Disabled</sys:String>
+                                            </ComboBox.Items>
+                                        </ComboBox>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
@@ -1589,6 +1621,7 @@ foreach ($name in 'StatusText','WorkspaceText','CredText','ForgetCredButton','Ma
                   'AutoUpdateEnableBox','AutoUpdateOnRadio','AutoUpdateOffRadio',
                   'DisplayEnableBox','DisplayAutoBrightnessOnRadio','DisplayAutoBrightnessOffRadio',
                   'DisplayBrightnessBox','DisplayScreensaverOnRadio','DisplayScreensaverOffRadio','DisplayStandbyTimeoutBox',
+                  'DisplayToolbarOnRadio','DisplayToolbarOffRadio',
                   'ModeEnableBox','ModeTransmitterRadio','ModeReceiverRadio',
                   'AvInputHdcpEnableBox','AvInputHdcpModeBox',
                   'AvOutputHdcpEnableBox','AvOutputHdcpModeBox',
@@ -4231,6 +4264,7 @@ function Load-BlanketFromProvision {
             SupportsFusion       = $false
             SupportsAutoUpdate   = $false
             SupportsDisplaySettings = $false
+            SupportsToolbarSettings = $false
             SupportsIpTable      = $false
             SupportsNetwork      = $false
             SupportsWifi         = $false
@@ -4258,7 +4292,7 @@ function Save-BlanketCsv {
         Select-Object IP, Model, Hostname, CurrentDeviceMode,
                       AvApiFamily, AvApiVersion, SupportsAvSettings, SupportsAvMulticast, SupportsGlobalEdid,
                       EdidNames,
-                      SupportsNtp, SupportsCloud, SupportsFusion, SupportsAutoUpdate, SupportsDisplaySettings,
+                      SupportsNtp, SupportsCloud, SupportsFusion, SupportsAutoUpdate, SupportsDisplaySettings, SupportsToolbarSettings,
                       SupportsIpTable, SupportsNetwork, SupportsWifi, SupportsModeChange,
                       CapabilitiesFetched,
                       Status, Detail, NeedsReboot, Timestamp |
@@ -4387,6 +4421,7 @@ function Start-BlanketCapabilityFetch {
                             SupportsFusion      = [bool]$caps.SupportsFusion
                             SupportsAutoUpdate  = [bool]$caps.SupportsAutoUpdate
                             SupportsDisplaySettings = [bool]$caps.SupportsDisplaySettings
+                            SupportsToolbarSettings = [bool]$caps.SupportsToolbarSettings
                             SupportsIpTable     = [bool]$caps.SupportsIpTable
                             SupportsNetwork     = [bool]$caps.SupportsNetwork
                             SupportsWifi        = [bool]$caps.SupportsWifi
@@ -4419,6 +4454,7 @@ function Start-BlanketCapabilityFetch {
                         SupportsFusion      = $false
                         SupportsAutoUpdate  = $false
                         SupportsDisplaySettings = $false
+                        SupportsToolbarSettings = $false
                         SupportsIpTable     = $false
                         SupportsNetwork     = $false
                         SupportsWifi        = $false
@@ -4477,6 +4513,7 @@ function Start-BlanketCapabilityFetch {
                 'SupportsFusion',
                 'SupportsAutoUpdate',
                 'SupportsDisplaySettings',
+                'SupportsToolbarSettings',
                 'SupportsIpTable',
                 'SupportsNetwork',
                 'SupportsWifi',
@@ -4500,6 +4537,7 @@ function Start-BlanketCapabilityFetch {
                         'SupportsFusion'      { $false }
                         'SupportsAutoUpdate'  { $false }
                         'SupportsDisplaySettings' { $false }
+                        'SupportsToolbarSettings' { $false }
                         'SupportsIpTable'     { $false }
                         'SupportsNetwork'     { $false }
                         'SupportsWifi'        { $false }
@@ -4529,6 +4567,7 @@ function Start-BlanketCapabilityFetch {
                 $row.SupportsFusion      = [bool]$item.SupportsFusion
                 $row.SupportsAutoUpdate  = [bool]$item.SupportsAutoUpdate
                 $row.SupportsDisplaySettings = [bool]$item.SupportsDisplaySettings
+                $row.SupportsToolbarSettings = [bool]$item.SupportsToolbarSettings
                 $row.SupportsIpTable     = [bool]$item.SupportsIpTable
                 $row.SupportsNetwork     = [bool]$item.SupportsNetwork
                 $row.SupportsWifi        = [bool]$item.SupportsWifi
@@ -4633,12 +4672,26 @@ function Show-RebootNeededNotice {
         return 'None'
     }
 
-    $result = [System.Windows.MessageBox]::Show(
-        "$Count device(s) require a reboot for changes to take effect.`n`nThe Reboot? box has been checked automatically.`n`nReboot now?",
-        "Reboot required",
-        'YesNo',
-        'Warning'
-    )
+    $message = "$Count device(s) require a reboot for changes to take effect.`n`nThe Reboot? box has been checked automatically.`n`nReboot now?"
+
+    Show-WindowInForeground $window
+    $result = if ($window) {
+        [System.Windows.MessageBox]::Show(
+            $window,
+            $message,
+            "Reboot required",
+            [System.Windows.MessageBoxButton]::YesNo,
+            [System.Windows.MessageBoxImage]::Warning
+        )
+    }
+    else {
+        [System.Windows.MessageBox]::Show(
+            $message,
+            "Reboot required",
+            [System.Windows.MessageBoxButton]::YesNo,
+            [System.Windows.MessageBoxImage]::Warning
+        )
+    }
 
     if ($result -eq 'Yes') {
         Update-Status "$Count device(s) in $AreaName require reboot. User chose Reboot Now."
@@ -4819,6 +4872,7 @@ function Start-BlanketApply {
             AutoBrightness     = $autoBrightness
             ScreensaverEnabled = [bool]$Script:UI.DisplayScreensaverOnRadio.IsChecked
             StandbyTimeout     = $standbyTimeout
+            ToolbarEnabled     = [bool]$Script:UI.DisplayToolbarOnRadio.IsChecked
         }
 
         if (-not $autoBrightness) {
@@ -4867,7 +4921,7 @@ function Start-BlanketApply {
     if ($applyFusion) { $bits += "Fusion=$(if ($fusion) { 'ON' } else { 'OFF' })" }
     if ($applyAuto)   { $bits += "AutoUpdate=$(if ($autoUpdate.Enabled) { 'ON' } else { 'OFF' })" }
     if ($applyDisplay) {
-        $displayBit = "Display AutoBrightness=$(if ($displaySettings.AutoBrightness) { 'ON' } else { 'OFF' }) Screensaver=$(if ($displaySettings.ScreensaverEnabled) { 'ON' } else { 'OFF' }) Standby=$($displaySettings.StandbyTimeout)"
+        $displayBit = "Display AutoBrightness=$(if ($displaySettings.AutoBrightness) { 'ON' } else { 'OFF' }) Screensaver=$(if ($displaySettings.ScreensaverEnabled) { 'ON' } else { 'OFF' }) Standby=$($displaySettings.StandbyTimeout) Toolbar=$(if ($displaySettings.ToolbarEnabled) { 'ON' } else { 'OFF' })"
         if ($displaySettings.ContainsKey('Brightness')) {
             $displayBit += " Brightness=$($displaySettings.Brightness)"
         }
@@ -4902,6 +4956,11 @@ function Start-BlanketApply {
     $Script:UI.BlanketProgressText.Text = "Applying to $($selectedIPs.Count) device(s)..."
     Set-BlanketControls $true
     Update-Status "Applying blanket settings to $($selectedIPs.Count) device(s)..."
+    Show-BusyDialog `
+        -Key 'BlanketApply' `
+        -Title 'Applying blanket settings' `
+        -Message "Applying blanket settings to $($selectedIPs.Count) device(s)..." `
+        -Status 'Starting apply...'
 
     if ($Script:WorkflowState -and
         $Script:WorkflowState.CurrentStep -eq 2 -and
@@ -4930,6 +4989,7 @@ function Start-BlanketApply {
             SupportsFusion      = [bool]$_.SupportsFusion
             SupportsAutoUpdate  = [bool]$_.SupportsAutoUpdate
             SupportsDisplaySettings = [bool]$_.SupportsDisplaySettings
+            SupportsToolbarSettings = [bool]$_.SupportsToolbarSettings
             SupportsModeChange  = [bool]$_.SupportsModeChange
             CapabilitiesFetched = [bool]$_.CapabilitiesFetched
         }
@@ -5165,19 +5225,34 @@ function Start-BlanketApply {
 
                         if ($displayArg) {
                             try {
-                                if ($rowArg.CapabilitiesFetched -and -not $rowArg.SupportsDisplaySettings) {
+                                if ($rowArg.CapabilitiesFetched -and
+                                    -not $rowArg.SupportsDisplaySettings -and
+                                    -not $rowArg.SupportsToolbarSettings) {
                                     $stepResults += "Display=skipped; unsupported on $($rowArg.Model)"
                                 }
                                 else {
                                     $displayCallArgs = @{
-                                        Session              = $sess
-                                        AutoBrightness       = [bool]$displayArg.AutoBrightness
-                                        ScreensaverEnabled   = [bool]$displayArg.ScreensaverEnabled
-                                        StandbyTimeout       = [int]$displayArg.StandbyTimeout
+                                        Session = $sess
                                     }
 
-                                    if ($displayArg.ContainsKey('Brightness')) {
+                                    if (-not $rowArg.CapabilitiesFetched -or [bool]$rowArg.SupportsDisplaySettings) {
+                                        $displayCallArgs.AutoBrightness = [bool]$displayArg.AutoBrightness
+                                        $displayCallArgs.ScreensaverEnabled = [bool]$displayArg.ScreensaverEnabled
+                                        $displayCallArgs.StandbyTimeout = [int]$displayArg.StandbyTimeout
+                                    }
+
+                                    if ($displayArg.ContainsKey('Brightness') -and
+                                        (-not $rowArg.CapabilitiesFetched -or [bool]$rowArg.SupportsDisplaySettings)) {
                                         $displayCallArgs.Brightness = [int]$displayArg.Brightness
+                                    }
+
+                                    if (-not $rowArg.CapabilitiesFetched -or [bool]$rowArg.SupportsToolbarSettings) {
+                                        $displayCallArgs.ToolbarEnabled = [bool]$displayArg.ToolbarEnabled
+                                    }
+
+                                    if ($displayCallArgs.Count -le 1) {
+                                        $stepResults += "Display=skipped; no supported display/toolbar fields on $($rowArg.Model)"
+                                        continue
                                     }
 
                                     $rDisplay = Set-CrestronDisplaySettings @displayCallArgs
@@ -5429,6 +5504,14 @@ function Start-BlanketApply {
 
         $Script:UI.BlanketGrid.Items.Refresh()
         Update-BlanketSummary
+        $applyRows = @($selectedIPs | ForEach-Object { $Script:BlanketState.RowsByIP[$_] } | Where-Object { $_ })
+        $okCount = @($applyRows | Where-Object { $_.Status -eq 'OK' }).Count
+        $errorCount = @($applyRows | Where-Object { @('Partial','Error') -contains $_.Status -or $_.Detail -like 'ERROR:*' }).Count
+        $doneCount = $okCount + $errorCount
+        $workingCount = @($applyRows | Where-Object { @('Pending','Working') -contains $_.Status }).Count
+        Update-BusyDialog `
+            -Key 'BlanketApply' `
+            -Status "Processed $doneCount/$($selectedIPs.Count)  OK: $okCount  Errors: $errorCount  Working: $workingCount"
 
         if ($Script:BlanketState.DoneRef.Value -and $Script:BlanketState.Queue.IsEmpty) {
             Stop-BlanketRunspace
@@ -5438,6 +5521,7 @@ function Start-BlanketApply {
             $ok = ($Script:BlanketState.Rows | Where-Object Status -eq 'OK').Count
             $Script:UI.BlanketProgressText.Text = "Done. $ok device(s) OK."
             Update-Status "Apply complete. $ok device(s) OK. Saved $($Script:AppState.SettingsCsv)"
+            Close-BusyDialog -Key 'BlanketApply'
 
             Invoke-RebootNeededRows `
                 -Rows @($Script:BlanketState.Rows) `
@@ -5465,6 +5549,7 @@ function Stop-BlanketApply {
     Set-BlanketControls $false
     $Script:UI.BlanketProgressText.Text = 'Cancelled.'
     Update-Status 'Apply cancelled.'
+    Close-BusyDialog -Key 'BlanketApply'
     Close-BusyDialog -Key 'BlanketCapabilityFetch'
 
     if ($Script:WorkflowState -and
@@ -5614,6 +5699,21 @@ function Test-PerDeviceValue {
     return (-not [string]::IsNullOrWhiteSpace($text)) -and ($text -ne 'N/A')
 }
 
+function Get-PerDeviceRowByIP {
+    param($IP)
+
+    $key = "$IP".Trim()
+    if ([string]::IsNullOrWhiteSpace($key)) {
+        return $null
+    }
+
+    if ($Script:PerDeviceState.RowsByIP -and $Script:PerDeviceState.RowsByIP.ContainsKey($key)) {
+        return $Script:PerDeviceState.RowsByIP[$key]
+    }
+
+    return $null
+}
+
 function ConvertTo-PerDeviceToggleText {
     param($Value)
 
@@ -5668,8 +5768,10 @@ function Test-PerDeviceDisplayChanged {
                           "$($Row.NewScreensaver)" -ne "$($Row.CurrentScreensaver)"
     $standbyChanged = (Test-PerDeviceValue $Row.NewStandbyTimeout) -and
                       "$($Row.NewStandbyTimeout)" -ne "$($Row.CurrentStandbyTimeout)"
+    $toolbarChanged = ($Row.NewToolbar -in 'Enabled','Disabled') -and
+                      "$($Row.NewToolbar)" -ne "$($Row.CurrentToolbar)"
 
-    return ($autoChanged -or $brightnessChanged -or $screensaverChanged -or $standbyChanged)
+    return ($autoChanged -or $brightnessChanged -or $screensaverChanged -or $standbyChanged -or $toolbarChanged)
 }
 
 function ConvertTo-PerDeviceInputHdcpMode {
@@ -6017,10 +6119,12 @@ function Load-PerDeviceFromProvision {
             OutputResolutionOptions  = @()
             CurrentGlobalEdid        = ''
             SupportsDisplaySettings  = $false
+            SupportsToolbarSettings  = $false
             CurrentAutoBrightness    = 'N/A'
             CurrentBrightness        = 'N/A'
             CurrentScreensaver       = 'N/A'
             CurrentStandbyTimeout    = 'N/A'
+            CurrentToolbar           = 'N/A'
 
             NewHostname              = 'N/A'
             IPMode                   = 'N/A'
@@ -6035,6 +6139,7 @@ function Load-PerDeviceFromProvision {
             NewBrightness            = 'N/A'
             NewScreensaver           = 'N/A'
             NewStandbyTimeout        = 'N/A'
+            NewToolbar               = 'N/A'
             NewIP                    = 'N/A'
             SubnetMask               = 'N/A'
             Gateway                  = 'N/A'
@@ -6068,11 +6173,12 @@ function Save-PerDeviceCsv {
                     SupportsInputEdid, SupportsEdidEdit, EdidNames,
                     SupportsAvMulticast, CurrentTransmitMulticast, CurrentReceiveMulticast,
                     CurrentInputHdcp, CurrentOutputHdcp, CurrentOutputResolution, CurrentGlobalEdid,
-                    SupportsDisplaySettings, CurrentAutoBrightness, CurrentBrightness, CurrentScreensaver, CurrentStandbyTimeout,
+                    SupportsDisplaySettings, SupportsToolbarSettings,
+                    CurrentAutoBrightness, CurrentBrightness, CurrentScreensaver, CurrentStandbyTimeout, CurrentToolbar,
                     NewHostname, IPMode, DeviceMode,
                     NewInputHdcp, NewOutputHdcp, NewOutputResolution, NewGlobalEdidName,
                     NewMulticastAddress, MulticastStreamIndex,
-                    NewAutoBrightness, NewBrightness, NewScreensaver, NewStandbyTimeout,
+                    NewAutoBrightness, NewBrightness, NewScreensaver, NewStandbyTimeout, NewToolbar,
                     NewIP, SubnetMask, Gateway,
                     PrimaryDns, SecondaryDns, DisableWifi,
                     NewIpId, NewControlSystemAddr, NewRoomId,
@@ -6173,12 +6279,20 @@ function Start-PerDeviceFetch {
                     try {
                         $state = Get-CrestronDeviceState -Session $sess
                         $av = $null
+                        $displaySettings = $null
 
                         try {
                             $av = Get-CrestronAvSettings -Session $sess
                         }
                         catch {
                             $av = $null
+                        }
+
+                        try {
+                            $displaySettings = Get-CrestronDisplaySettings -Session $sess
+                        }
+                        catch {
+                            $displaySettings = $null
                         }
 
                         $dnsArr = @($state.DnsServers)
@@ -6204,6 +6318,103 @@ function Start-PerDeviceFetch {
                         $modelText = "$($sess.Model)"
                         if ([string]::IsNullOrWhiteSpace($modelText)) {
                             $modelText = "$($state.Model)"
+                        }
+
+                        $modelKeyForDisplay = "$modelText".Trim().ToUpperInvariant()
+                        $modelLooksDisplayCapable = $modelKeyForDisplay -match '^(TS|TSW|TSS|TST|DGE)(-|$)'
+                        $supportsDisplaySettings =
+                            (($displaySettings -and [bool]$displaySettings.SupportsDisplaySettings) -or
+                             [bool]$state.SupportsDisplaySettings -or
+                             $modelLooksDisplayCapable)
+                        $currentAutoBrightness = if ($displaySettings -and $null -ne $displaySettings.AutoBrightness) {
+                            $displaySettings.AutoBrightness
+                        }
+                        else {
+                            $state.CurrentAutoBrightness
+                        }
+
+                        $currentBrightness = if ($displaySettings -and $null -ne $displaySettings.Brightness) {
+                            $displaySettings.Brightness
+                        }
+                        else {
+                            $state.CurrentBrightness
+                        }
+
+                        $currentScreensaver = if ($displaySettings -and $null -ne $displaySettings.ScreensaverEnabled) {
+                            $displaySettings.ScreensaverEnabled
+                        }
+                        else {
+                            $state.CurrentScreensaverEnabled
+                        }
+
+                        $currentStandbyTimeout = if ($displaySettings -and $null -ne $displaySettings.StandbyTimeout) {
+                            $displaySettings.StandbyTimeout
+                        }
+                        else {
+                            $state.CurrentStandbyTimeout
+                        }
+
+                        $currentToolbar = if ($displaySettings -and $null -ne $displaySettings.ToolbarEnabled) {
+                            $displaySettings.ToolbarEnabled
+                        }
+                        elseif ($state.PSObject.Properties.Name -contains 'CurrentToolbarEnabled') {
+                            $state.CurrentToolbarEnabled
+                        }
+                        else {
+                            $null
+                        }
+                        if ($null -eq $currentToolbar -and $displaySettings -and $displaySettings.RawJson) {
+                            try {
+                                $virtualButtons = $displaySettings.RawJson.Device.Display.VirtualButtons
+                                if ($null -ne $virtualButtons -and
+                                    $virtualButtons.PSObject.Properties.Name -contains 'IsShowOnWakeEnabled') {
+                                    $currentToolbar = [bool]$virtualButtons.IsShowOnWakeEnabled
+                                }
+                                elseif ($null -ne $virtualButtons -and
+                                        $virtualButtons.PSObject.Properties.Name -contains 'IsShowDuringStandbyEnabled') {
+                                    $currentToolbar = [bool]$virtualButtons.IsShowDuringStandbyEnabled
+                                }
+                            }
+                            catch { }
+                        }
+
+                        $toolbarPath = if ($displaySettings -and $displaySettings.PSObject.Properties.Name -contains 'ToolbarPath') {
+                            "$($displaySettings.ToolbarPath)"
+                        }
+                        elseif ($state.PSObject.Properties.Name -contains 'ToolbarPath') {
+                            "$($state.ToolbarPath)"
+                        }
+                        else {
+                            ''
+                        }
+                        $toolbarPathName = if ($displaySettings -and $displaySettings.PSObject.Properties.Name -contains 'ToolbarPathName') {
+                            "$($displaySettings.ToolbarPathName)"
+                        }
+                        else {
+                            ''
+                        }
+                        $toolbarEndpointFound = -not [string]::IsNullOrWhiteSpace($toolbarPath)
+                        $supportsToolbarSettings =
+                            ($null -ne $currentToolbar) -or
+                            ($modelLooksDisplayCapable -and $toolbarEndpointFound)
+
+                        $toolbarDebugJson = ''
+                        if ($modelLooksDisplayCapable -and $toolbarEndpointFound -and $null -eq $currentToolbar -and $displaySettings) {
+                            try {
+                                $toolbarDebugJson = ([pscustomobject]@{
+                                    IP                  = $ip
+                                    Model               = $modelText
+                                    Hostname            = "$($state.Hostname)"
+                                    ToolbarPath         = $toolbarPath
+                                    ToolbarPathName     = $toolbarPathName
+                                    ToolbarEnabled      = $displaySettings.ToolbarEnabled
+                                    RawJson             = $displaySettings.RawJson
+                                    FetchedAt           = (Get-Date).ToString('s')
+                                } | ConvertTo-Json -Depth 30 -Compress)
+                            }
+                            catch {
+                                $toolbarDebugJson = ''
+                            }
                         }
 
                         if ($av) {
@@ -6438,11 +6649,14 @@ function Start-PerDeviceFetch {
                             CurrentOutputHdcp        = $currentOutputHdcp
                             CurrentOutputResolution  = $currentOutputResolution
                             CurrentGlobalEdid        = $currentGlobalEdid
-                            SupportsDisplaySettings  = [bool]$state.SupportsDisplaySettings
-                            CurrentAutoBrightness    = $state.CurrentAutoBrightness
-                            CurrentBrightness        = $state.CurrentBrightness
-                            CurrentScreensaverEnabled = $state.CurrentScreensaverEnabled
-                            CurrentStandbyTimeout    = $state.CurrentStandbyTimeout
+                            SupportsDisplaySettings  = [bool]$supportsDisplaySettings
+                            SupportsToolbarSettings  = [bool]$supportsToolbarSettings
+                            ToolbarDebugJson         = $toolbarDebugJson
+                            CurrentAutoBrightness    = $currentAutoBrightness
+                            CurrentBrightness        = $currentBrightness
+                            CurrentScreensaver       = $currentScreensaver
+                            CurrentStandbyTimeout    = $currentStandbyTimeout
+                            CurrentToolbar           = $currentToolbar
                             AvInputRows              = $avInputRows
                             AvOutputRows             = $avOutputRows
                             MulticastRows            = $multicastRows
@@ -6488,7 +6702,18 @@ function Start-PerDeviceFetch {
                 continue
             }
 
-            $row = $Script:PerDeviceState.RowsByIP[$item.IP]
+            if ($item.PSObject.Properties.Name -contains 'ToolbarDebugJson' -and
+                -not [string]::IsNullOrWhiteSpace("$($item.ToolbarDebugJson)")) {
+                try {
+                    Add-Content `
+                        -LiteralPath (Join-Path $Script:AppState.WorkspaceDirectory 'crestron-toolbar-debug.jsonl') `
+                        -Value "$($item.ToolbarDebugJson)" `
+                        -Encoding UTF8
+                }
+                catch { }
+            }
+
+            $row = Get-PerDeviceRowByIP $item.IP
 
             if (-not $row) {
                 continue
@@ -6521,10 +6746,12 @@ function Start-PerDeviceFetch {
                 'OutputResolutionOptions',
                 'CurrentGlobalEdid',
                 'SupportsDisplaySettings',
+                'SupportsToolbarSettings',
                 'CurrentAutoBrightness',
                 'CurrentBrightness',
                 'CurrentScreensaver',
                 'CurrentStandbyTimeout',
+                'CurrentToolbar',
                 'NewHostname',
                 'IPMode',
                 'NewInputHdcp',
@@ -6537,6 +6764,7 @@ function Start-PerDeviceFetch {
                 'NewBrightness',
                 'NewScreensaver',
                 'NewStandbyTimeout',
+                'NewToolbar',
                 'DeviceMode',
                 'Status',
                 'NeedsReboot'
@@ -6569,10 +6797,12 @@ function Start-PerDeviceFetch {
                         'OutputResolutionOptions' { @() }
                         'CurrentGlobalEdid' { '' }
                         'SupportsDisplaySettings' { $false }
+                        'SupportsToolbarSettings' { $false }
                         'CurrentAutoBrightness' { 'N/A' }
                         'CurrentBrightness' { 'N/A' }
                         'CurrentScreensaver' { 'N/A' }
                         'CurrentStandbyTimeout' { 'N/A' }
+                        'CurrentToolbar' { 'N/A' }
                         'NewHostname' { 'N/A' }
                         'IPMode' { 'N/A' }
                         'NewInputHdcp' { 'N/A' }
@@ -6585,6 +6815,7 @@ function Start-PerDeviceFetch {
                         'NewBrightness' { 'N/A' }
                         'NewScreensaver' { 'N/A' }
                         'NewStandbyTimeout' { 'N/A' }
+                        'NewToolbar' { 'N/A' }
                         'DeviceMode'         { 'N/A' }
                         'Status'             { '' }
                         'NeedsReboot'        { $false }
@@ -6604,7 +6835,7 @@ function Start-PerDeviceFetch {
                 $row.Status = 'Error'
             }
 
-            if ($item.Model) {
+            if ($item.Status -eq 'OK' -or ($item.PSObject.Properties.Name -contains 'CurrentHostname')) {
                 $row.Model                    = $item.Model
                 $row.CurrentHostname          = "$($item.CurrentHostname)"
                 $row.CurrentDhcp              = $item.CurrentDhcp
@@ -6637,11 +6868,19 @@ function Start-PerDeviceFetch {
                 $row.OutputResolutionOptions  = Get-OutputResolutionOptions $row.CurrentOutputResolution
                 $row.CurrentGlobalEdid        = "$($item.CurrentGlobalEdid)"
                 $row.SupportsDisplaySettings  = [bool]$item.SupportsDisplaySettings
+                $row.SupportsToolbarSettings  = [bool]$item.SupportsToolbarSettings
 
                 if ([bool]$item.SupportsDisplaySettings) {
+                    $itemScreensaver = if ($item.PSObject.Properties.Name -contains 'CurrentScreensaver') {
+                        $item.CurrentScreensaver
+                    }
+                    else {
+                        $item.CurrentScreensaverEnabled
+                    }
+
                     $row.CurrentAutoBrightness = ConvertTo-PerDeviceToggleText $item.CurrentAutoBrightness
                     $row.CurrentBrightness = if ($null -ne $item.CurrentBrightness) { "$($item.CurrentBrightness)" } else { 'N/A' }
-                    $row.CurrentScreensaver = ConvertTo-PerDeviceToggleText $item.CurrentScreensaverEnabled
+                    $row.CurrentScreensaver = ConvertTo-PerDeviceToggleText $itemScreensaver
                     $row.CurrentStandbyTimeout = if ($null -ne $item.CurrentStandbyTimeout) { "$($item.CurrentStandbyTimeout)" } else { 'N/A' }
                     $row.NewAutoBrightness = "$($row.CurrentAutoBrightness)"
                     $row.NewBrightness = "$($row.CurrentBrightness)"
@@ -6657,6 +6896,15 @@ function Start-PerDeviceFetch {
                     $row.NewBrightness = 'N/A'
                     $row.NewScreensaver = 'N/A'
                     $row.NewStandbyTimeout = 'N/A'
+                }
+
+                if ([bool]$item.SupportsToolbarSettings) {
+                    $row.CurrentToolbar = ConvertTo-PerDeviceToggleText $item.CurrentToolbar
+                    $row.NewToolbar = "$($row.CurrentToolbar)"
+                }
+                else {
+                    $row.CurrentToolbar = 'N/A'
+                    $row.NewToolbar = 'N/A'
                 }
 
                 if ([bool]$item.SupportsNetwork) {
@@ -6970,8 +7218,21 @@ function Test-PerDeviceRow ($row) {
     }
 
     if (Test-PerDeviceDisplayChanged $row) {
-        if (-not [bool]$row.SupportsDisplaySettings) {
+        $displayOnlyChanged =
+            (($row.NewAutoBrightness -in 'Enabled','Disabled') -and "$($row.NewAutoBrightness)" -ne "$($row.CurrentAutoBrightness)") -or
+            ((Test-PerDeviceValue $row.NewBrightness) -and "$($row.NewBrightness)" -ne "$($row.CurrentBrightness)") -or
+            (($row.NewScreensaver -in 'Enabled','Disabled') -and "$($row.NewScreensaver)" -ne "$($row.CurrentScreensaver)") -or
+            ((Test-PerDeviceValue $row.NewStandbyTimeout) -and "$($row.NewStandbyTimeout)" -ne "$($row.CurrentStandbyTimeout)")
+
+        $toolbarChanged = ($row.NewToolbar -in 'Enabled','Disabled') -and
+                          "$($row.NewToolbar)" -ne "$($row.CurrentToolbar)"
+
+        if ($displayOnlyChanged -and -not [bool]$row.SupportsDisplaySettings) {
             return "Display settings selected, but this device does not expose display settings"
+        }
+
+        if ($toolbarChanged -and -not [bool]$row.SupportsToolbarSettings) {
+            return "Toolbar setting selected, but this device does not expose toolbar settings"
         }
 
         if ((Test-PerDeviceValue $row.NewBrightness) -and "$($row.NewBrightness)" -ne "$($row.CurrentBrightness)") {
@@ -7194,8 +7455,18 @@ function Start-PerDeviceApply {
     }
 
     $rowsForApply = @($applyIps | ForEach-Object {
-        $Script:PerDeviceState.RowsByIP[$_]
+        Get-PerDeviceRowByIP $_
     } | Where-Object { $_ })
+
+    if ($rowsForApply.Count -eq 0) {
+        [System.Windows.MessageBox]::Show(
+            "The pending changes did not match any loaded device rows. Refresh the Per-Device tab and try again.",
+            "Nothing to apply",
+            'OK',
+            'Warning'
+        ) | Out-Null
+        return
+    }
 
     # Validate
     $errors = @()
@@ -7268,6 +7539,11 @@ function Start-PerDeviceApply {
     $Script:UI.PerDeviceProgressText.Text = "Applying to $($applyIps.Count) device(s)..."
     Set-PerDeviceControls $true
     Update-Status "Applying per-device changes to $($applyIps.Count) device(s)..."
+    Show-BusyDialog `
+        -Key 'PerDeviceApply' `
+        -Title 'Applying per-device settings' `
+        -Message "Applying pending per-device changes to $($applyIps.Count) device(s)..." `
+        -Status 'Starting apply...'
 
     # Serialize rows as plain hashtables so they cross the runspace boundary
     $rowData = $rowsForApply | ForEach-Object {
@@ -7295,6 +7571,7 @@ function Start-PerDeviceApply {
             NewGlobalEdidName        = $_.NewGlobalEdidName
             CurrentGlobalEdid        = $_.CurrentGlobalEdid
             SupportsDisplaySettings  = [bool]$_.SupportsDisplaySettings
+            SupportsToolbarSettings  = [bool]$_.SupportsToolbarSettings
             NewAutoBrightness        = $_.NewAutoBrightness
             CurrentAutoBrightness    = $_.CurrentAutoBrightness
             NewBrightness            = $_.NewBrightness
@@ -7303,6 +7580,8 @@ function Start-PerDeviceApply {
             CurrentScreensaver       = $_.CurrentScreensaver
             NewStandbyTimeout        = $_.NewStandbyTimeout
             CurrentStandbyTimeout    = $_.CurrentStandbyTimeout
+            NewToolbar               = $_.NewToolbar
+            CurrentToolbar           = $_.CurrentToolbar
             SupportsAvMulticast      = [bool]$_.SupportsAvMulticast
             CurrentTransmitMulticast = $_.CurrentTransmitMulticast
             CurrentReceiveMulticast  = $_.CurrentReceiveMulticast
@@ -7454,6 +7733,7 @@ function Start-PerDeviceApply {
                     $stepResults = @()
                     $allOk = $true
                     $needsReboot = $false
+                    $toolbarApplyDebugJson = $null
 
                     function Test-PerDeviceValue {
                         param($Value)
@@ -7590,11 +7870,20 @@ function Start-PerDeviceApply {
                         $displayChanged = (($row.NewAutoBrightness -in 'Enabled','Disabled') -and "$($row.NewAutoBrightness)" -ne "$($row.CurrentAutoBrightness)") -or
                                           ((Test-PerDeviceValue $row.NewBrightness) -and "$($row.NewBrightness)" -ne "$($row.CurrentBrightness)") -or
                                           (($row.NewScreensaver -in 'Enabled','Disabled') -and "$($row.NewScreensaver)" -ne "$($row.CurrentScreensaver)") -or
-                                          ((Test-PerDeviceValue $row.NewStandbyTimeout) -and "$($row.NewStandbyTimeout)" -ne "$($row.CurrentStandbyTimeout)")
+                                          ((Test-PerDeviceValue $row.NewStandbyTimeout) -and "$($row.NewStandbyTimeout)" -ne "$($row.CurrentStandbyTimeout)") -or
+                                          (($row.NewToolbar -in 'Enabled','Disabled') -and "$($row.NewToolbar)" -ne "$($row.CurrentToolbar)")
 
                         if ($displayChanged) {
                             try {
-                                if (-not [bool]$row.SupportsDisplaySettings) {
+                                $displayOnlyChanged = (($row.NewAutoBrightness -in 'Enabled','Disabled') -and "$($row.NewAutoBrightness)" -ne "$($row.CurrentAutoBrightness)") -or
+                                                      ((Test-PerDeviceValue $row.NewBrightness) -and "$($row.NewBrightness)" -ne "$($row.CurrentBrightness)") -or
+                                                      (($row.NewScreensaver -in 'Enabled','Disabled') -and "$($row.NewScreensaver)" -ne "$($row.CurrentScreensaver)") -or
+                                                      ((Test-PerDeviceValue $row.NewStandbyTimeout) -and "$($row.NewStandbyTimeout)" -ne "$($row.CurrentStandbyTimeout)")
+                                $toolbarChanged = ($row.NewToolbar -in 'Enabled','Disabled') -and
+                                                  "$($row.NewToolbar)" -ne "$($row.CurrentToolbar)"
+
+                                if (($displayOnlyChanged -and -not [bool]$row.SupportsDisplaySettings) -or
+                                    ($toolbarChanged -and -not [bool]$row.SupportsToolbarSettings)) {
                                     $stepResults += "Display=skipped; unsupported"
                                     $allOk = $false
                                 }
@@ -7619,8 +7908,33 @@ function Start-PerDeviceApply {
                                         $displayArgs.StandbyTimeout = [int]$row.NewStandbyTimeout
                                     }
 
+                                    if ($toolbarChanged) {
+                                        $displayArgs.ToolbarEnabled = ConvertFrom-PerDeviceToggleText $row.NewToolbar
+                                    }
+
                                     $rDisplay = Set-CrestronDisplaySettings @displayArgs
                                     $stepResults += "Display=$(if($rDisplay.Success){'OK'}else{$rDisplay.Status})"
+
+                                    if ($toolbarChanged) {
+                                        try {
+                                            $toolbarApplyDebugJson = ([pscustomobject]@{
+                                                IP               = $row.IP
+                                                Model            = $row.Model
+                                                Hostname         = $row.Hostname
+                                                CurrentToolbar   = $row.CurrentToolbar
+                                                RequestedToolbar = $row.NewToolbar
+                                                RequestPath      = $rDisplay.RequestPath
+                                                RequestPayload   = $rDisplay.RequestPayload
+                                                ToolbarPath      = $rDisplay.ToolbarPath
+                                                Status           = $rDisplay.Status
+                                                Success          = $rDisplay.Success
+                                                SectionResults   = $rDisplay.SectionResults
+                                                Response         = $rDisplay.Response
+                                                Timestamp        = (Get-Date).ToString('s')
+                                            } | ConvertTo-Json -Depth 12 -Compress)
+                                        }
+                                        catch { }
+                                    }
 
                                     if (Test-ResultNeedsReboot $rDisplay) {
                                         $needsReboot = $true
@@ -8202,6 +8516,7 @@ function Start-PerDeviceApply {
                             Status      = if ($allOk) { 'OK' } else { 'Partial' }
                             Detail      = ($stepResults -join '; ')
                             NeedsReboot = $needsReboot
+                            ToolbarApplyDebugJson = $toolbarApplyDebugJson
                             Timestamp   = (Get-Date).ToString('s')
                         })
                     } finally {
@@ -8245,7 +8560,7 @@ function Start-PerDeviceApply {
                 continue
             }
 
-            $row = $Script:PerDeviceState.RowsByIP[$item.IP]
+            $row = Get-PerDeviceRowByIP $item.IP
             if (-not $row) { continue }
 
             $row.Status = $item.Status
@@ -8254,6 +8569,17 @@ function Start-PerDeviceApply {
                 $row.Detail      = $item.Detail
                 $row.NeedsReboot = [bool]$item.NeedsReboot
                 $row.Timestamp   = $item.Timestamp
+
+                if ($item.PSObject.Properties.Name -contains 'ToolbarApplyDebugJson' -and
+                    -not [string]::IsNullOrWhiteSpace("$($item.ToolbarApplyDebugJson)")) {
+                    try {
+                        Add-Content `
+                            -LiteralPath (Join-Path $Script:AppState.WorkspaceDirectory 'crestron-toolbar-apply-debug.jsonl') `
+                            -Value "$($item.ToolbarApplyDebugJson)" `
+                            -Encoding UTF8
+                    }
+                    catch { }
+                }
             }
         }
 
@@ -8263,6 +8589,14 @@ function Start-PerDeviceApply {
         $Script:UI.PerDeviceMulticastGrid.Items.Refresh()
         $Script:UI.PerDeviceControlSubnetGrid.Items.Refresh()
         Update-PerDeviceSummary
+        $applyRows = @($applyIps | ForEach-Object { Get-PerDeviceRowByIP $_ } | Where-Object { $_ })
+        $okCount = @($applyRows | Where-Object { $_.Status -eq 'OK' }).Count
+        $errorCount = @($applyRows | Where-Object { @('Partial','Error') -contains $_.Status -or $_.Detail -like 'ERROR:*' }).Count
+        $doneCount = $okCount + $errorCount
+        $workingCount = @($applyRows | Where-Object { @('Pending','Working') -contains $_.Status }).Count
+        Update-BusyDialog `
+            -Key 'PerDeviceApply' `
+            -Status "Processed $doneCount/$($applyIps.Count)  OK: $okCount  Errors: $errorCount  Working: $workingCount"
 
         if ($Script:PerDeviceState.DoneRef.Value -and $Script:PerDeviceState.Queue.IsEmpty) {
             Stop-PerDeviceRunspace
@@ -8272,6 +8606,7 @@ function Start-PerDeviceApply {
             $ok = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
             $Script:UI.PerDeviceProgressText.Text = "Done. $ok device(s) OK."
             Update-Status "Per-device apply complete. $ok OK. Saved $($Script:AppState.PerDeviceCsv)"
+            Close-BusyDialog -Key 'PerDeviceApply'
 
             Invoke-RebootNeededRows `
                 -Rows @($Script:PerDeviceState.Rows) `
@@ -8292,6 +8627,7 @@ function Stop-PerDeviceApply {
     Set-PerDeviceControls $false
     $Script:UI.PerDeviceProgressText.Text = 'Cancelled.'
     Update-Status 'Per-device apply cancelled.'
+    Close-BusyDialog -Key 'PerDeviceApply'
     Close-BusyDialog -Key 'PerDeviceFetch'
 }
 
@@ -8340,10 +8676,22 @@ $Script:UI.PerDeviceGrid.Add_BeginningEdit({
         }
     }
 
-    if ($header -in @('Auto Brightness','Brightness','Screensaver','Standby Timeout')) {
+    if ($header -in @('Auto Brightness','Brightness','Screensaver','Standby Timeout','Toolbar')) {
         $row = $e.Row.Item
 
-        if (-not $row -or -not [bool]$row.SupportsDisplaySettings) {
+        if (-not $row) {
+            $e.Cancel = $true
+            return
+        }
+
+        if ($header -eq 'Toolbar') {
+            if (-not [bool]$row.SupportsToolbarSettings) {
+                $e.Cancel = $true
+            }
+            return
+        }
+
+        if (-not [bool]$row.SupportsDisplaySettings) {
             $e.Cancel = $true
         }
     }
@@ -8420,6 +8768,7 @@ function Stop-RebootRunspace {
 
     $Script:RebootState.Queue = $null
     $Script:RebootState.DoneRef = $null
+    Close-BusyDialog -Key 'RebootSend'
 }
 
 function Show-RebootWaitDialog {
@@ -8574,6 +8923,7 @@ function Show-RebootWaitDialog {
 
     $dlg.Add_ContentRendered({
         Apply-GuiThemeToRoot -Root $dlg -DarkMode:(Get-GuiDarkModeEnabled)
+        Show-WindowInForeground $dlg
         $timer.Start()
     })
 
@@ -8617,7 +8967,24 @@ function Invoke-RebootBulk {
 
     if (-not $SkipConfirm) {
         $msg = "Reboot $($targetIps.Count) device(s)?`n`nThis will disconnect each device immediately. Pending settings changes will take effect after the reboot."
-        $ans = [System.Windows.MessageBox]::Show($msg, "Confirm reboot", 'YesNo', 'Warning')
+        Show-WindowInForeground $window
+        $ans = if ($window) {
+            [System.Windows.MessageBox]::Show(
+                $window,
+                $msg,
+                "Confirm reboot",
+                [System.Windows.MessageBoxButton]::YesNo,
+                [System.Windows.MessageBoxImage]::Warning
+            )
+        }
+        else {
+            [System.Windows.MessageBox]::Show(
+                $msg,
+                "Confirm reboot",
+                [System.Windows.MessageBoxButton]::YesNo,
+                [System.Windows.MessageBoxImage]::Warning
+            )
+        }
         if ($ans -ne 'Yes') { Update-Status 'Reboot cancelled.'; return }
     }
 
@@ -8625,6 +8992,11 @@ function Invoke-RebootBulk {
     $Script:RebootWaitAcceptedCount = 0
 
     Update-Status "Rebooting $($targetIps.Count) device(s)..."
+    Show-BusyDialog `
+        -Key 'RebootSend' `
+        -Title 'Sending reboot commands' `
+        -Message "Sending reboot command to $($targetIps.Count) device(s)..." `
+        -Status "Processed 0/$($targetIps.Count)  Accepted: 0  Errors: 0"
 
     $modManifest = (Get-Module CrestronAdminBootstrap).Path
     if (-not $modManifest) {
@@ -8689,6 +9061,10 @@ function Invoke-RebootBulk {
     $Script:RebootState.Queue       = $queue
     $Script:RebootState.DoneRef     = $doneRef
 
+    $processedCount = 0
+    $acceptedCount = 0
+    $errorCount = 0
+
     $timer = New-Object System.Windows.Threading.DispatcherTimer
     $timer.Interval = [TimeSpan]::FromMilliseconds(250)
     $timer.Add_Tick({
@@ -8703,17 +9079,30 @@ function Invoke-RebootBulk {
 
         while ($queueRef.TryDequeue([ref]$item)) {
             if ($item.__error) {
+                $errorCount++
+                Update-BusyDialog `
+                    -Key 'RebootSend' `
+                    -Status "Processed $processedCount/$($targetIps.Count)  Accepted: $acceptedCount  Errors: $errorCount"
                 [System.Windows.MessageBox]::Show("Reboot failed: $($item.__error)", "Error", 'OK', 'Error') | Out-Null
                 continue
             }
 
+            $processedCount++
             if ($item.Success -eq 'True') {
                 $Script:RebootWaitAcceptedCount++
+                $acceptedCount++
+            }
+            else {
+                $errorCount++
             }
 
             if ($StatusCallback) {
                 & $StatusCallback $item
             }
+
+            Update-BusyDialog `
+                -Key 'RebootSend' `
+                -Status "Processed $processedCount/$($targetIps.Count)  Accepted: $acceptedCount  Errors: $errorCount"
         }
 
         if ($doneRef.Value -and $queueRef.IsEmpty) {
@@ -8812,7 +9201,7 @@ $Script:UI.PerDeviceRebootButton.Add_Click({
     $ips = @($Script:PerDeviceState.Rows | Where-Object NeedsReboot | Select-Object -ExpandProperty IP)
     Invoke-RebootBulk -Ips $ips -StatusCallback {
         param($item)
-        $row = $Script:PerDeviceState.RowsByIP[$item.IP]
+        $row = Get-PerDeviceRowByIP $item.IP
         if ($row) {
             $row.Status = if ($item.Success -eq 'True') { 'Rebooting' } else { 'RebootFail' }
             $row.Detail = $item.Detail
@@ -9008,6 +9397,23 @@ function Show-WorkflowScanSubnetDialog {
                     Margin="6,0,0,0" />
         </Grid>
 
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="SelectAllBtn"
+                    Grid.Column="0"
+                    Content="Select All"
+                    Padding="10,2"
+                    Margin="0,0,3,0" />
+            <Button x:Name="DeselectAllBtn"
+                    Grid.Column="1"
+                    Content="Deselect All"
+                    Padding="10,2"
+                    Margin="3,0,0,0" />
+        </Grid>
+
         <TextBlock x:Name="StatusText"
                    DockPanel.Dock="Bottom"
                    Foreground="#666"
@@ -9031,6 +9437,8 @@ function Show-WorkflowScanSubnetDialog {
     $cidrList = $dlg.FindName('CidrList')
     $cidrBox = $dlg.FindName('CidrBox')
     $addBtn = $dlg.FindName('AddBtn')
+    $selectAllBtn = $dlg.FindName('SelectAllBtn')
+    $deselectAllBtn = $dlg.FindName('DeselectAllBtn')
     $startBtn = $dlg.FindName('StartBtn')
     $cancelBtn = $dlg.FindName('CancelBtn')
     $statusText = $dlg.FindName('StatusText')
@@ -9100,7 +9508,31 @@ function Show-WorkflowScanSubnetDialog {
 
     $script:_workflowScanCidrs = $null
 
+    $setDialogCidrSelection = {
+        param([bool]$Checked)
+
+        if ($cidrList.Children.Count -eq 0) {
+            $statusText.Text = 'No subnets are configured. Add one before starting the scan.'
+            return
+        }
+
+        foreach ($child in @($cidrList.Children)) {
+            if ($child -is [System.Windows.Controls.CheckBox]) {
+                $child.IsChecked = $Checked
+            }
+        }
+
+        $statusText.Text = if ($Checked) {
+            'Selected all subnets for this workflow scan.'
+        }
+        else {
+            'Deselected all subnets. Select at least one before starting.'
+        }
+    }
+
     $addBtn.Add_Click({ & $addManualCidr })
+    $selectAllBtn.Add_Click({ & $setDialogCidrSelection $true })
+    $deselectAllBtn.Add_Click({ & $setDialogCidrSelection $false })
     $cidrBox.Add_KeyDown({
         param($sender, $e)
 
@@ -9248,9 +9680,18 @@ function Start-FullWorkflow {
 
         # --- Step 4: Per-Device (pause for editing) -------------------------
         $Script:WorkflowState.CurrentStep = 3
-        Set-WorkflowStep 3 '⏸' 'Switched to Per-Device tab. Edit values then click "Continue Workflow".'
+        Set-WorkflowStep 3 '🔄' 'Loading Per-Device state and capabilities...'
         $Script:UI.MainTabs.SelectedIndex = 4  # Per-Device
         Load-PerDeviceFromProvision
+
+        if ($Script:PerDeviceState.Rows.Count -gt 0) {
+            Start-PerDeviceFetch
+            Wait-ForInnerTab { $Script:PerDeviceState.IsRunning }
+            if ($Script:WorkflowState.Cancelled) { throw 'Cancelled by user.' }
+        }
+
+        $pdFetchOk = ($Script:PerDeviceState.Rows | Where-Object Status -eq 'OK').Count
+        Set-WorkflowStep 3 '⏸' "Fetched current state for $pdFetchOk device(s). Edit values then click `"Continue Workflow`"."
 
         Set-WorkflowControls $true $true  # waiting for user
         $Script:WorkflowState.PerDeviceWait = $true
@@ -9549,10 +9990,12 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 OutputResolutionOptions  = @()
                 CurrentGlobalEdid        = ''
                 SupportsDisplaySettings  = $false
+                SupportsToolbarSettings  = $false
                 CurrentAutoBrightness    = 'N/A'
                 CurrentBrightness        = 'N/A'
                 CurrentScreensaver       = 'N/A'
                 CurrentStandbyTimeout    = 'N/A'
+                CurrentToolbar           = 'N/A'
                 NewHostname              = 'N/A'
                 IPMode                   = 'N/A'
                 DeviceMode               = 'N/A'
@@ -9566,6 +10009,7 @@ $Script:UI.PerDeviceAddButton.Add_Click({
                 NewBrightness            = 'N/A'
                 NewScreensaver           = 'N/A'
                 NewStandbyTimeout        = 'N/A'
+                NewToolbar               = 'N/A'
                 NewIP                    = 'N/A'
                 SubnetMask               = 'N/A'
                 Gateway                  = 'N/A'
@@ -9637,6 +10081,7 @@ $Script:UI.BlanketReloadButton.Add_Click({
                 SupportsFusion      = $false
                 SupportsAutoUpdate  = $false
                 SupportsDisplaySettings = $false
+                SupportsToolbarSettings = $false
                 SupportsIpTable     = $false
                 SupportsNetwork     = $false
                 SupportsWifi        = $false
@@ -9978,6 +10423,23 @@ function Show-AddDevicesDialog {
                                 Padding="10,2" />
                     </Grid>
 
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="AddCidrSelectAllButton"
+                                Grid.Column="0"
+                                Content="Select All"
+                                Padding="10,2"
+                                Margin="0,0,3,0" />
+                        <Button x:Name="AddCidrDeselectAllButton"
+                                Grid.Column="1"
+                                Content="Deselect All"
+                                Padding="10,2"
+                                Margin="3,0,0,0" />
+                    </Grid>
+
                     <TextBlock x:Name="AddCidrStatusText"
                                DockPanel.Dock="Bottom"
                                Foreground="#666"
@@ -10017,6 +10479,8 @@ function Show-AddDevicesDialog {
     $cidrList   = $dlg.FindName('AddCidrCheckList')
     $cidrBox    = $dlg.FindName('AddCidrManualBox')
     $cidrAddBtn = $dlg.FindName('AddCidrManualButton')
+    $cidrSelectAllBtn = $dlg.FindName('AddCidrSelectAllButton')
+    $cidrDeselectAllBtn = $dlg.FindName('AddCidrDeselectAllButton')
     $cidrStatus = $dlg.FindName('AddCidrStatusText')
     $ipsBox     = $dlg.FindName('AddIpsBox')
     $csvSummary = $dlg.FindName('AddCsvSummary')
@@ -10077,6 +10541,28 @@ function Show-AddDevicesDialog {
         }
     }
 
+    $setCidrSelection = {
+        param([bool]$Checked)
+
+        if ($cidrList.Children.Count -eq 0) {
+            $cidrStatus.Text = 'No subnets are configured. Add one before starting discovery.'
+            return
+        }
+
+        foreach ($child in @($cidrList.Children)) {
+            if ($child -is [System.Windows.Controls.CheckBox]) {
+                $child.IsChecked = $Checked
+            }
+        }
+
+        $cidrStatus.Text = if ($Checked) {
+            'Selected all subnets for this discovery scan.'
+        }
+        else {
+            'Deselected all subnets. Select at least one before discovering.'
+        }
+    }
+
     if ($Script:GuiSettings -and
         $Script:GuiSettings.PSObject.Properties.Name -contains 'MostUsedSubnets' -and
         $Script:GuiSettings.MostUsedSubnets) {
@@ -10097,6 +10583,8 @@ function Show-AddDevicesDialog {
     }
 
     $cidrAddBtn.Add_Click({ & $addManualCidr })
+    $cidrSelectAllBtn.Add_Click({ & $setCidrSelection $true })
+    $cidrDeselectAllBtn.Add_Click({ & $setCidrSelection $false })
     $cidrBox.Add_KeyDown({
         param($sender, $e)
 

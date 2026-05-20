@@ -121,10 +121,14 @@ function Get-CrestronDeviceCapabilities {
         $avSettings = $null
     }
 
-    if ($state -and ($state.PSObject.Properties.Name -contains 'SupportsDisplaySettings')) {
+    if ($state -and
+        ($state.PSObject.Properties.Name -contains 'SupportsDisplaySettings') -and
+        [bool]$state.SupportsDisplaySettings) {
         $displaySettings = [pscustomobject]@{
             SupportsDisplaySettings = [bool]$state.SupportsDisplaySettings
+            SupportsToolbarSettings = if ($state.PSObject.Properties.Name -contains 'SupportsToolbarSettings') { [bool]$state.SupportsToolbarSettings } else { $false }
             DisplayPath             = "$($state.DisplayPath)"
+            ToolbarPath             = if ($state.PSObject.Properties.Name -contains 'ToolbarPath') { "$($state.ToolbarPath)" } else { '' }
         }
     }
     else {
@@ -190,7 +194,9 @@ function Get-CrestronDeviceCapabilities {
         SupportsFusion         = $supportsFusion
         SupportsAutoUpdate     = $supportsAutoUpdate
         SupportsDisplaySettings = if ($displaySettings) { [bool]$displaySettings.SupportsDisplaySettings } else { $false }
+        SupportsToolbarSettings = if ($displaySettings) { [bool]$displaySettings.SupportsToolbarSettings } else { $false }
         DisplayPath            = if ($displaySettings) { "$($displaySettings.DisplayPath)" } else { '' }
+        ToolbarPath            = if ($displaySettings) { "$($displaySettings.ToolbarPath)" } else { '' }
         SupportsControlSubnet  = if ($controlSubnetSettings) { [bool]$controlSubnetSettings.SupportsControlSubnet } else { $false }
         SupportsControlSubnetRouter = if ($controlSubnetSettings) { [bool]$controlSubnetSettings.SupportsRouter } else { $false }
         SupportsIgmpProxy      = if ($controlSubnetSettings) { [bool]$controlSubnetSettings.SupportsIgmpProxy } else { $false }

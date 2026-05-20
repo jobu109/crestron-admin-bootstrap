@@ -47,3 +47,4 @@ payload.json
 session.txt
 login-headers.txt
 *.cookies
+crestron-*-debug.jsonl

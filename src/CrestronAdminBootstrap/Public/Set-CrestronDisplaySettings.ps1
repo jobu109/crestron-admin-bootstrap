@@ -14,6 +14,7 @@ function Set-CrestronDisplaySettings {
         [Nullable[int]]$Brightness,
         [Nullable[bool]]$ScreensaverEnabled,
         [Nullable[int]]$StandbyTimeout,
+        [Nullable[bool]]$ToolbarEnabled,
         [int]$TimeoutSec = 30
     )
 
@@ -25,8 +26,9 @@ function Set-CrestronDisplaySettings {
     $hasBrightness = $PSBoundParameters.ContainsKey('Brightness') -and $null -ne $Brightness
     $hasScreensaver = $PSBoundParameters.ContainsKey('ScreensaverEnabled') -and $null -ne $ScreensaverEnabled
     $hasStandby = $PSBoundParameters.ContainsKey('StandbyTimeout') -and $null -ne $StandbyTimeout
+    $hasToolbar = $PSBoundParameters.ContainsKey('ToolbarEnabled') -and $null -ne $ToolbarEnabled
 
-    if (-not ($hasAutoBrightness -or $hasBrightness -or $hasScreensaver -or $hasStandby)) {
+    if (-not ($hasAutoBrightness -or $hasBrightness -or $hasScreensaver -or $hasStandby -or $hasToolbar)) {
         throw "Provide at least one display setting to apply."
     }
 
@@ -40,8 +42,14 @@ function Set-CrestronDisplaySettings {
 
     $display = Get-CrestronDisplayObject -Session $Session -TimeoutSec $TimeoutSec
     $screenSaver = Get-CrestronDeviceObjectByName -Session $Session -Name 'ScreenSaver' -TimeoutSec $TimeoutSec
+    $toolbar = if ($hasToolbar) {
+        Get-CrestronToolbarObject -Session $Session -TimeoutSec $TimeoutSec
+    }
+    else {
+        $null
+    }
 
-    if (-not $display -and -not $screenSaver) {
+    if (-not $display -and -not $screenSaver -and -not $toolbar) {
         throw "Device $($Session.IP) does not expose supported display settings."
     }
 
@@ -62,7 +70,7 @@ function Set-CrestronDisplaySettings {
             -Target $displayBody `
             -Existing $existing `
             -SectionNames $lcdSectionNames `
-            -Names @('AutoBrightness','AutoBrightnessEnabled','IsAutoBrightnessEnabled','EnableAutoBrightness','AdaptiveBrightness') `
+            -Names @('AutoBrightness','AutoBrightnessEnabled','IsAutoBrightnessEnabled','EnableAutoBrightness','AdaptiveBrightness','AutoBrightnessMode','IsAdaptiveBrightnessEnabled','AmbientLightSensor','AmbientLightSensorEnabled') `
             -DefaultName 'AutoBrightness' `
             -Value ([bool]$AutoBrightness)
     }
@@ -72,7 +80,7 @@ function Set-CrestronDisplaySettings {
             -Target $displayBody `
             -Existing $existing `
             -SectionNames $lcdSectionNames `
-            -Names @('Brightness','BrightnessLevel','BacklightBrightness','ScreenBrightness','LCDBacklightBrightness') `
+            -Names @('Brightness','BrightnessLevel','Backlight','BackLight','BacklightLevel','BackLightLevel','BacklightBrightness','ScreenBrightness','ScreenBrightnessLevel','LcdBrightness','DisplayBrightness','LCDBacklightBrightness') `
             -DefaultName 'Brightness' `
             -Value ([int]$Brightness)
     }
@@ -82,7 +90,7 @@ function Set-CrestronDisplaySettings {
             -Target $displayBody `
             -Existing $existing `
             -SectionNames $lcdSectionNames `
-            -Names @('StandbyTimeoutMinutes','StandbyTimeout','StandbyTimeOut','StandbyTimeoutSeconds','StandbyTimer','StandbyTimerMinutes','DisplayStandbyTimeout','DisplayStandbyTimeoutMinutes') `
+            -Names @('StandbyTimeoutMinutes','StandbyTimeout','StandbyTimeOut','StandbyTimeoutSeconds','StandbyTimer','StandbyTimerMinutes','DisplayStandbyTimeout','DisplayStandbyTimeoutMinutes','DisplayOffTimeout','IdleTimeout','SleepTimeout') `
             -DefaultName 'StandbyTimeoutMinutes' `
             -Value ([int]$StandbyTimeout)
     }
@@ -98,7 +106,7 @@ function Set-CrestronDisplaySettings {
             Set-CrestronDisplayBooleanMember `
                 -Target $screenSaverBody `
                 -Existing $screenSaver.Object `
-                -Names @('IsEnabled','Enabled','ScreenSaver','Screensaver','ScreenSaverEnabled','ScreensaverEnabled','IsScreenSaverEnabled','EnableScreenSaver') `
+                -Names @('IsEnabled','Enabled','ScreenSaver','Screensaver','ScreenSaverEnabled','ScreensaverEnabled','ScreenSaverEnable','ScreensaverEnable','IsScreenSaverEnabled','EnableScreenSaver','EnableScreensaver') `
                 -DefaultName 'IsEnabled' `
                 -Value ([bool]$ScreensaverEnabled)
 
@@ -115,7 +123,7 @@ function Set-CrestronDisplaySettings {
                 -Target $deviceBody[$display.PathName] `
                 -Existing $existing `
                 -SectionNames (Get-CrestronDisplayScreensaverSectionNames) `
-                -Names @('ScreenSaver','Screensaver','IsEnabled','Enabled','ScreenSaverEnabled','ScreensaverEnabled','IsScreenSaverEnabled','EnableScreenSaver') `
+                -Names @('ScreenSaver','Screensaver','IsEnabled','Enabled','ScreenSaverEnabled','ScreensaverEnabled','ScreenSaverEnable','ScreensaverEnable','IsScreenSaverEnabled','EnableScreenSaver','EnableScreensaver') `
                 -DefaultName 'ScreenSaver' `
                 -Value ([bool]$ScreensaverEnabled)
         }
@@ -124,7 +132,86 @@ function Set-CrestronDisplaySettings {
         }
     }
 
+    if ($hasToolbar) {
+        if (-not $toolbar) {
+            throw "Device $($Session.IP) does not expose supported touch panel toolbar settings."
+        }
+
+        $toolbarApplied = $false
+        $displayVirtualButtons = if ($display -and $display.RawJson) {
+            Get-CrestronVirtualButtonsObject -Object $display.RawJson
+        }
+        else {
+            $null
+        }
+
+        if ($displayVirtualButtons) {
+            $displaySectionName = if (-not [string]::IsNullOrWhiteSpace("$($display.PathName)")) {
+                "$($display.PathName)"
+            }
+            else {
+                'Display'
+            }
+
+            if (-not $deviceBody.ContainsKey($displaySectionName)) {
+                $deviceBody[$displaySectionName] = @{}
+                $appliedSections += $displaySectionName
+            }
+
+            $deviceBody[$displaySectionName]['VirtualButtons'] = New-CrestronVirtualButtonsToolbarPayload `
+                -VirtualButtons $displayVirtualButtons `
+                -ToolbarEnabled ([bool]$ToolbarEnabled)
+            $toolbarApplied = $true
+        }
+
+        $toolbarVirtualButtons = if ($toolbar -and $toolbar.RawJson) {
+            Get-CrestronVirtualButtonsObject -Object $toolbar.RawJson
+        }
+        else {
+            $null
+        }
+
+        if (-not $toolbarApplied -and $toolbarVirtualButtons) {
+            if (-not $deviceBody.ContainsKey('Display')) {
+                $deviceBody['Display'] = @{}
+                $appliedSections += 'Display'
+            }
+
+            $deviceBody['Display']['VirtualButtons'] = New-CrestronVirtualButtonsToolbarPayload `
+                -VirtualButtons $toolbarVirtualButtons `
+                -ToolbarEnabled ([bool]$ToolbarEnabled)
+            $toolbarApplied = $true
+        }
+
+        if (-not $toolbarApplied) {
+            if ([bool]$toolbar.IsDirectProperty) {
+                Set-CrestronToolbarEnabledMemberDeep `
+                    -Target $deviceBody `
+                    -Existing $toolbar.Object `
+                    -ToolbarEnabled ([bool]$ToolbarEnabled)
+                $appliedSections += $toolbar.PathName
+            }
+            else {
+                if (-not $deviceBody.ContainsKey($toolbar.PathName)) {
+                    $deviceBody[$toolbar.PathName] = @{}
+                    $appliedSections += $toolbar.PathName
+                }
+
+                Set-CrestronToolbarEnabledMemberDeep `
+                    -Target $deviceBody[$toolbar.PathName] `
+                    -Existing $toolbar.Object `
+                    -ToolbarEnabled ([bool]$ToolbarEnabled)
+            }
+        }
+    }
+
     $payload = @{ Device = $deviceBody }
+    $requestPayload = try {
+        $payload | ConvertTo-Json -Depth 12 -Compress
+    }
+    catch {
+        ''
+    }
 
     $api = Invoke-CrestronApi -Session $Session -Path '/Device' -Method POST -Body $payload -TimeoutSec $TimeoutSec
 
@@ -178,10 +265,13 @@ function Set-CrestronDisplaySettings {
         Success         = $overallSuccess
         Setting         = 'DisplaySettings'
         DisplayPath     = if ($display) { $display.Path } elseif ($screenSaver) { $screenSaver.Path } else { '' }
+        ToolbarPath     = if ($toolbar) { $toolbar.Path } else { '' }
         AppliedSections = @($appliedSections | Select-Object -Unique)
         NeedsReboot     = $needsReboot
         SectionResults  = $sectionResults
         Response        = $bodyPreview
+        RequestPath     = '/Device'
+        RequestPayload  = $requestPayload
         Timestamp       = (Get-Date).ToString('s')
     }
 }
