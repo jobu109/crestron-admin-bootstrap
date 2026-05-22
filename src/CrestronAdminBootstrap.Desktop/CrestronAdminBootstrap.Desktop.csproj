@@ -9,7 +9,7 @@
     <ApplicationIcon Condition="Exists('App.ico')">App.ico</ApplicationIcon>
     <AssemblyName>CrestronBootstrap</AssemblyName>
     <RootNamespace>CrestronAdminBootstrap.Desktop</RootNamespace>
-    <Version>0.13.1.0</Version>
+    <Version>0.13.2.0</Version>
     <Company>Michael Floyd</Company>
     <Product>Crestron Admin Bootstrap</Product>
     <Description>Compiled desktop shell for Crestron Admin Bootstrap</Description>
@@ -19,6 +19,8 @@
     <None Remove="App.ico" Condition="Exists('App.ico')" />
     <Resource Include="App.ico" Condition="Exists('App.ico')" />
     <None Include="App.png" Condition="Exists('App.png')" />
+    <None Remove="CrestronBootstrap1.png" Condition="Exists('CrestronBootstrap1.png')" />
+    <Resource Include="CrestronBootstrap1.png" Condition="Exists('CrestronBootstrap1.png')" />
     <Content Include="..\CrestronAdminBootstrap\**\*"
              Link="src\CrestronAdminBootstrap\%(RecursiveDir)%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest"
