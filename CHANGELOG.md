@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-05-22
+
+### Changed
+
+- App icon now appears in the title bar next to the application name.
+
 ## [0.13.0] - 2026-05-22
 
 ### Added
@@ -327,7 +333,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.6...v0.13.0
 [0.12.6]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.5...v0.12.6
 [0.12.5]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.4...v0.12.5
