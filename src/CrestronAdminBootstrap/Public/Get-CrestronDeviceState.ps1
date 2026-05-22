@@ -99,13 +99,46 @@ function Get-CrestronDeviceState {
     }
 
     $na = $api.BodyJson.Device.NetworkAdapters
+    $ethernetNa = $null
+
+    # DM-NAX devices may expose /Device/NetworkAdapters with an empty Vlan00
+    # adapter while the real HostName, IPv4, gateway, and DNS fields live under
+    # /Device/Ethernet. Prefer the standard endpoint, but fall back when it
+    # cannot produce a usable primary IP.
+    try {
+        $ethApi = Invoke-CrestronApi -Session $Session -Path '/Device/Ethernet' `
+                                    -Method GET -TimeoutSec $TimeoutSec
+
+        if ($ethApi.Success -and
+            $ethApi.BodyJson -and
+            $ethApi.BodyJson.Device -and
+            $ethApi.BodyJson.Device.Ethernet -and
+            -not ($ethApi.BodyJson.Device.Ethernet -is [string])) {
+            $ethernetNa = $ethApi.BodyJson.Device.Ethernet
+        }
+    } catch { }
 
     # The Adapters dictionary is keyed by device/firmware-specific adapter names
     # such as EthernetLan, Ethernet, Lan, Vlan00, Wifi, Wlan, etc.  Prefer the
     # adapter that contains the connected session IP, which keeps DM-NAX and
     # other non-NVX devices from being mistaken for a secondary/control adapter.
-    $ethInfo = Get-CrestronNetworkAdapterInfo -NetworkAdapters $na -SessionIP $Session.IP
-    $wifiInfo = Get-CrestronNetworkAdapterInfo -NetworkAdapters $na -SessionIP $Session.IP -Wifi
+    $networkSource = $na
+    $ethInfo = Get-CrestronNetworkAdapterInfo -NetworkAdapters $networkSource -SessionIP $Session.IP
+
+    if ($ethernetNa -and
+        (-not $ethInfo -or
+         (-not (Test-CrestronUsableIpv4String $ethInfo.CurrentIP) -and
+          -not (Test-CrestronUsableIpv4String $ethInfo.StaticIP)))) {
+        $ethernetInfo = Get-CrestronNetworkAdapterInfo -NetworkAdapters $ethernetNa -SessionIP $Session.IP
+        if ($ethernetInfo -and
+            ((Test-CrestronUsableIpv4String $ethernetInfo.CurrentIP) -or
+             (Test-CrestronUsableIpv4String $ethernetInfo.StaticIP))) {
+            $networkSource = $ethernetNa
+            $ethInfo = $ethernetInfo
+        }
+    }
+
+    $wifiInfo = Get-CrestronNetworkAdapterInfo -NetworkAdapters $networkSource -SessionIP $Session.IP -Wifi
     $eth = if ($ethInfo) { $ethInfo.Adapter } else { $null }
     $wifi = if ($wifiInfo) { $wifiInfo.Adapter } else { $null }
 
@@ -151,7 +184,7 @@ function Get-CrestronDeviceState {
         ''
     }
 
-    $dnsServers = Get-CrestronNetworkDnsServers -NetworkAdapters $na
+    $dnsServers = Get-CrestronNetworkDnsServers -NetworkAdapters $networkSource
     $hasWifi = [bool]$wifiInfo
 
     # Extract first IP-table entry for GUI prefill.
@@ -226,7 +259,7 @@ function Get-CrestronDeviceState {
     [pscustomobject]@{
         IP                       = $Session.IP
         Model                    = $Session.Model
-        Hostname                 = $na.HostName
+        Hostname                 = if ($networkSource.HostName) { $networkSource.HostName } elseif ($na.HostName) { $na.HostName } else { $Session.Hostname }
         DomainName               = if ($ethInfo) { $ethInfo.DomainName } else { '' }
 
         EthernetAdapterName      = if ($ethInfo) { $ethInfo.Name } else { '' }
@@ -267,7 +300,7 @@ function Get-CrestronDeviceState {
         CurrentToolbarEnabled    = if ($displaySettings) { $displaySettings.ToolbarEnabled } else { $null }
         CurrentAvFrameworkEnabled = if ($avFrameworkSettings) { $avFrameworkSettings.AvFrameworkEnabled } else { $null }
 
-        RawJson                  = $api.BodyJson
+        RawJson                  = if ($networkSource -eq $ethernetNa) { @{ Device = @{ Ethernet = $ethernetNa; NetworkAdapters = $na } } } else { $api.BodyJson }
         FetchedAt                = (Get-Date).ToString('s')
     }
 }

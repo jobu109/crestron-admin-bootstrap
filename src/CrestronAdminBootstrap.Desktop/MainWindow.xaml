@@ -1,0 +1,1531 @@
+<Window x:Class="CrestronAdminBootstrap.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Crestron Admin Bootstrap"
+        Height="760"
+        Width="1220"
+        MinHeight="650"
+        MinWidth="980"
+        WindowStartupLocation="CenterScreen"
+        Background="#202124">
+    <Window.Resources>
+        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#202124" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#2B2D31" />
+        <SolidColorBrush x:Key="PanelAltBrush" Color="#32353B" />
+        <SolidColorBrush x:Key="BorderBrushDark" Color="#50545C" />
+        <SolidColorBrush x:Key="TextBrush" Color="#F3F5F7" />
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#AEB4BE" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#2D7DD2" />
+        <SolidColorBrush x:Key="AccentBrushHover" Color="#3D8EE4" />
+        <SolidColorBrush x:Key="InputBrush" Color="#1E1F22" />
+        <SolidColorBrush x:Key="InputBorderBrush" Color="#616671" />
+        <SolidColorBrush x:Key="GridHeaderBrush" Color="#363941" />
+        <SolidColorBrush x:Key="GridRowBrush" Color="#2B2D31" />
+        <SolidColorBrush x:Key="GridAltRowBrush" Color="#26282D" />
+        <SolidColorBrush x:Key="GridSelectedBrush" Color="#245B94" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1E1F22" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#32353B" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#F3F5F7" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2D7DD2" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#F3F5F7" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#AEB4BE" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        </Style>
+
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushDark}" />
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource PanelAltBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushDark}" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="MinHeight" Value="30" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3A3D45" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrushHover}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource InputBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+
+        <Style TargetType="PasswordBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource InputBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource InputBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource InputBrush}" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource PanelAltBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource PanelAltBrush}" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushDark}" />
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushDark}" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="MinHeight" Value="30" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabChrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1,1,1,0"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter x:Name="ContentSite"
+                                              ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabChrome" Property="Background" Value="{DynamicResource PanelAltBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="TabChrome" Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+                                <Setter TargetName="TabChrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                                <Setter Property="Panel.ZIndex" Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="TabChrome" Property="Background" Value="{DynamicResource PanelBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+                                <Setter Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushDark}" />
+            <Setter Property="GridLinesVisibility" Value="All" />
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderBrushDark}" />
+            <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource BorderBrushDark}" />
+            <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="RowBackground" Value="{DynamicResource GridRowBrush}" />
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource GridAltRowBrush}" />
+            <Setter Property="AutoGenerateColumns" Value="False" />
+            <Setter Property="CanUserAddRows" Value="False" />
+            <Setter Property="CanUserDeleteRows" Value="False" />
+            <Setter Property="SelectionMode" Value="Extended" />
+            <Setter Property="SelectionUnit" Value="FullRow" />
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{DynamicResource GridHeaderBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushDark}" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="MinHeight" Value="28" />
+        </Style>
+
+        <Style TargetType="DataGridCell">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushDark}" />
+            <Setter Property="Padding" Value="6,2" />
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource GridSelectedBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True">
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource PanelBrush}"
+                BorderBrush="{DynamicResource BorderBrushDark}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Crestron Admin Bootstrap"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+                        <Border Background="{DynamicResource AppBackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrushDark}"
+                                BorderThickness="1"
+                                Padding="6,2"
+                                Margin="10,1,0,0"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="{Binding AppVersion}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       FontSize="11" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Text="{Binding RepoRoot, StringFormat=Module: {0}}"
+                               Foreground="{DynamicResource MutedTextBrush}"
+                               Margin="0,3,0,0" />
+                </StackPanel>
+                <ProgressBar Grid.Column="1"
+                             Width="160"
+                             Height="8"
+                             Margin="0,0,12,0"
+                             VerticalAlignment="Center"
+                             IsIndeterminate="True"
+                             Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <Border Grid.Column="2"
+                        Background="{DynamicResource AppBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrushDark}"
+                        BorderThickness="1"
+                        Padding="10,5"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CredentialsStatus}"
+                               Foreground="{DynamicResource MutedTextBrush}" />
+                </Border>
+            </Grid>
+        </Border>
+
+        <StatusBar DockPanel.Dock="Bottom"
+                   Background="{DynamicResource PanelBrush}"
+                   BorderBrush="{DynamicResource BorderBrushDark}"
+                   BorderThickness="0,1,0,0">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource TextBrush}" />
+            </StatusBarItem>
+        </StatusBar>
+
+        <TabControl Margin="10"
+                    SelectedIndex="{Binding MainTabIndex, Mode=TwoWay}">
+            <TabItem Header="Full Workflow">
+                <Grid Background="{DynamicResource AppBackgroundBrush}" Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            Background="{DynamicResource PanelBrush}"
+                            BorderBrush="{DynamicResource BorderBrushDark}"
+                            BorderThickness="1"
+                            Padding="10"
+                            Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Full Workflow"
+                                           FontSize="18"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="Runs Scan, Provision, Blanket Settings, Per Device, and Reboot in sequence."
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           Margin="0,4,0,0" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Content="Start Workflow"
+                                    Command="{Binding StartWorkflowCommand}"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Margin="8,0,0,0" />
+                            <Button Grid.Column="2"
+                                    Content="{Binding WorkflowContinueText}"
+                                    Command="{Binding ContinueWorkflowCommand}"
+                                    Margin="8,0,0,0" />
+                            <Button Grid.Column="3"
+                                    Content="Cancel"
+                                    Command="{Binding CancelWorkflowCommand}"
+                                    Margin="8,0,0,0" />
+                        </Grid>
+                    </Border>
+
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding WorkflowSteps}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#"
+                                                Binding="{Binding Number}"
+                                                Width="54"
+                                                IsReadOnly="True" />
+                            <DataGridTextColumn Header="Step"
+                                                Binding="{Binding Name}"
+                                                Width="170"
+                                                IsReadOnly="True" />
+                            <DataGridTextColumn Header="State"
+                                                Binding="{Binding State}"
+                                                Width="120"
+                                                IsReadOnly="True" />
+                            <DataGridTextColumn Header="Description"
+                                                Binding="{Binding Description}"
+                                                Width="310"
+                                                IsReadOnly="True" />
+                            <DataGridTextColumn Header="Detail"
+                                                Binding="{Binding Detail}"
+                                                Width="*"
+                                                MinWidth="360"
+                                                IsReadOnly="True" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <StackPanel Grid.Row="2"
+                                Margin="0,8,0,0">
+                        <Border Background="{DynamicResource PanelBrush}"
+                                BorderBrush="{DynamicResource BorderBrushDark}"
+                                BorderThickness="1"
+                                Padding="10"
+                                Margin="0,0,0,8"
+                                Visibility="{Binding IsWorkflowRebootWaiting, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding WorkflowRebootCountdown}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           TextWrapping="Wrap" />
+                                <Button Grid.Column="1"
+                                        Content="Skip Wait"
+                                        Command="{Binding SkipWorkflowRebootWaitCommand}"
+                                        Margin="12,0,0,0" />
+                                <ProgressBar Grid.Row="1"
+                                             Grid.ColumnSpan="2"
+                                             IsIndeterminate="True"
+                                             Height="10"
+                                             Margin="0,8,0,0" />
+                            </Grid>
+                        </Border>
+                        <TextBlock Text="{Binding WorkflowStatus}"
+                                   Foreground="{DynamicResource MutedTextBrush}" />
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Scan">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="310" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <GroupBox Header="Subnets (CIDR)">
+                        <DockPanel LastChildFill="True">
+                            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                <TextBlock Text="Select subnet(s) to scan. Defaults come from gui-settings.json or subnets.txt."
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,8" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding NewSubnet, UpdateSourceTrigger=PropertyChanged}"
+                                             VerticalContentAlignment="Center" />
+                                    <Button Grid.Column="1"
+                                            Content="Add"
+                                            Command="{Binding AddSubnetCommand}"
+                                            Margin="8,0,0,0" />
+                                </Grid>
+                                <UniformGrid Columns="2" Margin="0,8,0,0">
+                                    <Button Content="Select All"
+                                            Command="{Binding SelectAllSubnetsCommand}"
+                                            Margin="0,0,4,0" />
+                                    <Button Content="Deselect All"
+                                            Command="{Binding DeselectAllSubnetsCommand}"
+                                            Margin="4,0,0,0" />
+                                </UniformGrid>
+                                <TextBlock Text="{Binding SelectedSubnetSummary}"
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           Margin="0,8,0,0" />
+                            </StackPanel>
+
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding Subnets}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding Cidr}"
+                                                      IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      Margin="0,3" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </GroupBox>
+
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0"
+                                Background="{DynamicResource PanelBrush}"
+                                BorderBrush="{DynamicResource BorderBrushDark}"
+                                BorderThickness="1"
+                                Padding="10"
+                                Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Content="Start Scan"
+                                        Command="{Binding StartScanCommand}"
+                                        Style="{StaticResource PrimaryButtonStyle}" />
+                                <Button Grid.Column="1"
+                                        Content="Cancel"
+                                        Command="{Binding CancelScanCommand}"
+                                        Margin="8,0,0,0" />
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding ProgressText}"
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0" />
+                            </Grid>
+                        </Border>
+
+                        <DataGrid Grid.Row="1"
+                                  ItemsSource="{Binding ScanResults}">
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="Sel"
+                                                        Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        Width="52"
+                                                        MinWidth="52" />
+                                <DataGridTextColumn Header="IP"
+                                                    Binding="{Binding IP}"
+                                                    Width="150"
+                                                    IsReadOnly="True" />
+                                <DataGridTextColumn Header="Matched Signature"
+                                                    Binding="{Binding MatchedSig}"
+                                                    Width="*"
+                                                    MinWidth="240"
+                                                    IsReadOnly="True" />
+                                <DataGridTextColumn Header="Scanned At"
+                                                    Binding="{Binding ScannedAt}"
+                                                    Width="190"
+                                                    IsReadOnly="True" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="{Binding ScanSummary}"
+                                   Foreground="{DynamicResource MutedTextBrush}"
+                                   Margin="0,8,0,0" />
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Provision">
+                <Grid Background="{DynamicResource AppBackgroundBrush}" Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            Background="{DynamicResource PanelBrush}"
+                            BorderBrush="{DynamicResource BorderBrushDark}"
+                            BorderThickness="1"
+                            Padding="10"
+                            Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Content="Provision Selected"
+                                    Command="{Binding ProvisionSelectedCommand}"
+                                    Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Grid.Column="1"
+                                    Content="Reboot Selected"
+                                    Command="{Binding RebootSelectedProvisionCommand}"
+                                    Margin="8,0,0,0" />
+                            <Button Grid.Column="2"
+                                    Content="Reload from Scan"
+                                    Command="{Binding LoadProvisionFromScanCommand}"
+                                    Margin="8,0,0,0" />
+                            <Button Grid.Column="3"
+                                    Content="Select All"
+                                    Command="{Binding SelectAllProvisionCommand}"
+                                    Margin="8,0,0,0" />
+                            <Button Grid.Column="4"
+                                    Content="Deselect All"
+                                    Command="{Binding DeselectAllProvisionCommand}"
+                                    Margin="8,0,0,0" />
+                            <Button Grid.Column="5"
+                                    Content="Cancel"
+                                    Command="{Binding CancelScanCommand}"
+                                    Margin="8,0,0,0" />
+                            <TextBlock Grid.Column="6"
+                                       Text="{Binding ProgressText}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="12,0,0,0" />
+                        </Grid>
+                    </Border>
+
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding ProvisionRows}">
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Header="Sel"
+                                                    Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    Width="52" />
+                            <DataGridTextColumn Header="IP"
+                                                Binding="{Binding IP}"
+                                                Width="160"
+                                                IsReadOnly="True" />
+                            <DataGridTextColumn Header="Status"
+                                                Binding="{Binding Status}"
+                                                Width="120"
+                                                IsReadOnly="True" />
+                            <DataGridTextColumn Header="Success"
+                                                Binding="{Binding Success}"
+                                                Width="110"
+                                                IsReadOnly="True" />
+                            <DataGridTextColumn Header="Response"
+                                                Binding="{Binding Response}"
+                                                Width="*"
+                                                MinWidth="360"
+                                                IsReadOnly="True" />
+                            <DataGridTextColumn Header="Time"
+                                                Binding="{Binding Timestamp}"
+                                                Width="170"
+                                                IsReadOnly="True" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Grid.Row="2"
+                               Text="{Binding ProvisionSummary}"
+                               Foreground="{DynamicResource MutedTextBrush}"
+                               Margin="0,8,0,0" />
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Blanket Settings">
+                <Grid Background="{DynamicResource AppBackgroundBrush}" Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="220" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer Grid.Row="1"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto">
+                        <WrapPanel>
+                            <GroupBox Header="NTP / Time Zone" Width="360" MinHeight="180">
+                                <StackPanel>
+                                    <CheckBox Content="Apply NTP / Time Zone"
+                                              IsChecked="{Binding ApplyNtp, Mode=TwoWay}" />
+                                    <Grid Margin="18,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="85" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Server" VerticalAlignment="Center" />
+                                        <TextBox Grid.Column="1"
+                                                 Text="{Binding NtpServer, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Grid.Row="1"
+                                                   Text="Time Zone"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,8,0,0" />
+                                        <ComboBox Grid.Row="1"
+                                                  Grid.Column="1"
+                                                  ItemsSource="{Binding TimeZoneOptions}"
+                                                  DisplayMemberPath="Name"
+                                                  SelectedValuePath="Code"
+                                                  SelectedValue="{Binding TimeZoneCode, Mode=TwoWay}"
+                                                  Margin="0,8,0,0" />
+                                    </Grid>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <GroupBox Header="Cloud" Width="260" MinHeight="180">
+                                <StackPanel>
+                                    <CheckBox Content="Apply XiO Cloud"
+                                              IsChecked="{Binding ApplyCloud, Mode=TwoWay}" />
+                                    <CheckBox Content="Enable XiO Cloud"
+                                              IsChecked="{Binding CloudEnabled, Mode=TwoWay}"
+                                              Margin="18,8,0,0" />
+                                    <Separator Margin="0,14,0,12" />
+                                    <CheckBox Content="Apply Fusion"
+                                              IsChecked="{Binding ApplyFusion, Mode=TwoWay}" />
+                                    <CheckBox Content="Enable Fusion"
+                                              IsChecked="{Binding FusionEnabled, Mode=TwoWay}"
+                                              Margin="18,8,0,0" />
+                                </StackPanel>
+                            </GroupBox>
+
+                            <GroupBox Header="Auto Update / AV Framework" Width="310" MinHeight="180">
+                                <StackPanel>
+                                    <CheckBox Content="Apply Auto-Update"
+                                              IsChecked="{Binding ApplyAutoUpdate, Mode=TwoWay}" />
+                                    <CheckBox Content="Enable Auto-Update"
+                                              IsChecked="{Binding AutoUpdateEnabled, Mode=TwoWay}"
+                                              Margin="18,8,0,0" />
+                                    <Separator Margin="0,14,0,12" />
+                                    <CheckBox Content="Apply AV Framework"
+                                              IsChecked="{Binding ApplyAvFramework, Mode=TwoWay}" />
+                                    <CheckBox Content="Enable AV Framework"
+                                              IsChecked="{Binding AvFrameworkEnabled, Mode=TwoWay}"
+                                              Margin="18,8,0,0" />
+                                </StackPanel>
+                            </GroupBox>
+
+                            <GroupBox Header="Display" Width="380" MinHeight="180">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <CheckBox Grid.ColumnSpan="2"
+                                              Content="Apply display settings"
+                                              IsChecked="{Binding ApplyDisplay, Mode=TwoWay}" />
+                                    <TextBlock Grid.Row="1"
+                                               Text="Auto Brightness"
+                                               VerticalAlignment="Center"
+                                               Margin="18,8,0,0" />
+                                    <CheckBox Grid.Row="1"
+                                              Grid.Column="1"
+                                              Content="Enabled"
+                                              IsChecked="{Binding AutoBrightnessEnabled, Mode=TwoWay}"
+                                              Margin="0,8,0,0" />
+                                    <TextBlock Grid.Row="2"
+                                               Text="Brightness"
+                                               VerticalAlignment="Center"
+                                               Margin="18,8,0,0" />
+                                    <TextBox Grid.Row="2"
+                                             Grid.Column="1"
+                                             Text="{Binding Brightness, UpdateSourceTrigger=PropertyChanged}"
+                                             Margin="0,8,0,0" />
+                                    <TextBlock Grid.Row="3"
+                                               Text="Screensaver"
+                                               VerticalAlignment="Center"
+                                               Margin="18,8,0,0" />
+                                    <CheckBox Grid.Row="3"
+                                              Grid.Column="1"
+                                              Content="Enabled"
+                                              IsChecked="{Binding ScreensaverEnabled, Mode=TwoWay}"
+                                              Margin="0,8,0,0" />
+                                    <TextBlock Grid.Row="4"
+                                               Text="Standby / Toolbar"
+                                               VerticalAlignment="Center"
+                                               Margin="18,8,0,0" />
+                                    <StackPanel Grid.Row="4"
+                                                Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                Margin="0,8,0,0">
+                                        <TextBox Width="70"
+                                                 Text="{Binding StandbyTimeout, UpdateSourceTrigger=PropertyChanged}" />
+                                        <CheckBox Content="Toolbar"
+                                                  IsChecked="{Binding ToolbarEnabled, Mode=TwoWay}"
+                                                  Margin="12,0,0,0" />
+                                    </StackPanel>
+                                </Grid>
+                            </GroupBox>
+
+                            <GroupBox Header="AV Settings" Width="560" MinHeight="180">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="180" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <CheckBox Content="Apply Input HDCP"
+                                              IsChecked="{Binding ApplyInputHdcp, Mode=TwoWay}" />
+                                    <ComboBox Grid.Column="1"
+                                              ItemsSource="{Binding InputHdcpOptions}"
+                                              SelectedItem="{Binding InputHdcpMode, Mode=TwoWay}" />
+
+                                    <CheckBox Grid.Row="1"
+                                              Content="Apply Output HDCP"
+                                              IsChecked="{Binding ApplyOutputHdcp, Mode=TwoWay}"
+                                              Margin="0,8,0,0" />
+                                    <ComboBox Grid.Row="1"
+                                              Grid.Column="1"
+                                              ItemsSource="{Binding OutputHdcpOptions}"
+                                              SelectedItem="{Binding OutputHdcpMode, Mode=TwoWay}"
+                                              Margin="0,8,0,0" />
+
+                                    <CheckBox Grid.Row="2"
+                                              Content="Apply Output Resolution"
+                                              IsChecked="{Binding ApplyOutputResolution, Mode=TwoWay}"
+                                              Margin="0,8,0,0" />
+                                    <ComboBox Grid.Row="2"
+                                              Grid.Column="1"
+                                              ItemsSource="{Binding OutputResolutionOptions}"
+                                              SelectedItem="{Binding OutputResolution, Mode=TwoWay}"
+                                              Margin="0,8,0,0" />
+
+                                    <CheckBox Grid.Row="3"
+                                              Content="Apply Global EDID"
+                                              IsChecked="{Binding ApplyGlobalEdid, Mode=TwoWay}"
+                                              Margin="0,8,0,0" />
+                                    <ComboBox Grid.Row="3"
+                                              Grid.Column="1"
+                                              ItemsSource="{Binding GlobalEdidNameOptions}"
+                                              Text="{Binding GlobalEdidName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEditable="True"
+                                              Margin="0,8,0,0" />
+                                    <TextBlock Grid.Row="3"
+                                               Grid.Column="2"
+                                               Text="Type"
+                                               VerticalAlignment="Center"
+                                               Margin="12,8,6,0" />
+                                    <ComboBox Grid.Row="3"
+                                              Grid.Column="3"
+                                              ItemsSource="{Binding GlobalEdidTypeOptions}"
+                                              SelectedItem="{Binding GlobalEdidType, Mode=TwoWay}"
+                                              Margin="0,8,0,0" />
+                                </Grid>
+                            </GroupBox>
+                        </WrapPanel>
+                    </ScrollViewer>
+
+                    <Border Grid.Row="0"
+                            Background="{DynamicResource PanelBrush}"
+                            BorderBrush="{DynamicResource BorderBrushDark}"
+                            BorderThickness="1"
+                            Padding="10"
+                            Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <WrapPanel>
+                                <TextBlock Text="Devices"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0" />
+                                <TextBox Width="280"
+                                         Text="{Binding BlanketDeviceInput, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Enter one or more IP addresses separated by spaces, commas, or new lines." />
+                                <Button Content="Add Devices"
+                                        Command="{Binding AddBlanketDevicesCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Scan &amp; Load"
+                                        Command="{Binding ScanAndLoadBlanketCommand}"
+                                        Margin="8,0,0,0"
+                                        ToolTip="Scans selected subnets for all reachable Crestron/AirMedia devices, then loads them here." />
+                                <Button Content="Load First-Boot Scan"
+                                        Command="{Binding LoadBlanketFromScanCommand}"
+                                        Margin="8,0,0,0"
+                                        ToolTip="Loads results from the provisioning Scan tab, which only finds first-boot devices." />
+                                <Button Content="Reload from Provision"
+                                        Command="{Binding LoadBlanketFromProvisionCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Clear Devices"
+                                        Command="{Binding ClearBlanketDevicesCommand}"
+                                        Margin="8,0,0,0" />
+                            </WrapPanel>
+
+                            <WrapPanel Grid.Row="1" Margin="0,8,0,0">
+                                <Button Content="Apply to Selected"
+                                        Command="{Binding ApplyBlanketSettingsCommand}"
+                                        Style="{StaticResource PrimaryButtonStyle}" />
+                                <Button Content="{Binding WorkflowContinueText}"
+                                        Command="{Binding ContinueWorkflowCommand}"
+                                        Visibility="{Binding IsWorkflowWaitingOnBlanket, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Fetch Capabilities"
+                                        Command="{Binding FetchBlanketCapabilitiesCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Reboot Selected"
+                                        Command="{Binding RebootSelectedBlanketCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Select All"
+                                        Command="{Binding SelectAllBlanketCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Deselect All"
+                                        Command="{Binding DeselectAllBlanketCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Cancel"
+                                        Command="{Binding CancelScanCommand}"
+                                        Margin="8,0,0,0" />
+                                <TextBlock Text="{Binding ProgressText}"
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0" />
+                            </WrapPanel>
+                        </Grid>
+                    </Border>
+
+                    <DataGrid Grid.Row="2"
+                              ItemsSource="{Binding BlanketRows}">
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Header="Sel"
+                                                    Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    Width="52" />
+                            <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="130" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="190" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Mode" Binding="{Binding CurrentDeviceMode}" Width="105" IsReadOnly="True" />
+                            <DataGridTextColumn Header="AV API" Binding="{Binding AvApiFamily}" Width="95" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="AV?" Binding="{Binding SupportsAvSettings}" Width="65" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="EDID?" Binding="{Binding SupportsGlobalEdid}" Width="70" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="NTP?" Binding="{Binding SupportsNtp}" Width="70" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="Cloud?" Binding="{Binding SupportsCloud}" Width="80" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="Fusion?" Binding="{Binding SupportsFusion}" Width="80" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="Auto?" Binding="{Binding SupportsAutoUpdate}" Width="75" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="Display?" Binding="{Binding SupportsDisplaySettings}" Width="85" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="Toolbar?" Binding="{Binding SupportsToolbarSettings}" Width="85" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="AVF?" Binding="{Binding SupportsAvFrameworkSettings}" Width="70" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="Fetched?" Binding="{Binding CapabilitiesFetched}" Width="80" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" IsReadOnly="True" />
+                            <DataGridCheckBoxColumn Header="Reboot?" Binding="{Binding NeedsReboot}" Width="85" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*" MinWidth="260" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Time" Binding="{Binding Timestamp}" Width="170" IsReadOnly="True" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Grid.Row="3"
+                               Text="{Binding BlanketSummary}"
+                               Foreground="{DynamicResource MutedTextBrush}"
+                               Margin="0,8,0,0" />
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Per Device">
+                <Grid Background="{DynamicResource AppBackgroundBrush}" Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            Background="{DynamicResource PanelBrush}"
+                            BorderBrush="{DynamicResource BorderBrushDark}"
+                            BorderThickness="1"
+                            Padding="10"
+                            Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <WrapPanel>
+                                <TextBlock Text="Devices"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0" />
+                                <TextBox Width="280"
+                                         Text="{Binding PerDeviceInput, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Enter one or more IP addresses separated by spaces, commas, or new lines." />
+                                <Button Content="Add Devices"
+                                        Command="{Binding AddPerDeviceDevicesCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Scan &amp; Load"
+                                        Command="{Binding ScanAndLoadPerDeviceCommand}"
+                                        Margin="8,0,0,0"
+                                        ToolTip="Scans selected subnets for all reachable Crestron/AirMedia devices, then loads them here." />
+                                <Button Content="Load from Blanket"
+                                        Command="{Binding LoadPerDeviceFromBlanketCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Load from Provision"
+                                        Command="{Binding LoadPerDeviceFromProvisionCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Clear"
+                                        Command="{Binding ClearPerDeviceCommand}"
+                                        Margin="8,0,0,0" />
+                            </WrapPanel>
+
+                            <WrapPanel Grid.Row="1" Margin="0,8,0,0">
+                                <Button Content="Apply Changes"
+                                        Command="{Binding ApplyPerDeviceChangesCommand}"
+                                        Style="{StaticResource PrimaryButtonStyle}" />
+                                <Button Content="{Binding WorkflowContinueText}"
+                                        Command="{Binding ContinueWorkflowCommand}"
+                                        Visibility="{Binding IsWorkflowWaitingOnPerDevice, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Fetch Current State"
+                                        Command="{Binding FetchPerDeviceStateCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Reboot Selected"
+                                        Command="{Binding RebootSelectedPerDeviceCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Select All"
+                                        Command="{Binding SelectAllPerDeviceCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Deselect All"
+                                        Command="{Binding DeselectAllPerDeviceCommand}"
+                                        Margin="8,0,0,0" />
+                                <Button Content="Cancel"
+                                        Command="{Binding CancelScanCommand}"
+                                        Margin="8,0,0,0" />
+                                <TextBlock Text="{Binding ProgressText}"
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0" />
+                            </WrapPanel>
+                        </Grid>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <GroupBox Header="Device Settings" Margin="0,0,0,10">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <DataGrid ItemsSource="{Binding PerDeviceRows}"
+                                              Width="2260"
+                                              HorizontalAlignment="Left"
+                                              ColumnWidth="Auto"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                              ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                        <DataGrid.Columns>
+                                            <DataGridCheckBoxColumn Header="Sel"
+                                                                    Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                    Width="52" />
+                                            <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="120" MinWidth="120" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="120" MinWidth="120" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Hostname" Binding="{Binding NewHostname, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="180" MinWidth="180" />
+                                            <DataGridTemplateColumn Header="IP Mode" Width="95" MinWidth="95">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding IPMode}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.IpModeOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding IPMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsNetwork}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="IP Address" Binding="{Binding NewIP, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="125" MinWidth="125" />
+                                            <DataGridTextColumn Header="Subnet Mask" Binding="{Binding SubnetMask, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="125" MinWidth="125" />
+                                            <DataGridTextColumn Header="Gateway" Binding="{Binding Gateway, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="125" MinWidth="125" />
+                                            <DataGridTextColumn Header="DNS1" Binding="{Binding PrimaryDns, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="110" MinWidth="110" />
+                                            <DataGridTextColumn Header="DNS2" Binding="{Binding SecondaryDns, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="110" MinWidth="110" />
+                                            <DataGridCheckBoxColumn Header="WiFi Off" Binding="{Binding DisableWifi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" MinWidth="80" />
+                                            <DataGridTemplateColumn Header="Auto Brightness" Width="125" MinWidth="125">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewAutoBrightness}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewAutoBrightness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsDisplaySettings}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="Brightness" Binding="{Binding NewBrightness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="95" MinWidth="95" />
+                                            <DataGridTemplateColumn Header="Screensaver" Width="115" MinWidth="115">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewScreensaver}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewScreensaver, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsDisplaySettings}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="Standby Timeout" Binding="{Binding NewStandbyTimeout, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130" MinWidth="130" />
+                                            <DataGridTemplateColumn Header="Toolbar" Width="100" MinWidth="100">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewToolbar}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewToolbar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsToolbarSettings}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Header="AV Framework" Width="120" MinWidth="120">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewAvFramework}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewAvFramework, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsAvFrameworkSettings}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="IPID" Binding="{Binding NewIpId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="75" MinWidth="75" />
+                                            <DataGridTextColumn Header="CS IP" Binding="{Binding NewControlSystemAddr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130" MinWidth="130" />
+                                            <DataGridCheckBoxColumn Header="Reboot?" Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="85" MinWidth="85" />
+                                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" MinWidth="100" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="300" MinWidth="300" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Time" Binding="{Binding Timestamp}" Width="170" MinWidth="170" IsReadOnly="True" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </ScrollViewer>
+                            </GroupBox>
+
+                            <GroupBox Header="AV Inputs" Margin="0,0,0,10">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <DataGrid ItemsSource="{Binding PerDeviceAvInputRows}"
+                                              Width="1120"
+                                              HorizontalAlignment="Left"
+                                              ColumnWidth="Auto"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                              ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="120" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="190" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Input" Binding="{Binding InputLabel}" Width="100" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Port" Binding="{Binding PortType}" Width="100" IsReadOnly="True" />
+                                            <DataGridTemplateColumn Header="EDID" Width="300">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewEdidName}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding EdidNameOptions}"
+                                                                  SelectedItem="{Binding NewEdidName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEditable="True"
+                                                                  IsTextSearchEnabled="True"
+                                                                  IsEnabled="{Binding SupportsEdidEdit}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Header="Input HDCP" Width="135">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewInputHdcp}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.InputHdcpOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewInputHdcp, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsAvSettings}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </ScrollViewer>
+                            </GroupBox>
+
+                            <GroupBox Header="AV Outputs" Margin="0,0,0,10">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <DataGrid ItemsSource="{Binding PerDeviceAvOutputRows}"
+                                              Width="1000"
+                                              HorizontalAlignment="Left"
+                                              ColumnWidth="Auto"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                              ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="120" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="190" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Output" Binding="{Binding OutputLabel}" Width="110" IsReadOnly="True" />
+                                            <DataGridTemplateColumn Header="Output HDCP" Width="145">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewOutputHdcp}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.OutputHdcpOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewOutputHdcp, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsAvSettings}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Header="Output Resolution" Width="210">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewOutputResolution}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding OutputResolutionOptions}"
+                                                                  SelectedItem="{Binding NewOutputResolution, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEditable="True"
+                                                                  IsTextSearchEnabled="True"
+                                                                  IsEnabled="{Binding SupportsAvSettings}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </ScrollViewer>
+                            </GroupBox>
+
+                            <GroupBox Header="Multicast" Margin="0,0,0,10">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <DataGrid ItemsSource="{Binding PerDeviceMulticastRows}"
+                                              Width="890"
+                                              HorizontalAlignment="Left"
+                                              ColumnWidth="Auto"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                              ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="120" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="190" IsReadOnly="True" />
+                                            <DataGridTemplateColumn Header="TX/RX Mode" Width="135">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding DeviceMode}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DeviceModeOptions}"
+                                                                  SelectedItem="{Binding DeviceMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsModeChange}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="MC Address" Binding="{Binding NewMulticastAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="140" />
+                                            <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="105" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Stream" Binding="{Binding StreamIndex}" Width="70" IsReadOnly="True" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </ScrollViewer>
+                            </GroupBox>
+
+                            <GroupBox Header="Control Subnet" Margin="0">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <DataGrid ItemsSource="{Binding PerDeviceControlSubnetRows}"
+                                              Width="1780"
+                                              HorizontalAlignment="Left"
+                                              ColumnWidth="Auto"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                              ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="120" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="190" IsReadOnly="True" />
+                                            <DataGridTemplateColumn Header="Enabled" Width="105">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewEnabled}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsControlSubnet}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Header="IP Mode" Width="95">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding IPMode}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.IpModeOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding IPMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsControlSubnet}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="IP Address" Binding="{Binding NewIPAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="125" />
+                                            <DataGridTextColumn Header="Subnet Mask" Binding="{Binding NewSubnetMask, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="125" />
+                                            <DataGridTextColumn Header="Gateway" Binding="{Binding NewGateway, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="125" />
+                                            <DataGridTemplateColumn Header="IGMP Version" Width="115">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewIgmpVersion}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.IgmpVersionOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewIgmpVersion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsControlSubnet}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Header="Router Auto" Width="115">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewRouterAutomaticMode}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewRouterAutomaticMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsRouter}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="Router Prefix" Binding="{Binding NewRouterPrefix, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="125" />
+                                            <DataGridTextColumn Header="Online Delay" Binding="{Binding NewRouterOnlineDelay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="115" />
+                                            <DataGridTemplateColumn Header="Isolation" Width="105">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewRouterIsolationMode}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewRouterIsolationMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsRouter}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Header="IGMP Proxy" Width="110">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewIgmpProxy}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewIgmpProxy, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsIgmpProxy}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </ScrollViewer>
+                            </GroupBox>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <TextBlock Grid.Row="2"
+                               Text="{Binding PerDeviceSummary}"
+                               Foreground="{DynamicResource MutedTextBrush}"
+                               Margin="0,8,0,0" />
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Settings">
+                <Grid Background="{DynamicResource AppBackgroundBrush}" Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer Grid.Row="0"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <GroupBox Header="Credentials" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="360" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0"
+                                               Grid.Column="0"
+                                               Text="Default username"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,8" />
+                                    <TextBox Grid.Row="0"
+                                             Grid.Column="1"
+                                             Text="{Binding SettingsDefaultUsername, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Margin="0,0,0,8" />
+
+                                    <TextBlock Grid.Row="1"
+                                               Grid.Column="0"
+                                               Text="Default password"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,8" />
+                                    <PasswordBox x:Name="SettingsDefaultPasswordBox"
+                                                 Grid.Row="1"
+                                                 Grid.Column="1"
+                                                 Margin="0,0,0,8" />
+
+                                    <TextBlock Grid.Row="2"
+                                               Grid.Column="1"
+                                               Text="{Binding SettingsSavedPasswordStatus}"
+                                               Foreground="{DynamicResource MutedTextBrush}" />
+                                </Grid>
+                            </GroupBox>
+
+                            <GroupBox Header="Storage" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="Settings file"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,8" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SettingsPath}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,0,8" />
+                                    <Button Grid.Column="2"
+                                            Content="Open Folder"
+                                            Command="{Binding OpenSettingsFolderCommand}"
+                                            Margin="10,0,0,8" />
+                                    <TextBlock Grid.Row="1"
+                                               Grid.Column="0"
+                                               Text="Output folder"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,0" />
+                                    <TextBlock Grid.Row="1"
+                                               Grid.Column="1"
+                                               Text="{Binding DataRoot}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Row="1"
+                                            Grid.Column="2"
+                                            Content="Open Folder"
+                                            Command="{Binding OpenOutputFolderCommand}"
+                                            Margin="10,0,0,0" />
+                                </Grid>
+                            </GroupBox>
+
+                            <GroupBox Header="Most Used Subnets" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="One CIDR per line."
+                                               Foreground="{DynamicResource MutedTextBrush}"
+                                               Margin="0,0,0,8" />
+                                    <TextBox Grid.Row="1"
+                                             Text="{Binding SettingsMostUsedSubnets, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             AcceptsReturn="True"
+                                             TextWrapping="NoWrap"
+                                             VerticalScrollBarVisibility="Auto"
+                                             HorizontalScrollBarVisibility="Auto"
+                                             Height="170"
+                                             FontFamily="Consolas" />
+                                </Grid>
+                            </GroupBox>
+
+                            <GroupBox Header="Appearance" Margin="0">
+                                <CheckBox Content="Dark mode"
+                                          IsChecked="{Binding SettingsDarkMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </GroupBox>
+
+                            <GroupBox Header="Legacy Tools" Margin="0,10,0,0">
+                                <DockPanel LastChildFill="True">
+                                    <Button DockPanel.Dock="Right"
+                                            Content="Launch Legacy GUI"
+                                            Command="{Binding LaunchLegacyGuiCommand}"
+                                            Margin="12,0,0,0" />
+                                    <TextBlock Text="Fallback access while the compiled shell finishes taking over."
+                                               Foreground="{DynamicResource MutedTextBrush}"
+                                               VerticalAlignment="Center" />
+                                </DockPanel>
+                            </GroupBox>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Border Grid.Row="1"
+                            Background="{DynamicResource PanelBrush}"
+                            BorderBrush="{DynamicResource BorderBrushDark}"
+                            BorderThickness="1"
+                            Padding="10"
+                            Margin="0,10,0,0">
+                        <DockPanel LastChildFill="True">
+                            <StackPanel Orientation="Horizontal"
+                                        DockPanel.Dock="Left">
+                                <Button Content="Save Settings"
+                                        Command="{Binding SaveSettingsCommand}"
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        Margin="0,0,8,0" />
+                                <Button Content="Clear Saved Password"
+                                        Command="{Binding ClearSettingsPasswordCommand}"
+                                        Margin="0,0,8,0" />
+                                <Button Content="Reload"
+                                        Command="{Binding ReloadSettingsCommand}"
+                                        Margin="0,0,8,0" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding SettingsStatus}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

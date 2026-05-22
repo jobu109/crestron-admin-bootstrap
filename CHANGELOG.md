@@ -4,13 +4,21 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# Changelog
-
-All notable changes to this project are documented here.
-
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
+
+## [0.13.0] - 2026-05-22
+
+### Added
+
+- New compiled WPF desktop application (`src/CrestronAdminBootstrap.Desktop/`). A native C# WPF app that spawns `pwsh.exe` as a subprocess to host the PowerShell module, replacing the ps2exe-based bootstrapper. Distributed as a self-contained `CrestronBootstrap.exe` built with `dotnet publish --self-contained`.
+- `build/Publish-Desktop.ps1` — build script that runs `dotnet publish` for the win-x64 target and packages the output into a versioned `.zip` for GitHub release distribution.
+- `CrestronAdminBootstrap.sln` — Visual Studio solution file for the new desktop project.
+
+### Changed
+
+- `Get-CrestronAvFrameworkObject` now probes `FeatureConfig`, `FeatureConfiguration`, and `Features` container endpoints before `DeviceSpecific`, broadening AV Framework detection to device families that store AV framework settings under those paths.
+- `Get-CrestronDeviceState` now fetches `/Device/Ethernet` as a fallback source for DM-NAX devices whose primary network data (IP, subnet, gateway, DNS, hostname) lives there rather than in `/Device/NetworkAdapters`. The `$networkSource` selection logic prefers this endpoint when `NetworkAdapters` returns no usable IP. Hostname resolution now falls back through `$networkSource.HostName` → `$na.HostName` → `$Session.Hostname`.
+- `.gitignore` updated to exclude .NET build artifacts (`bin/`, `obj/`) and compiled-app local state files (`gui-settings.json`, `CrestronBootstrap-error.log`).
 
 ## [0.12.6] - 2026-05-20
 
@@ -319,7 +327,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and thi
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.6...v0.13.0
+[0.12.6]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.5...v0.12.6
+[0.12.5]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.4...v0.12.5
+[0.12.4]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.3...v0.12.4
+[0.12.3]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.2...v0.12.3
+[0.12.2]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.7.0...v0.12.2
 [0.7.0]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.6.0
 [0.5.1]: https://github.com/jobu109/crestron-admin-bootstrap/releases/tag/v0.5.1

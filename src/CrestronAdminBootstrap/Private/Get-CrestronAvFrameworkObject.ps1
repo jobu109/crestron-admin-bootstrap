@@ -30,6 +30,9 @@ function Get-CrestronAvFrameworkSectionNames {
 
 function Get-CrestronAvFrameworkContainerNames {
     @(
+        'FeatureConfig',
+        'FeatureConfiguration',
+        'Features',
         'DeviceSpecific',
         'Applications',
         'ApplicationSettings',
@@ -182,6 +185,9 @@ function Get-CrestronAvFrameworkObject {
         @{ Path = '/Device/AvFrameworkSettings'; Name = 'AvFrameworkSettings' },
         @{ Path = '/Device/AVF';                 Name = 'AVF' },
         @{ Path = '/Device/Avf';                 Name = 'Avf' },
+        @{ Path = '/Device/FeatureConfig';       Name = 'FeatureConfig' },
+        @{ Path = '/Device/FeatureConfiguration'; Name = 'FeatureConfiguration' },
+        @{ Path = '/Device/Features';            Name = 'Features' },
         @{ Path = '/Device/DeviceSpecific';      Name = 'DeviceSpecific' },
         @{ Path = '/Device/Applications';        Name = 'Applications' },
         @{ Path = '/Device/ApplicationSettings'; Name = 'ApplicationSettings' },

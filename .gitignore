@@ -9,6 +9,10 @@ subnets.txt
 test-subnets.txt
 !examples/subnets.example.txt
 
+# Local GUI/user settings. The compiled app stores these under AppData.
+gui-settings.json
+CrestronBootstrap-error.log
+
 # Sample HTML pulled during signature debugging
 bootup-sample.html
 createuser.html
@@ -30,6 +34,10 @@ signing/*.p12
 # PowerShell module artifacts
 *.zip
 *.nupkg
+
+# .NET build artifacts
+bin/
+obj/
 
 # Editor / OS junk
 .vs/
