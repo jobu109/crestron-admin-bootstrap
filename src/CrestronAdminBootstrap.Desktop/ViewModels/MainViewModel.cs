@@ -94,7 +94,7 @@ public sealed class MainViewModel : ObservableObject
         DeselectAllSubnetsCommand = new RelayCommand(() => SetAllSubnets(false), () => !IsBusy);
         LoadProvisionFromScanCommand = new RelayCommand(LoadProvisionFromScan, () => !IsBusy && ScanResults.Count > 0);
         ProvisionSelectedCommand = new AsyncRelayCommand(_ => ProvisionSelectedAsync(), CanProvisionSelected);
-        RebootSelectedProvisionCommand = new AsyncRelayCommand(_ => RebootSelectedProvisionAsync(), () => !IsBusy && ProvisionRows.Any(r => r.Selected));
+        RebootSelectedProvisionCommand = new AsyncRelayCommand(_ => RebootSelectedProvisionAsync(), () => !IsBusy && !IsWorkflowRebootWaiting && ProvisionRows.Any(r => r.Selected));
         SelectAllProvisionCommand = new RelayCommand(() => SetAllProvisionRows(true), () => !IsBusy && ProvisionRows.Count > 0);
         DeselectAllProvisionCommand = new RelayCommand(() => SetAllProvisionRows(false), () => !IsBusy && ProvisionRows.Count > 0);
         LoadBlanketFromProvisionCommand = new RelayCommand(LoadBlanketFromProvision, () => !IsBusy && ProvisionRows.Any(r => string.Equals(r.Success, "True", StringComparison.OrdinalIgnoreCase)));
@@ -104,7 +104,7 @@ public sealed class MainViewModel : ObservableObject
         ClearBlanketDevicesCommand = new RelayCommand(ClearBlanketDevices, () => !IsBusy && BlanketRows.Count > 0);
         FetchBlanketCapabilitiesCommand = new AsyncRelayCommand(_ => FetchBlanketCapabilitiesAsync(), () => !IsBusy && BlanketRows.Count > 0);
         ApplyBlanketSettingsCommand = new AsyncRelayCommand(_ => ApplyBlanketSettingsAsync(promptForReboot: true), CanApplyBlanketSettings);
-        RebootSelectedBlanketCommand = new AsyncRelayCommand(_ => RebootSelectedBlanketAsync(), () => !IsBusy && BlanketRows.Any(r => r.Selected));
+        RebootSelectedBlanketCommand = new AsyncRelayCommand(_ => RebootSelectedBlanketAsync(), () => !IsBusy && !IsWorkflowRebootWaiting && BlanketRows.Any(r => r.Selected));
         SelectAllBlanketCommand = new RelayCommand(() => SetAllBlanketRows(true), () => !IsBusy && BlanketRows.Count > 0);
         DeselectAllBlanketCommand = new RelayCommand(() => SetAllBlanketRows(false), () => !IsBusy && BlanketRows.Count > 0);
         AddPerDeviceDevicesCommand = new AsyncRelayCommand(_ => AddPerDeviceDevicesAsync(), () => !IsBusy && !string.IsNullOrWhiteSpace(PerDeviceInput));
@@ -113,7 +113,7 @@ public sealed class MainViewModel : ObservableObject
         LoadPerDeviceFromProvisionCommand = new AsyncRelayCommand(_ => LoadPerDeviceFromProvisionAsync(), () => !IsBusy && ProvisionRows.Any(r => string.Equals(r.Success, "True", StringComparison.OrdinalIgnoreCase)));
         FetchPerDeviceStateCommand = new AsyncRelayCommand(_ => FetchPerDeviceStateAsync(), () => !IsBusy && PerDeviceRows.Count > 0);
         ApplyPerDeviceChangesCommand = new AsyncRelayCommand(_ => ApplyPerDeviceChangesAsync(promptForReboot: true), CanApplyPerDeviceChanges);
-        RebootSelectedPerDeviceCommand = new AsyncRelayCommand(_ => RebootSelectedPerDeviceAsync(), () => !IsBusy && PerDeviceRows.Any(r => r.Selected));
+        RebootSelectedPerDeviceCommand = new AsyncRelayCommand(_ => RebootSelectedPerDeviceAsync(), () => !IsBusy && !IsWorkflowRebootWaiting && PerDeviceRows.Any(r => r.Selected));
         SelectAllPerDeviceCommand = new RelayCommand(() => SetAllPerDeviceRows(true), () => !IsBusy && PerDeviceRows.Count > 0);
         DeselectAllPerDeviceCommand = new RelayCommand(() => SetAllPerDeviceRows(false), () => !IsBusy && PerDeviceRows.Count > 0);
         ClearPerDeviceCommand = new RelayCommand(ClearPerDeviceRows, () => !IsBusy && PerDeviceRows.Count > 0);
@@ -383,6 +383,7 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref _isWorkflowRebootWaiting, value))
             {
                 SkipWorkflowRebootWaitCommand.RaiseCanExecuteChanged();
+                RaiseCommandStates();
             }
         }
     }
@@ -1018,6 +1019,27 @@ public sealed class MainViewModel : ObservableObject
                 return;
             }
 
+            // Auto-fetch state for rebooted devices after wait completes.
+            var rebootSet = new HashSet<string>(rebootIps, StringComparer.OrdinalIgnoreCase);
+
+            var blanketTargets = BlanketRows
+                .Where(r => rebootSet.Contains(r.IP))
+                .ToList();
+
+            var perDeviceTargets = PerDeviceRows
+                .Where(r => rebootSet.Contains(r.IP))
+                .ToList();
+
+            if (blanketTargets.Count > 0)
+            {
+                await FetchBlanketCapabilitiesForRowsAsync(blanketTargets).ConfigureAwait(true);
+            }
+
+            if (perDeviceTargets.Count > 0)
+            {
+                await FetchPerDeviceStateForRowsAsync(perDeviceTargets).ConfigureAwait(true);
+            }
+
             SetWorkflowStep(
                 4,
                 "Done",
@@ -1027,6 +1049,13 @@ public sealed class MainViewModel : ObservableObject
             WorkflowStatus = "Workflow complete.";
             WorkflowContinueText = "Continue Workflow";
             SetWorkflowRunning(false, false);
+
+            var completionMsg = skipped
+                ? $"Workflow complete!\n\n{accepted} device(s) were rebooted (wait skipped).\nDevice state has been refreshed."
+                : $"Workflow complete!\n\n{accepted} device(s) rebooted and are back online.\nDevice state has been refreshed.";
+            if (errors > 0)
+                completionMsg += $"\n\n⚠  {errors} device(s) failed to accept the reboot command.";
+            MessageBox.Show(completionMsg, "Workflow Complete", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (OperationCanceledException)
         {
@@ -1449,6 +1478,7 @@ public sealed class MainViewModel : ObservableObject
     private void CancelScan()
     {
         _scanCancellation?.Cancel();
+        _workflowRebootWaitCancellation?.Cancel();
         ProgressText = "Cancelling...";
     }
 
@@ -2605,6 +2635,9 @@ public sealed class MainViewModel : ObservableObject
             }
         });
 
+        var accepted = 0;
+        var errors = 0;
+
         try
         {
             IsBusy = true;
@@ -2617,7 +2650,8 @@ public sealed class MainViewModel : ObservableObject
                 applyResult(result);
             }
 
-            var accepted = results.Count(r => r.Success);
+            accepted = results.Count(r => r.Success);
+            errors = results.Count(r => !r.Success);
             ProgressText = $"Reboot command accepted by {accepted} of {rebootIps.Length} device(s).";
             StatusText = ProgressText;
             OnPropertyChanged(nameof(ProvisionSummary));
@@ -2640,6 +2674,32 @@ public sealed class MainViewModel : ObservableObject
             _scanCancellation?.Dispose();
             _scanCancellation = null;
             IsBusy = false;
+        }
+
+        if (accepted > 0)
+        {
+            await WaitForWorkflowRebootAsync(accepted, errors).ConfigureAwait(true);
+
+            // After the wait, auto-fetch state for any rebooted IPs that exist in Blanket or Per Device.
+            var rebootSet = new HashSet<string>(rebootIps, StringComparer.OrdinalIgnoreCase);
+
+            var blanketTargets = BlanketRows
+                .Where(r => rebootSet.Contains(r.IP))
+                .ToList();
+
+            var perDeviceTargets = PerDeviceRows
+                .Where(r => rebootSet.Contains(r.IP))
+                .ToList();
+
+            if (blanketTargets.Count > 0)
+            {
+                await FetchBlanketCapabilitiesForRowsAsync(blanketTargets).ConfigureAwait(true);
+            }
+
+            if (perDeviceTargets.Count > 0)
+            {
+                await FetchPerDeviceStateForRowsAsync(perDeviceTargets).ConfigureAwait(true);
+            }
         }
     }
 
