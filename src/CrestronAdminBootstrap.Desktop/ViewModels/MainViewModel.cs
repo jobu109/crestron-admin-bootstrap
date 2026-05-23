@@ -909,7 +909,7 @@ public sealed class MainViewModel : ObservableObject
         {
             if (CanApplyPerDeviceChanges())
             {
-                await ApplyPerDeviceChangesAsync(promptForReboot: false).ConfigureAwait(true);
+                await ApplyPerDeviceChangesAsync(promptForReboot: false, skipConfirm: true).ConfigureAwait(true);
                 var ok = PerDeviceRows.Count(r => string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase));
                 SetWorkflowStep(3, "Done", $"Applied Per Device changes. {ok} device(s) OK.");
             }
@@ -917,16 +917,17 @@ public sealed class MainViewModel : ObservableObject
             {
                 SetWorkflowStep(3, "Skipped", "No Per Device changes to apply.");
             }
-
-            await RunWorkflowRebootStepAsync().ConfigureAwait(true);
         }
         catch (Exception ex)
         {
             SetWorkflowStep(3, "Failed", ex.Message);
             WorkflowStatus = $"Workflow stopped: {ex.Message}";
             SetWorkflowRunning(false, false);
-            MessageBox.Show(ex.Message, "Workflow failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(Application.Current.MainWindow, ex.Message, "Workflow failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
         }
+
+        await RunWorkflowRebootStepAsync().ConfigureAwait(true);
     }
 
     private async Task RunWorkflowRebootStepAsync()
@@ -948,6 +949,12 @@ public sealed class MainViewModel : ObservableObject
             WorkflowStatus = "Workflow complete. No reboot needed.";
             WorkflowContinueText = "Continue Workflow";
             SetWorkflowRunning(false, false);
+            MessageBox.Show(
+                Application.Current.MainWindow,
+                "Workflow complete!\n\nNo devices required a reboot.",
+                "Workflow Complete",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
             return;
         }
 
@@ -963,6 +970,12 @@ public sealed class MainViewModel : ObservableObject
             WorkflowStatus = "Workflow complete. Reboot deferred.";
             WorkflowContinueText = "Continue Workflow";
             SetWorkflowRunning(false, false);
+            MessageBox.Show(
+                Application.Current.MainWindow,
+                $"Workflow complete!\n\nReboot was deferred for {rebootIps.Length} device(s).\nRemember to reboot them manually when ready.",
+                "Workflow Complete",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
             return;
         }
 
@@ -1003,6 +1016,12 @@ public sealed class MainViewModel : ObservableObject
                 WorkflowStatus = "Workflow stopped: no reboot commands were accepted.";
                 WorkflowContinueText = "Continue Workflow";
                 SetWorkflowRunning(false, false);
+                MessageBox.Show(
+                    Application.Current.MainWindow,
+                    $"Reboot commands failed for all {rebootIps.Length} device(s).\n\nCheck that credentials are saved in Settings and that devices are reachable.",
+                    "Reboot Failed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 return;
             }
 
@@ -1020,15 +1039,9 @@ public sealed class MainViewModel : ObservableObject
             }
 
             // Auto-fetch state for rebooted devices after wait completes.
-            var rebootSet = new HashSet<string>(rebootIps, StringComparer.OrdinalIgnoreCase);
-
-            var blanketTargets = BlanketRows
-                .Where(r => rebootSet.Contains(r.IP))
-                .ToList();
-
-            var perDeviceTargets = PerDeviceRows
-                .Where(r => rebootSet.Contains(r.IP))
-                .ToList();
+            // Rows whose IP was changed to a new static address are re-keyed first
+            // so the fetch targets the address the device actually booted on.
+            var (blanketTargets, perDeviceTargets) = PromoteNewIpsAfterReboot(rebootIps);
 
             if (blanketTargets.Count > 0)
             {
@@ -1055,13 +1068,20 @@ public sealed class MainViewModel : ObservableObject
                 : $"Workflow complete!\n\n{accepted} device(s) rebooted and are back online.\nDevice state has been refreshed.";
             if (errors > 0)
                 completionMsg += $"\n\n⚠  {errors} device(s) failed to accept the reboot command.";
-            MessageBox.Show(completionMsg, "Workflow Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(Application.Current.MainWindow, completionMsg, "Workflow Complete", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (OperationCanceledException)
         {
             SetWorkflowStep(4, "Cancelled", "Cancelled by user.");
             WorkflowStatus = "Workflow cancelled.";
             SetWorkflowRunning(false, false);
+        }
+        catch (Exception ex)
+        {
+            SetWorkflowStep(4, "Failed", ex.Message);
+            WorkflowStatus = $"Workflow stopped: {ex.Message}";
+            SetWorkflowRunning(false, false);
+            MessageBox.Show(Application.Current.MainWindow, ex.Message, "Reboot failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -1413,6 +1433,7 @@ public sealed class MainViewModel : ObservableObject
             }
         });
 
+        var applySucceeded = false;
         try
         {
             IsBusy = true;
@@ -1435,6 +1456,7 @@ public sealed class MainViewModel : ObservableObject
             var ok = selectedRows.Count(r => string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase));
             ProgressText = $"Blanket apply complete. {ok} OK.";
             StatusText = "Blanket apply complete. Saved crestron-settings.csv.";
+            applySucceeded = true;
 
             if (promptForReboot && !IsWorkflowRunning)
             {
@@ -1472,6 +1494,12 @@ public sealed class MainViewModel : ObservableObject
             _scanCancellation = null;
             IsBusy = false;
             OnPropertyChanged(nameof(BlanketSummary));
+        }
+
+        // In the Full Workflow, automatically advance to Per Device once blanket settings are applied.
+        if (applySucceeded && IsWorkflowRunning && IsWorkflowWaiting && _workflowWaitStage == WorkflowWaitStage.Blanket)
+        {
+            await ContinueWorkflowToPerDeviceAsync().ConfigureAwait(true);
         }
     }
 
@@ -1523,6 +1551,130 @@ public sealed class MainViewModel : ObservableObject
     private void SkipWorkflowRebootWait()
     {
         _workflowRebootWaitCancellation?.Cancel();
+    }
+
+    /// <summary>
+    /// After a reboot wait completes, promotes any per-device rows that had their IP
+    /// changed to a new static address: the old row is replaced in-place with a new
+    /// row keyed to the new IP, and the corresponding blanket row is updated the same
+    /// way.  Returns the blanket and per-device rows to target for the post-reboot
+    /// capability/state fetch (using the new IPs where applicable).
+    /// </summary>
+    private (List<BlanketDeviceRow> Blanket, List<PerDeviceDeviceRow> PerDevice)
+        PromoteNewIpsAfterReboot(IEnumerable<string> rebootedIps)
+    {
+        var rebootedSet = new HashSet<string>(rebootedIps, StringComparer.OrdinalIgnoreCase);
+        var blanketOut  = new List<BlanketDeviceRow>();
+        var perDevOut   = new List<PerDeviceDeviceRow>();
+
+        var perDeviceSnapshot = PerDeviceRows
+            .Where(r => rebootedSet.Contains(r.IP))
+            .ToList();
+
+        foreach (var oldRow in perDeviceSnapshot)
+        {
+            var effectiveIp = GetEffectiveFetchIp(oldRow);
+            var ipChanged   = !string.Equals(effectiveIp, oldRow.IP, StringComparison.OrdinalIgnoreCase);
+
+            PerDeviceDeviceRow fetchRow;
+            if (ipChanged)
+            {
+                var newRow = new PerDeviceDeviceRow { IP = effectiveIp, Selected = oldRow.Selected, Status = "Pending" };
+                ReplacePerDeviceRow(oldRow, newRow);
+                // Remove secondary rows keyed to the old IP; the post-reboot fetch will repopulate them under the new IP.
+                RemovePerDeviceAvRowsByIp(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { oldRow.IP });
+                fetchRow = newRow;
+            }
+            else
+            {
+                fetchRow = oldRow;
+            }
+
+            perDevOut.Add(fetchRow);
+
+            // Mirror the IP update in BlanketRows
+            var blanketOld = BlanketRows.FirstOrDefault(r =>
+                string.Equals(r.IP, oldRow.IP, StringComparison.OrdinalIgnoreCase));
+            if (blanketOld is not null)
+            {
+                if (ipChanged)
+                {
+                    var newBlanket = new BlanketDeviceRow { IP = effectiveIp, Selected = blanketOld.Selected, Status = "Pending" };
+                    ReplaceBlanketRow(blanketOld, newBlanket);
+                    blanketOut.Add(newBlanket);
+                }
+                else
+                {
+                    blanketOut.Add(blanketOld);
+                }
+            }
+        }
+
+        // Also include blanket-only rows (no per-device counterpart) that were rebooted
+        var handledIps = perDeviceSnapshot
+            .Select(r => r.IP)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var br in BlanketRows.Where(r => rebootedSet.Contains(r.IP) && !handledIps.Contains(r.IP)))
+        {
+            blanketOut.Add(br);
+        }
+
+        return (blanketOut, perDevOut);
+    }
+
+    /// <summary>
+    /// Returns the IP address the app should connect to AFTER the device reboots.
+    /// If the user set a new static IP that is a valid address and differs from the
+    /// current IP, that new address is returned; otherwise the original row IP is used.
+    /// </summary>
+    private static string GetEffectiveFetchIp(PerDeviceDeviceRow row)
+    {
+        var newIp = row.NewIP?.Trim();
+        if (string.IsNullOrWhiteSpace(newIp) ||
+            string.Equals(newIp, "N/A", StringComparison.OrdinalIgnoreCase))
+            return row.IP;
+
+        if (!System.Net.IPAddress.TryParse(newIp, out _))
+            return row.IP;
+
+        if (string.Equals(newIp, row.CurrentIP?.Trim(), StringComparison.OrdinalIgnoreCase))
+            return row.IP;
+
+        return newIp;
+    }
+
+    private void ReplacePerDeviceRow(PerDeviceDeviceRow oldRow, PerDeviceDeviceRow newRow)
+    {
+        var idx = PerDeviceRows.IndexOf(oldRow);
+        if (idx < 0) return;
+
+        newRow.PropertyChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(PerDeviceSummary));
+            RaiseCommandStates();
+        };
+
+        PerDeviceRows[idx] = newRow;
+    }
+
+    private void ReplaceBlanketRow(BlanketDeviceRow oldRow, BlanketDeviceRow newRow)
+    {
+        var idx = BlanketRows.IndexOf(oldRow);
+        if (idx < 0) return;
+
+        newRow.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(BlanketDeviceRow.Selected)
+                or nameof(BlanketDeviceRow.Status)
+                or nameof(BlanketDeviceRow.NeedsReboot))
+            {
+                OnPropertyChanged(nameof(BlanketSummary));
+                RaiseCommandStates();
+            }
+        };
+
+        BlanketRows[idx] = newRow;
     }
 
     private void SetWorkflowRunning(bool running, bool waiting)
@@ -2403,7 +2555,7 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private async Task ApplyPerDeviceChangesAsync(bool promptForReboot)
+    private async Task ApplyPerDeviceChangesAsync(bool promptForReboot, bool skipConfirm = false)
     {
         var selectedIps = PerDeviceRows.Where(r => r.Selected).Select(r => r.IP).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var selectedRows = PerDeviceRows.Where(r => r.Selected && r.HasChanges).ToArray();
@@ -2414,20 +2566,26 @@ public sealed class MainViewModel : ObservableObject
         var changeCount = selectedRows.Length + selectedAvInputs.Length + selectedAvOutputs.Length + selectedMulticastRows.Length + selectedControlSubnetRows.Length;
         if (changeCount == 0)
         {
-            MessageBox.Show("Select at least one device with changes before applying.", "Nothing to apply", MessageBoxButton.OK, MessageBoxImage.Warning);
+            if (!skipConfirm)
+            {
+                MessageBox.Show("Select at least one device with changes before applying.", "Nothing to apply", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
             return;
         }
 
-        var confirm = MessageBox.Show(
-            $"Apply {changeCount} per-device change row(s)?",
-            "Confirm Per Device Changes",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-
-        if (confirm != MessageBoxResult.Yes)
+        if (!skipConfirm)
         {
-            StatusText = "Per Device apply cancelled.";
-            return;
+            var confirm = MessageBox.Show(
+                $"Apply {changeCount} per-device change row(s)?",
+                "Confirm Per Device Changes",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes)
+            {
+                StatusText = "Per Device apply cancelled.";
+                return;
+            }
         }
 
         _scanCancellation = new CancellationTokenSource();
@@ -2680,16 +2838,9 @@ public sealed class MainViewModel : ObservableObject
         {
             await WaitForWorkflowRebootAsync(accepted, errors).ConfigureAwait(true);
 
-            // After the wait, auto-fetch state for any rebooted IPs that exist in Blanket or Per Device.
-            var rebootSet = new HashSet<string>(rebootIps, StringComparer.OrdinalIgnoreCase);
-
-            var blanketTargets = BlanketRows
-                .Where(r => rebootSet.Contains(r.IP))
-                .ToList();
-
-            var perDeviceTargets = PerDeviceRows
-                .Where(r => rebootSet.Contains(r.IP))
-                .ToList();
+            // After the wait, auto-fetch state for rebooted devices.
+            // Rows whose IP was changed to a new static address are re-keyed first.
+            var (blanketTargets, perDeviceTargets) = PromoteNewIpsAfterReboot(rebootIps);
 
             if (blanketTargets.Count > 0)
             {
@@ -3233,7 +3384,32 @@ public sealed class MainViewModel : ObservableObject
             AddPerDeviceControlSubnetRow(controlSubnetRow);
         }
 
+        // Remove any secondary rows whose device IP is no longer in the main PerDeviceRows list.
+        // This prevents stale rows accumulating when a smaller subset is fetched.
+        RemoveOrphanedAvRows();
+
         OnPropertyChanged(nameof(PerDeviceSummary));
+    }
+
+    private void RemoveOrphanedAvRows()
+    {
+        var knownIps = PerDeviceRows.Select(r => r.IP).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        for (var i = PerDeviceAvInputRows.Count - 1; i >= 0; i--)
+            if (!knownIps.Contains(PerDeviceAvInputRows[i].IP))
+                PerDeviceAvInputRows.RemoveAt(i);
+
+        for (var i = PerDeviceAvOutputRows.Count - 1; i >= 0; i--)
+            if (!knownIps.Contains(PerDeviceAvOutputRows[i].IP))
+                PerDeviceAvOutputRows.RemoveAt(i);
+
+        for (var i = PerDeviceMulticastRows.Count - 1; i >= 0; i--)
+            if (!knownIps.Contains(PerDeviceMulticastRows[i].IP))
+                PerDeviceMulticastRows.RemoveAt(i);
+
+        for (var i = PerDeviceControlSubnetRows.Count - 1; i >= 0; i--)
+            if (!knownIps.Contains(PerDeviceControlSubnetRows[i].IP))
+                PerDeviceControlSubnetRows.RemoveAt(i);
     }
 
     private void RemovePerDeviceAvRowsByIp(ISet<string> ips)
@@ -3527,4 +3703,7 @@ public sealed class MainViewModel : ObservableObject
     }
 }
 
-public sealed record TimeZoneOption(string Code, string Name);
+public sealed record TimeZoneOption(string Code, string Name)
+{
+    public override string ToString() => Name;
+}

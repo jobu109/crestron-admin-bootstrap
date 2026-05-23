@@ -500,6 +500,36 @@
                                 BorderThickness="1"
                                 Padding="10"
                                 Margin="0,0,0,8"
+                                Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding ProgressText}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           TextWrapping="Wrap" />
+                                <Button Grid.Column="1"
+                                        Content="Cancel"
+                                        Command="{Binding CancelWorkflowCommand}"
+                                        Margin="12,0,0,0" />
+                                <ProgressBar Grid.Row="1"
+                                             Grid.ColumnSpan="2"
+                                             IsIndeterminate="True"
+                                             Height="10"
+                                             Margin="0,8,0,0" />
+                            </Grid>
+                        </Border>
+                        <Border Background="{DynamicResource PanelBrush}"
+                                BorderBrush="{DynamicResource BorderBrushDark}"
+                                BorderThickness="1"
+                                Padding="10"
+                                Margin="0,0,0,8"
                                 Visibility="{Binding IsWorkflowRebootWaiting, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Grid>
                                 <Grid.RowDefinitions>
