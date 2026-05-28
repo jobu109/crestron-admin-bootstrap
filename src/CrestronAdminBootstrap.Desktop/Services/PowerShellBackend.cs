@@ -345,6 +345,8 @@ public sealed class PowerShellBackend
 
     public async Task<IReadOnlyList<BlanketDeviceRow>> FetchBlanketCapabilitiesAsync(
         IEnumerable<string> ips,
+        string? credUsername,
+        string? credPassword,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
@@ -363,24 +365,13 @@ public sealed class PowerShellBackend
         Directory.CreateDirectory(tempDir);
 
         var ipsFile = Path.Combine(tempDir, "blanket-ips.json");
-        var settingsPath = _settingsPath;
+        var credBlock = BuildCredentialBlock(credUsername, credPassword);
         await File.WriteAllTextAsync(ipsFile, JsonSerializer.Serialize(cleanIps), cancellationToken).ConfigureAwait(false);
 
         var script = $$"""
             $ErrorActionPreference = 'Stop'
             Import-Module '{{EscapePowerShellString(_moduleManifest)}}' -Force
-            $settingsPath = '{{EscapePowerShellString(settingsPath)}}'
-            if (-not (Test-Path $settingsPath)) {
-                throw 'Saved credentials were not found. Save credentials in the legacy GUI Settings tab first.'
-            }
-            $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
-            if (-not $settings.DefaultUsername -or -not $settings.ProtectedDefaultPassword) {
-                throw 'Saved credentials are incomplete. Save username/password in the legacy GUI Settings tab first.'
-            }
-            $secure = ConvertTo-SecureString $settings.ProtectedDefaultPassword
-            $credential = [pscredential]::new([string]$settings.DefaultUsername, $secure)
-            $userName = $credential.UserName
-            $userPass = $credential.GetNetworkCredential().Password
+            {{credBlock}}
             $ips = @(Get-Content '{{EscapePowerShellString(ipsFile)}}' -Raw | ConvertFrom-Json)
             $manifest = '{{EscapePowerShellString(_moduleManifest)}}'
 
@@ -481,6 +472,8 @@ public sealed class PowerShellBackend
     public async Task<IReadOnlyList<BlanketDeviceRow>> ApplyBlanketSettingsAsync(
         IEnumerable<BlanketDeviceRow> rows,
         BlanketApplyOptions options,
+        string? credUsername,
+        string? credPassword,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
@@ -518,25 +511,14 @@ public sealed class PowerShellBackend
         var rowsFile = Path.Combine(tempDir, "blanket-rows.json");
         var optionsFile = Path.Combine(tempDir, "blanket-options.json");
         var resultsCsv = Path.Combine(_dataRoot, "crestron-settings.csv");
-        var settingsPath = _settingsPath;
+        var credBlock = BuildCredentialBlock(credUsername, credPassword);
         await File.WriteAllTextAsync(rowsFile, JsonSerializer.Serialize(cleanRows), cancellationToken).ConfigureAwait(false);
         await File.WriteAllTextAsync(optionsFile, JsonSerializer.Serialize(options), cancellationToken).ConfigureAwait(false);
 
         var script = $$"""
             $ErrorActionPreference = 'Stop'
             Import-Module '{{EscapePowerShellString(_moduleManifest)}}' -Force
-            $settingsPath = '{{EscapePowerShellString(settingsPath)}}'
-            if (-not (Test-Path $settingsPath)) {
-                throw 'Saved credentials were not found. Save credentials in the legacy GUI Settings tab first.'
-            }
-            $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
-            if (-not $settings.DefaultUsername -or -not $settings.ProtectedDefaultPassword) {
-                throw 'Saved credentials are incomplete. Save username/password in the legacy GUI Settings tab first.'
-            }
-            $secure = ConvertTo-SecureString $settings.ProtectedDefaultPassword
-            $credential = [pscredential]::new([string]$settings.DefaultUsername, $secure)
-            $userName = $credential.UserName
-            $userPass = $credential.GetNetworkCredential().Password
+            {{credBlock}}
             $rows = @(Get-Content '{{EscapePowerShellString(rowsFile)}}' -Raw | ConvertFrom-Json)
             $options = Get-Content '{{EscapePowerShellString(optionsFile)}}' -Raw | ConvertFrom-Json
             $manifest = '{{EscapePowerShellString(_moduleManifest)}}'
@@ -804,6 +786,8 @@ public sealed class PowerShellBackend
 
     public async Task<PerDeviceStateResult> FetchPerDeviceStateAsync(
         IEnumerable<string> ips,
+        string? credUsername,
+        string? credPassword,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
@@ -822,25 +806,14 @@ public sealed class PowerShellBackend
         Directory.CreateDirectory(tempDir);
 
         var ipsFile = Path.Combine(tempDir, "perdevice-ips.json");
-        var settingsPath = _settingsPath;
+        var credBlock = BuildCredentialBlock(credUsername, credPassword);
         var resultsCsv = Path.Combine(_dataRoot, "crestron-perdevice.csv");
         await File.WriteAllTextAsync(ipsFile, JsonSerializer.Serialize(cleanIps), cancellationToken).ConfigureAwait(false);
 
         var script = $$"""
             $ErrorActionPreference = 'Stop'
             Import-Module '{{EscapePowerShellString(_moduleManifest)}}' -Force
-            $settingsPath = '{{EscapePowerShellString(settingsPath)}}'
-            if (-not (Test-Path $settingsPath)) {
-                throw 'Saved credentials were not found. Save credentials in the legacy GUI Settings tab first.'
-            }
-            $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
-            if (-not $settings.DefaultUsername -or -not $settings.ProtectedDefaultPassword) {
-                throw 'Saved credentials are incomplete. Save username/password in the legacy GUI Settings tab first.'
-            }
-            $secure = ConvertTo-SecureString $settings.ProtectedDefaultPassword
-            $credential = [pscredential]::new([string]$settings.DefaultUsername, $secure)
-            $userName = $credential.UserName
-            $userPass = $credential.GetNetworkCredential().Password
+            {{credBlock}}
             $ips = @(Get-Content '{{EscapePowerShellString(ipsFile)}}' -Raw | ConvertFrom-Json)
             $manifest = '{{EscapePowerShellString(_moduleManifest)}}'
 
@@ -1227,6 +1200,8 @@ public sealed class PowerShellBackend
         IEnumerable<PerDeviceAvOutputRow> avOutputRows,
         IEnumerable<PerDeviceMulticastRow> multicastRows,
         IEnumerable<PerDeviceControlSubnetRow> controlSubnetRows,
+        string? credUsername,
+        string? credPassword,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
@@ -1381,7 +1356,7 @@ public sealed class PowerShellBackend
         var avOutputRowsFile = Path.Combine(tempDir, "perdevice-av-output-rows.json");
         var multicastRowsFile = Path.Combine(tempDir, "perdevice-multicast-rows.json");
         var controlSubnetRowsFile = Path.Combine(tempDir, "perdevice-control-subnet-rows.json");
-        var settingsPath = _settingsPath;
+        var credBlock = BuildCredentialBlock(credUsername, credPassword);
         var resultsCsv = Path.Combine(_dataRoot, "crestron-perdevice.csv");
         await File.WriteAllTextAsync(rowsFile, JsonSerializer.Serialize(cleanRows), cancellationToken).ConfigureAwait(false);
         await File.WriteAllTextAsync(avInputRowsFile, JsonSerializer.Serialize(cleanAvInputRows), cancellationToken).ConfigureAwait(false);
@@ -1392,18 +1367,7 @@ public sealed class PowerShellBackend
         var script = $$"""
             $ErrorActionPreference = 'Stop'
             Import-Module '{{EscapePowerShellString(_moduleManifest)}}' -Force
-            $settingsPath = '{{EscapePowerShellString(settingsPath)}}'
-            if (-not (Test-Path $settingsPath)) {
-                throw 'Saved credentials were not found. Save credentials in the legacy GUI Settings tab first.'
-            }
-            $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
-            if (-not $settings.DefaultUsername -or -not $settings.ProtectedDefaultPassword) {
-                throw 'Saved credentials are incomplete. Save username/password in the legacy GUI Settings tab first.'
-            }
-            $secure = ConvertTo-SecureString $settings.ProtectedDefaultPassword
-            $credential = [pscredential]::new([string]$settings.DefaultUsername, $secure)
-            $userName = $credential.UserName
-            $userPass = $credential.GetNetworkCredential().Password
+            {{credBlock}}
             $rowsIn = @(Get-Content '{{EscapePowerShellString(rowsFile)}}' -Raw | ConvertFrom-Json)
             $avInputRowsIn = @(Get-Content '{{EscapePowerShellString(avInputRowsFile)}}' -Raw | ConvertFrom-Json)
             $avOutputRowsIn = @(Get-Content '{{EscapePowerShellString(avOutputRowsFile)}}' -Raw | ConvertFrom-Json)
@@ -1803,6 +1767,8 @@ public sealed class PowerShellBackend
 
     public async Task<IReadOnlyList<RebootDeviceResult>> RebootDevicesAsync(
         IEnumerable<string> ips,
+        string? credUsername,
+        string? credPassword,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
@@ -1821,24 +1787,13 @@ public sealed class PowerShellBackend
         Directory.CreateDirectory(tempDir);
 
         var ipFile = Path.Combine(tempDir, "reboot-ips.txt");
-        var settingsPath = _settingsPath;
+        var credBlock = BuildCredentialBlock(credUsername, credPassword);
         await File.WriteAllLinesAsync(ipFile, cleanIps, cancellationToken).ConfigureAwait(false);
 
         var script = $$"""
             $ErrorActionPreference = 'Stop'
             Import-Module '{{EscapePowerShellString(_moduleManifest)}}' -Force
-            $settingsPath = '{{EscapePowerShellString(settingsPath)}}'
-            if (-not (Test-Path $settingsPath)) {
-                throw 'Saved credentials were not found. Save credentials in the legacy GUI Settings tab first.'
-            }
-            $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
-            if (-not $settings.DefaultUsername -or -not $settings.ProtectedDefaultPassword) {
-                throw 'Saved credentials are incomplete. Save username/password in the legacy GUI Settings tab first.'
-            }
-            $secure = ConvertTo-SecureString $settings.ProtectedDefaultPassword
-            $credential = [pscredential]::new([string]$settings.DefaultUsername, $secure)
-            $userName = $credential.UserName
-            $userPass = $credential.GetNetworkCredential().Password
+            {{credBlock}}
             $manifest = '{{EscapePowerShellString(_moduleManifest)}}'
             $ipsIn = @(Get-Content '{{EscapePowerShellString(ipFile)}}' | Where-Object { $_ -and $_.Trim() } | Select-Object -Unique)
 
@@ -2191,6 +2146,31 @@ public sealed class PowerShellBackend
     private static string EscapePowerShellString(string value)
     {
         return value.Replace("'", "''", StringComparison.Ordinal);
+    }
+
+    private string BuildCredentialBlock(string? credUsername, string? credPassword)
+    {
+        if (!string.IsNullOrEmpty(credUsername) && !string.IsNullOrEmpty(credPassword))
+        {
+            return
+                "$userName = '" + EscapePowerShellString(credUsername) + "'\n" +
+                "            $userPass = '" + EscapePowerShellString(credPassword) + "'";
+        }
+
+        var sp = EscapePowerShellString(_settingsPath);
+        return
+            "$settingsPath = '" + sp + "'\n" +
+            "            if (-not (Test-Path $settingsPath)) {\n" +
+            "                throw 'Saved credentials were not found. Save credentials in the legacy GUI Settings tab first.'\n" +
+            "            }\n" +
+            "            $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json\n" +
+            "            if (-not $settings.DefaultUsername -or -not $settings.ProtectedDefaultPassword) {\n" +
+            "                throw 'Saved credentials are incomplete. Save username/password in the legacy GUI Settings tab first.'\n" +
+            "            }\n" +
+            "            $secure = ConvertTo-SecureString $settings.ProtectedDefaultPassword\n" +
+            "            $credential = [pscredential]::new([string]$settings.DefaultUsername, $secure)\n" +
+            "            $userName = $credential.UserName\n" +
+            "            $userPass = $credential.GetNetworkCredential().Password";
     }
 
     private static BlanketDeviceRow ToBlanketRow(BlanketRowDto row)

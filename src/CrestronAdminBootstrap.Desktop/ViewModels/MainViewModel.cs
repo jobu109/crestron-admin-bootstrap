@@ -51,6 +51,8 @@ public sealed class MainViewModel : ObservableObject
     private bool _settingsHasSavedPassword;
 
     private sealed record ProvisionCredentialInput(string Username, string Password);
+    private string? _sessionUsername;
+    private string? _sessionPassword;
     private WorkflowWaitStage _workflowWaitStage = WorkflowWaitStage.None;
     private bool _applyNtp;
     private string _ntpServer = "time.google.com";
@@ -797,6 +799,9 @@ public sealed class MainViewModel : ObservableObject
                 row.Timestamp = result.Timestamp;
             }
 
+            _sessionUsername = provisionCredential.Username;
+            _sessionPassword = provisionCredential.Password;
+
             var provisionOk = provisionTargets.Count(r => string.Equals(r.Success, "True", StringComparison.OrdinalIgnoreCase));
             SetWorkflowStep(1, provisionOk > 0 ? "Done" : "Failed", $"Provisioned {provisionOk} of {provisionTargets.Length} device(s).");
             LoadBlanketFromProvision();
@@ -810,7 +815,7 @@ public sealed class MainViewModel : ObservableObject
 
             SetWorkflowStep(2, "Running", $"Fetching blanket capabilities for {BlanketRows.Count} device(s)...");
             var blanketResults = await _backend
-                .FetchBlanketCapabilitiesAsync(BlanketRows.Select(r => r.IP), progress, _scanCancellation.Token)
+                .FetchBlanketCapabilitiesAsync(BlanketRows.Select(r => r.IP), _sessionUsername, _sessionPassword, progress, _scanCancellation.Token)
                 .ConfigureAwait(true);
             ApplyBlanketResults(blanketResults);
             var blanketOk = BlanketRows.Count(r => string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase));
@@ -995,7 +1000,7 @@ public sealed class MainViewModel : ObservableObject
             WorkflowStatus = $"Sending reboot commands to {rebootIps.Length} device(s)...";
             SetWorkflowStep(4, "Running", $"Sending reboot commands to {rebootIps.Length} device(s)...");
 
-            var results = await _backend.RebootDevicesAsync(rebootIps, progress, _scanCancellation.Token).ConfigureAwait(true);
+            var results = await _backend.RebootDevicesAsync(rebootIps, _sessionUsername, _sessionPassword, progress, _scanCancellation.Token).ConfigureAwait(true);
             var byIp = results.ToDictionary(r => r.IP, StringComparer.OrdinalIgnoreCase);
 
             foreach (var row in PerDeviceRows.Where(r => rebootIps.Contains(r.IP, StringComparer.OrdinalIgnoreCase)))
@@ -1272,6 +1277,9 @@ public sealed class MainViewModel : ObservableObject
                 row.Timestamp = result.Timestamp;
             }
 
+            _sessionUsername = provisionCredential.Username;
+            _sessionPassword = provisionCredential.Password;
+
             var ok = selectedRows.Count(r => string.Equals(r.Success, "True", StringComparison.OrdinalIgnoreCase));
             LoadBlanketFromProvision();
             ProgressText = $"Provision complete. {ok} succeeded.";
@@ -1351,7 +1359,7 @@ public sealed class MainViewModel : ObservableObject
             StatusText = $"Fetching capabilities for {selectedRows.Count} device(s)...";
 
             var results = await _backend
-                .FetchBlanketCapabilitiesAsync(selectedRows.Select(r => r.IP), progress, _scanCancellation.Token)
+                .FetchBlanketCapabilitiesAsync(selectedRows.Select(r => r.IP), _sessionUsername, _sessionPassword, progress, _scanCancellation.Token)
                 .ConfigureAwait(true);
 
             ApplyBlanketResults(results);
@@ -1449,7 +1457,7 @@ public sealed class MainViewModel : ObservableObject
             StatusText = $"Applying blanket settings to {selectedRows.Length} device(s)...";
 
             var results = await _backend
-                .ApplyBlanketSettingsAsync(selectedRows, options, progress, _scanCancellation.Token)
+                .ApplyBlanketSettingsAsync(selectedRows, options, _sessionUsername, _sessionPassword, progress, _scanCancellation.Token)
                 .ConfigureAwait(true);
 
             ApplyBlanketResults(results);
@@ -2519,7 +2527,7 @@ public sealed class MainViewModel : ObservableObject
 
             ProgressText = $"Fetching per-device state for {selectedRows.Count} device(s)...";
             StatusText = $"Fetching per-device state for {selectedRows.Count} device(s)...";
-            var result = await _backend.FetchPerDeviceStateAsync(selectedRows.Select(r => r.IP), progress, _scanCancellation.Token).ConfigureAwait(true);
+            var result = await _backend.FetchPerDeviceStateAsync(selectedRows.Select(r => r.IP), _sessionUsername, _sessionPassword, progress, _scanCancellation.Token).ConfigureAwait(true);
             ApplyPerDeviceResults(result);
             ProgressText = "Per Device fetch complete.";
             StatusText = "Per Device fetch complete.";
@@ -2615,6 +2623,8 @@ public sealed class MainViewModel : ObservableObject
                 PerDeviceAvOutputRows.Where(r => selectedIps.Contains(r.IP)),
                 PerDeviceMulticastRows.Where(r => selectedIps.Contains(r.IP)),
                 PerDeviceControlSubnetRows.Where(r => selectedIps.Contains(r.IP)),
+                _sessionUsername,
+                _sessionPassword,
                 progress,
                 _scanCancellation.Token).ConfigureAwait(true);
             ApplyPerDeviceResults(result);
@@ -2802,7 +2812,7 @@ public sealed class MainViewModel : ObservableObject
             ProgressText = $"Sending reboot commands to {rebootIps.Length} device(s)...";
             StatusText = $"Sending reboot commands to {rebootIps.Length} device(s)...";
 
-            var results = await _backend.RebootDevicesAsync(rebootIps, progress, _scanCancellation.Token).ConfigureAwait(true);
+            var results = await _backend.RebootDevicesAsync(rebootIps, _sessionUsername, _sessionPassword, progress, _scanCancellation.Token).ConfigureAwait(true);
             foreach (var result in results)
             {
                 applyResult(result);
