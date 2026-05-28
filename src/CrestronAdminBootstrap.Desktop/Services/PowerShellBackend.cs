@@ -974,14 +974,17 @@ public sealed class PowerShellBackend
                                             Where-Object { -not [string]::IsNullOrWhiteSpace("$_") -and "$_" -ne 'N/A' } |
                                             Sort-Object -Unique)
                                         $currentInputHdcp = Convert-CabsInputHdcpMode $inputItem.HdcpReceiverCapability
-                                        $inputLabel = "$($inputItem.InputName)"
-                                        if ([string]::IsNullOrWhiteSpace($inputLabel)) { $inputLabel = "Input $($i + 1)" }
+                                        $portTypeUpper = "$($inputItem.PortType)".Trim().ToUpperInvariant()
+                                        $rawInputLabel = "$($inputItem.InputName)".Trim()
+                                        $inputLabel = if ([string]::IsNullOrWhiteSpace($rawInputLabel) -or $rawInputLabel -imatch '^(input|in)\d+$') {
+                                            if ($portTypeUpper) { "$portTypeUpper In $($i + 1)" } else { "Input $($i + 1)" }
+                                        } else { $rawInputLabel }
                                         $rowSupportsAvRouting = ($i -eq 0) -and $supportsAvRoutingBool -and $inputs.Count -gt 1
                                         $avRows += [pscustomobject]@{
                                             RowKind = 'Input'
                                             IP = $ip; Model = $model; Hostname = $hostname
                                             PortLabel = $inputLabel
-                                            PortType = "$($inputItem.PortType)"
+                                            PortType = $portTypeUpper
                                             InputIndex = $i
                                             OutputIndex = -1
                                             SupportsInputHdcp = [bool]$supportsAvSettings
@@ -1004,8 +1007,11 @@ public sealed class PowerShellBackend
                                         $outputItem = $outputs[$i]
                                         $currentOutputHdcp = Convert-CabsOutputHdcpMode $outputItem.HdcpTransmitterMode
                                         $currentOutputResolution = "$($outputItem.Resolution)"
-                                        $outputLabel = "$($outputItem.OutputName)"
-                                        if ([string]::IsNullOrWhiteSpace($outputLabel)) { $outputLabel = "Output $($i + 1)" }
+                                        $outPortTypeUpper = "$($outputItem.PortType)".Trim().ToUpperInvariant()
+                                        $rawOutputLabel = "$($outputItem.OutputName)".Trim()
+                                        $outputLabel = if ([string]::IsNullOrWhiteSpace($rawOutputLabel) -or $rawOutputLabel -imatch '^(output|out)\d+$') {
+                                            if ($outPortTypeUpper) { "$outPortTypeUpper Out $($i + 1)" } else { "Output $($i + 1)" }
+                                        } else { $rawOutputLabel }
                                         $resolutionOptions = @(
                                             $currentOutputResolution,
                                             'Auto',
@@ -1020,7 +1026,7 @@ public sealed class PowerShellBackend
                                             RowKind = 'Output'
                                             IP = $ip; Model = $model; Hostname = $hostname
                                             PortLabel = $outputLabel
-                                            PortType = ''
+                                            PortType = $outPortTypeUpper
                                             InputIndex = -1
                                             OutputIndex = $i
                                             SupportsOutputHdcp = [bool]$supportsAvSettings
