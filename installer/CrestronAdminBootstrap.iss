@@ -3,7 +3,7 @@
 ; Or manually: ISCC.exe installer\CrestronAdminBootstrap.iss
 
 #ifndef AppVersion
-  #define AppVersion "0.13.7"
+  #define AppVersion "1.0.0.0"
 #endif
 
 #define AppName      "Crestron Admin Bootstrap"
