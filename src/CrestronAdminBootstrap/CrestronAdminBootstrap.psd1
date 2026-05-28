@@ -38,7 +38,8 @@
         'Set-CrestronOutputResolution',
         'Set-CrestronInputEdid',
         'Set-CrestronGlobalEdid',
-        'Set-CrestronMulticastAddress'
+        'Set-CrestronMulticastAddress',
+        'Set-CrestronAutoInputRouting'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

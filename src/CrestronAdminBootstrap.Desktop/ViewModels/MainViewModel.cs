@@ -2041,10 +2041,16 @@ public sealed class MainViewModel : ObservableObject
             Password = defaultPassword ?? "",
             MinWidth = 240
         };
+        var confirmPasswordBox = new PasswordBox
+        {
+            Password = defaultPassword ?? "",
+            MinWidth = 240
+        };
 
         var grid = new Grid { Margin = new Thickness(14) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -2079,14 +2085,28 @@ public sealed class MainViewModel : ObservableObject
         {
             Text = "Password",
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 10, 0)
+            Margin = new Thickness(0, 0, 10, 8)
         };
         Grid.SetRow(passwordLabel, 2);
         grid.Children.Add(passwordLabel);
 
         Grid.SetRow(passwordBox, 2);
         Grid.SetColumn(passwordBox, 1);
+        passwordBox.Margin = new Thickness(0, 0, 0, 8);
         grid.Children.Add(passwordBox);
+
+        var confirmPasswordLabel = new TextBlock
+        {
+            Text = "Confirm Password",
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 10, 0)
+        };
+        Grid.SetRow(confirmPasswordLabel, 3);
+        grid.Children.Add(confirmPasswordLabel);
+
+        Grid.SetRow(confirmPasswordBox, 3);
+        Grid.SetColumn(confirmPasswordBox, 1);
+        grid.Children.Add(confirmPasswordBox);
 
         var okButton = new Button
         {
@@ -2109,7 +2129,7 @@ public sealed class MainViewModel : ObservableObject
         };
         buttons.Children.Add(okButton);
         buttons.Children.Add(cancelButton);
-        Grid.SetRow(buttons, 3);
+        Grid.SetRow(buttons, 4);
         Grid.SetColumnSpan(buttons, 2);
         grid.Children.Add(buttons);
 
@@ -2128,6 +2148,14 @@ public sealed class MainViewModel : ObservableObject
             if (string.IsNullOrWhiteSpace(usernameBox.Text) || string.IsNullOrWhiteSpace(passwordBox.Password))
             {
                 MessageBox.Show(window, "Enter both username and password.", "Provision Credentials", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (passwordBox.Password != confirmPasswordBox.Password)
+            {
+                MessageBox.Show(window, "Passwords do not match. Please re-enter and confirm.", "Provision Credentials", MessageBoxButton.OK, MessageBoxImage.Warning);
+                confirmPasswordBox.Clear();
+                confirmPasswordBox.Focus();
                 return;
             }
 

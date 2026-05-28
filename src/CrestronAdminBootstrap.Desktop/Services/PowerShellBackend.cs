@@ -881,6 +881,8 @@ public sealed class PowerShellBackend
                         $avOutputRows = @()
                         $multicastRows = @()
                         $controlSubnetRows = @()
+                        $supportsAvRoutingBool = $false
+                        $autoInputRouting = 'N/A'
 
                         try {
                             $av = Get-CrestronAvSettings -Session $sess
@@ -895,6 +897,10 @@ public sealed class PowerShellBackend
                                 $supportsAvMulticast = $isNvx -and ($effectiveSupportsTransmit -or $effectiveSupportsReceive)
                                 $supportsAvSettings = -not [string]::IsNullOrWhiteSpace("$($av.AvApiFamily)") -and "$($av.AvApiFamily)" -ne 'None'
                                 $edidNames = @($av.EdidNames | Where-Object { -not [string]::IsNullOrWhiteSpace("$_") } | Sort-Object -Unique)
+                                $supportsAvRoutingBool = [bool]$av.SupportsAvRouting
+                                $autoInputRouting = if ($supportsAvRoutingBool -and $null -ne $av.AutomaticInputRouting) {
+                                    Convert-CabsToggleText $av.AutomaticInputRouting
+                                } else { 'N/A' }
 
                                 if ($supportsAvMulticast) {
                                     $txStreams = @($av.TransmitMulticastAddresses)
@@ -1126,6 +1132,9 @@ public sealed class PowerShellBackend
                             NewToolbar = $toolbar
                             CurrentAvFramework = $avFramework
                             NewAvFramework = $avFramework
+                            SupportsAvRouting = $supportsAvRoutingBool
+                            CurrentAutoInputRouting = $autoInputRouting
+                            NewAutoInputRouting = $autoInputRouting
                             CurrentIpId = $ipId
                             NewIpId = if ([bool]$state.SupportsIpTable -and -not [string]::IsNullOrWhiteSpace($ipId)) { $ipId } else { 'N/A' }
                             CurrentControlSystemAddr = $csAddr
@@ -1158,12 +1167,12 @@ public sealed class PowerShellBackend
             $multicastRows = @($rows | ForEach-Object { @($_.MulticastRows) })
             $controlSubnetRows = @($rows | ForEach-Object { @($_.ControlSubnetRows) })
 
-            $rows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp |
+            $rows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,SupportsAvRouting,CurrentAutoInputRouting,NewAutoInputRouting,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp |
                 Export-Csv -NoTypeInformation -Path '{{EscapePowerShellString(resultsCsv)}}'
             $payload = [pscustomobject]@{
                 Success = $true
                 Count = $rows.Count
-                Rows = @($rows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp)
+                Rows = @($rows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,SupportsAvRouting,CurrentAutoInputRouting,NewAutoInputRouting,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp)
                 AvInputRows = @($avInputRows)
                 AvOutputRows = @($avOutputRows)
                 MulticastRows = @($multicastRows)
@@ -1243,6 +1252,9 @@ public sealed class PowerShellBackend
                 row.NewToolbar,
                 row.CurrentAvFramework,
                 row.NewAvFramework,
+                row.SupportsAvRouting,
+                row.CurrentAutoInputRouting,
+                row.NewAutoInputRouting,
                 row.CurrentIpId,
                 row.NewIpId,
                 row.CurrentControlSystemAddr,
@@ -1491,6 +1503,14 @@ public sealed class PowerShellBackend
                             $details.Add("AVFramework=$(if([bool]$r.Success){'OK'}else{'Failed'})")
                         }
 
+                        $air = Convert-CabsToggle $row.NewAutoInputRouting
+                        if ([bool]$row.SupportsAvRouting -and $null -ne $air -and (Test-CabsChanged $row.NewAutoInputRouting $row.CurrentAutoInputRouting)) {
+                            $r = Set-CrestronAutoInputRouting -Session $sess -Enabled ([bool]$air)
+                            $success = $success -and [bool]$r.Success
+                            if (Test-CabsNeedsReboot $r) { $needsReboot = $true }
+                            $details.Add("AutoInputRouting=$(if([bool]$r.Success){'OK'}else{'Failed'})")
+                        }
+
                         foreach ($inputRow in @($using:avInputRowsIn | Where-Object { "$($_.IP)" -eq "$($row.IP)" })) {
                             if ([bool]$inputRow.SupportsAvSettings -and (Test-CabsChanged $inputRow.NewInputHdcp $inputRow.CurrentInputHdcp)) {
                                 $r = Set-CrestronInputHdcp -Session $sess -Mode "$($inputRow.NewInputHdcp)" -InputIndex ([int]$inputRow.InputIndex)
@@ -1729,12 +1749,12 @@ public sealed class PowerShellBackend
                 }
             })
 
-            $outRows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp |
+            $outRows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,SupportsAvRouting,CurrentAutoInputRouting,NewAutoInputRouting,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp |
                 Export-Csv -NoTypeInformation -Path '{{EscapePowerShellString(resultsCsv)}}'
             $payload = [pscustomobject]@{
                 Success = $true
                 Count = $outRows.Count
-                Rows = @($outRows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp)
+                Rows = @($outRows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,SupportsAvRouting,CurrentAutoInputRouting,NewAutoInputRouting,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp)
                 AvInputRows = @($avInputRowsIn)
                 AvOutputRows = @($avOutputRowsIn)
                 MulticastRows = @($multicastRowsIn)
@@ -2241,6 +2261,9 @@ public sealed class PowerShellBackend
             NewToolbar = row.NewToolbar ?? "N/A",
             CurrentAvFramework = row.CurrentAvFramework ?? "N/A",
             NewAvFramework = row.NewAvFramework ?? "N/A",
+            SupportsAvRouting = row.SupportsAvRouting == true,
+            CurrentAutoInputRouting = row.CurrentAutoInputRouting ?? "N/A",
+            NewAutoInputRouting = row.NewAutoInputRouting ?? "N/A",
             CurrentIpId = row.CurrentIpId ?? "",
             NewIpId = row.NewIpId ?? "N/A",
             CurrentControlSystemAddr = row.CurrentControlSystemAddr ?? "",
@@ -2569,6 +2592,9 @@ public sealed class PowerShellBackend
         public string? NewToolbar { get; set; }
         public string? CurrentAvFramework { get; set; }
         public string? NewAvFramework { get; set; }
+        public bool? SupportsAvRouting { get; set; }
+        public string? CurrentAutoInputRouting { get; set; }
+        public string? NewAutoInputRouting { get; set; }
         public string? CurrentIpId { get; set; }
         public string? NewIpId { get; set; }
         public string? CurrentControlSystemAddr { get; set; }

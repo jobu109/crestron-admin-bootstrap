@@ -18,6 +18,7 @@ function Get-CrestronAvSettings {
         SupportsAudioVideoIO       = $false
         SupportsEdidManagement     = $false
         SupportsAvRouting          = $false
+        AutomaticInputRouting      = $null
         AvApiFamily                = 'None'
         AvApiVersion               = ''
         SupportsGlobalEdid         = $false
@@ -295,6 +296,10 @@ function Get-CrestronAvSettings {
         $routeApi = Invoke-CrestronApi -Session $Session -Path '/Device/AvRouting' -Method GET -TimeoutSec $TimeoutSec
         if ($routeApi.Success -and $routeApi.BodyJson.Device.AvRouting) {
             $result.SupportsAvRouting = $true
+            $avRoutingObj = $routeApi.BodyJson.Device.AvRouting
+            if ($null -ne $avRoutingObj.AutomaticInputRouting) {
+                $result.AutomaticInputRouting = [bool]$avRoutingObj.AutomaticInputRouting
+            }
         }
     }
     catch { }
