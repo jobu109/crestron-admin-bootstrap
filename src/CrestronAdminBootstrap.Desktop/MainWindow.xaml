@@ -1186,7 +1186,6 @@
                             <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" IsReadOnly="True" />
                             <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="190" IsReadOnly="True" />
                             <DataGridTextColumn Header="Mode" Binding="{Binding CurrentDeviceMode}" Width="105" IsReadOnly="True" />
-                            <DataGridTextColumn Header="AV API" Binding="{Binding AvApiFamily}" Width="95" IsReadOnly="True" />
                             <DataGridCheckBoxColumn Header="AV?" Binding="{Binding SupportsAvSettings}" Width="65" IsReadOnly="True" />
                             <DataGridCheckBoxColumn Header="EDID?" Binding="{Binding SupportsGlobalEdid}" Width="70" IsReadOnly="True" />
                             <DataGridCheckBoxColumn Header="NTP?" Binding="{Binding SupportsNtp}" Width="70" IsReadOnly="True" />
@@ -1508,7 +1507,7 @@
                                                 </DataGridTemplateColumn.CellEditingTemplate>
                                             </DataGridTemplateColumn>
                                             <DataGridTextColumn Header="IPID" Binding="{Binding NewIpId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="75" MinWidth="75" />
-                                            <DataGridTextColumn Header="CS IP" Binding="{Binding NewControlSystemAddr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130" MinWidth="130" />
+                                            <DataGridTextColumn Header="Host IP" Binding="{Binding NewControlSystemAddr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130" MinWidth="130" />
                                             <DataGridCheckBoxColumn Header="Reboot?" Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="85" MinWidth="85" />
                                             <DataGridTextColumn Header="Status" Binding="{Binding DisplayStatus}" Width="120" MinWidth="100" IsReadOnly="True" />
                                             <DataGridTextColumn Header="Result" Binding="{Binding ApplySummary}" Width="160" MinWidth="120" IsReadOnly="True" />
@@ -1518,22 +1517,22 @@
                                 </ScrollViewer>
                             </GroupBox>
 
-                            <GroupBox Header="AV Inputs" Margin="0,0,0,10">
+                            <GroupBox Header="AV Settings" Margin="0,0,0,10">
                                 <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                               VerticalScrollBarVisibility="Disabled">
-                                    <DataGrid ItemsSource="{Binding PerDeviceAvInputRows}"
-                                              Width="1120"
+                                    <DataGrid ItemsSource="{Binding PerDeviceAvRows}"
+                                              Width="1365"
                                               HorizontalAlignment="Left"
                                               ColumnWidth="Auto"
                                               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                               ScrollViewer.VerticalScrollBarVisibility="Disabled">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="120" IsReadOnly="True" />
-                                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="130" IsReadOnly="True" />
                                             <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="190" IsReadOnly="True" />
-                                            <DataGridTextColumn Header="Input" Binding="{Binding InputLabel}" Width="100" IsReadOnly="True" />
-                                            <DataGridTextColumn Header="Port" Binding="{Binding PortType}" Width="100" IsReadOnly="True" />
-                                            <DataGridTemplateColumn Header="EDID" Width="300">
+                                            <DataGridTextColumn Header="Port" Binding="{Binding PortLabel}" Width="110" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Type" Binding="{Binding PortType}" Width="70" IsReadOnly="True" />
+                                            <DataGridTemplateColumn Header="EDID" Width="240">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding NewEdidName}" />
@@ -1549,7 +1548,7 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellEditingTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Input HDCP" Width="135">
+                                            <DataGridTemplateColumn Header="In HDCP" Width="115">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding NewInputHdcp}" />
@@ -1559,63 +1558,11 @@
                                                     <DataTemplate>
                                                         <ComboBox ItemsSource="{Binding DataContext.InputHdcpOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                                   SelectedItem="{Binding NewInputHdcp, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                  IsEnabled="{Binding SupportsAvSettings}" />
+                                                                  IsEnabled="{Binding SupportsInputHdcp}" />
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellEditingTemplate>
                                             </DataGridTemplateColumn>
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </ScrollViewer>
-                            </GroupBox>
-
-                            <GroupBox Header="Device AV Settings" Margin="0,0,0,10"
-                                      Visibility="{Binding PerDeviceAvDeviceRows.Count, Converter={StaticResource CountToVisibilityConverter}}">
-                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                              VerticalScrollBarVisibility="Disabled">
-                                    <DataGrid ItemsSource="{Binding PerDeviceAvDeviceRows}"
-                                              Width="700"
-                                              HorizontalAlignment="Left"
-                                              ColumnWidth="Auto"
-                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                              ScrollViewer.VerticalScrollBarVisibility="Disabled">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="120" IsReadOnly="True" />
-                                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" IsReadOnly="True" />
-                                            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="190" IsReadOnly="True" />
-                                            <DataGridTemplateColumn Header="Auto Input Routing" Width="140" MinWidth="140">
-                                                <DataGridTemplateColumn.CellTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding NewAutoInputRouting}" />
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellTemplate>
-                                                <DataGridTemplateColumn.CellEditingTemplate>
-                                                    <DataTemplate>
-                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                                  SelectedItem="{Binding NewAutoInputRouting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                  IsEnabled="{Binding SupportsAvRouting}" />
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellEditingTemplate>
-                                            </DataGridTemplateColumn>
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </ScrollViewer>
-                            </GroupBox>
-
-                            <GroupBox Header="AV Outputs" Margin="0,0,0,10">
-                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                              VerticalScrollBarVisibility="Disabled">
-                                    <DataGrid ItemsSource="{Binding PerDeviceAvOutputRows}"
-                                              Width="1000"
-                                              HorizontalAlignment="Left"
-                                              ColumnWidth="Auto"
-                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                              ScrollViewer.VerticalScrollBarVisibility="Disabled">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="120" IsReadOnly="True" />
-                                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" IsReadOnly="True" />
-                                            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="190" IsReadOnly="True" />
-                                            <DataGridTextColumn Header="Output" Binding="{Binding OutputLabel}" Width="110" IsReadOnly="True" />
-                                            <DataGridTemplateColumn Header="Output HDCP" Width="145">
+                                            <DataGridTemplateColumn Header="Out HDCP" Width="115">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding NewOutputHdcp}" />
@@ -1625,11 +1572,11 @@
                                                     <DataTemplate>
                                                         <ComboBox ItemsSource="{Binding DataContext.OutputHdcpOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                                   SelectedItem="{Binding NewOutputHdcp, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                  IsEnabled="{Binding SupportsAvSettings}" />
+                                                                  IsEnabled="{Binding SupportsOutputHdcp}" />
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellEditingTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Output Resolution" Width="210">
+                                            <DataGridTemplateColumn Header="Out Resolution" Width="155">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding NewOutputResolution}" />
@@ -1641,7 +1588,21 @@
                                                                   SelectedItem="{Binding NewOutputResolution, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                                   IsEditable="True"
                                                                   IsTextSearchEnabled="True"
-                                                                  IsEnabled="{Binding SupportsAvSettings}" />
+                                                                  IsEnabled="{Binding SupportsOutputResolution}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Header="Auto Routing" Width="120">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewAutoInputRouting}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewAutoInputRouting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsAvRouting}" />
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellEditingTemplate>
                                             </DataGridTemplateColumn>
@@ -1726,7 +1687,7 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellEditingTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTextColumn Header="IP Address" Binding="{Binding NewIPAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="125" />
+                                            <DataGridTextColumn Header="Subnet IP Address" Binding="{Binding NewIPAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="145" />
                                             <DataGridTextColumn Header="Subnet Mask" Binding="{Binding NewSubnetMask, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="125" />
                                             <DataGridTextColumn Header="Gateway" Binding="{Binding NewGateway, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="125" />
                                             <DataGridTemplateColumn Header="IGMP Version" Width="115">
@@ -1986,17 +1947,6 @@
                                           IsChecked="{Binding SettingsDarkMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             </GroupBox>
 
-                            <GroupBox Header="Legacy Tools" Margin="0,10,0,0">
-                                <DockPanel LastChildFill="True">
-                                    <Button DockPanel.Dock="Right"
-                                            Content="Launch Legacy GUI"
-                                            Command="{Binding LaunchLegacyGuiCommand}"
-                                            Margin="12,0,0,0" />
-                                    <TextBlock Text="Fallback access while the compiled shell finishes taking over."
-                                               Foreground="{DynamicResource MutedTextBrush}"
-                                               VerticalAlignment="Center" />
-                                </DockPanel>
-                            </GroupBox>
                         </StackPanel>
                     </ScrollViewer>
 
