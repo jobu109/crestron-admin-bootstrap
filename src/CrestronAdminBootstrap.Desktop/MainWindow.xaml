@@ -1439,20 +1439,6 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellEditingTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Auto Input Routing" Width="140" MinWidth="140">
-                                                <DataGridTemplateColumn.CellTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding NewAutoInputRouting}" />
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellTemplate>
-                                                <DataGridTemplateColumn.CellEditingTemplate>
-                                                    <DataTemplate>
-                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                                  SelectedItem="{Binding NewAutoInputRouting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                  IsEnabled="{Binding SupportsAvRouting}" />
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellEditingTemplate>
-                                            </DataGridTemplateColumn>
                                             <DataGridTextColumn Header="IPID" Binding="{Binding NewIpId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="75" MinWidth="75" />
                                             <DataGridTextColumn Header="CS IP" Binding="{Binding NewControlSystemAddr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130" MinWidth="130" />
                                             <DataGridCheckBoxColumn Header="Reboot?" Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="85" MinWidth="85" />
@@ -1468,7 +1454,7 @@
                                 <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                               VerticalScrollBarVisibility="Disabled">
                                     <DataGrid ItemsSource="{Binding PerDeviceAvInputRows}"
-                                              Width="1120"
+                                              Width="1260"
                                               HorizontalAlignment="Left"
                                               ColumnWidth="Auto"
                                               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -1506,6 +1492,20 @@
                                                         <ComboBox ItemsSource="{Binding DataContext.InputHdcpOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                                   SelectedItem="{Binding NewInputHdcp, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                                   IsEnabled="{Binding SupportsAvSettings}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Header="Auto Input Routing" Width="140" MinWidth="140">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding NewAutoInputRouting}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.ToggleOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                  SelectedItem="{Binding NewAutoInputRouting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  IsEnabled="{Binding SupportsAvRouting}" />
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellEditingTemplate>
                                             </DataGridTemplateColumn>

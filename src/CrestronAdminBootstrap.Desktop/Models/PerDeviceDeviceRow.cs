@@ -38,9 +38,6 @@ public sealed class PerDeviceDeviceRow : ObservableObject
     private string _newToolbar = "N/A";
     private string _currentAvFramework = "N/A";
     private string _newAvFramework = "N/A";
-    private bool _supportsAvRouting;
-    private string _currentAutoInputRouting = "N/A";
-    private string _newAutoInputRouting = "N/A";
     private string _currentIpId = "";
     private string _newIpId = "N/A";
     private string _currentControlSystemAddr = "";
@@ -256,24 +253,6 @@ public sealed class PerDeviceDeviceRow : ObservableObject
         set => SetProperty(ref _newAvFramework, value);
     }
 
-    public bool SupportsAvRouting
-    {
-        get => _supportsAvRouting;
-        set => SetProperty(ref _supportsAvRouting, value);
-    }
-
-    public string CurrentAutoInputRouting
-    {
-        get => _currentAutoInputRouting;
-        set => SetProperty(ref _currentAutoInputRouting, value);
-    }
-
-    public string NewAutoInputRouting
-    {
-        get => _newAutoInputRouting;
-        set => SetProperty(ref _newAutoInputRouting, value);
-    }
-
     public string CurrentIpId
     {
         get => _currentIpId;
@@ -336,7 +315,6 @@ public sealed class PerDeviceDeviceRow : ObservableObject
         Changed(NewStandbyTimeout, CurrentStandbyTimeout) ||
         Changed(NewToolbar, CurrentToolbar) ||
         Changed(NewAvFramework, CurrentAvFramework) ||
-        Changed(NewAutoInputRouting, CurrentAutoInputRouting) ||
         Changed(NewIpId, CurrentIpId) ||
         Changed(NewControlSystemAddr, CurrentControlSystemAddr);
 
