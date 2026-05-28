@@ -7,7 +7,6 @@ public sealed class PerDeviceAvInputRow : ObservableObject
 {
     private string _newEdidName = "";
     private string _newInputHdcp = "N/A";
-    private string _newAutoInputRouting = "N/A";
 
     public string IP { get; init; } = "";
     public string Model { get; init; } = "";
@@ -19,8 +18,6 @@ public sealed class PerDeviceAvInputRow : ObservableObject
     public string CurrentInputHdcp { get; init; } = "N/A";
     public bool SupportsAvSettings { get; init; }
     public bool SupportsEdidEdit { get; init; }
-    public bool SupportsAvRouting { get; init; }
-    public string CurrentAutoInputRouting { get; init; } = "N/A";
     public ObservableCollection<string> EdidNameOptions { get; } = new();
 
     public string NewEdidName
@@ -35,16 +32,9 @@ public sealed class PerDeviceAvInputRow : ObservableObject
         set => SetProperty(ref _newInputHdcp, value);
     }
 
-    public string NewAutoInputRouting
-    {
-        get => _newAutoInputRouting;
-        set => SetProperty(ref _newAutoInputRouting, value);
-    }
-
     public bool HasChanges =>
         Changed(NewEdidName, CurrentEdid) ||
-        Changed(NewInputHdcp, CurrentInputHdcp) ||
-        Changed(NewAutoInputRouting, CurrentAutoInputRouting);
+        Changed(NewInputHdcp, CurrentInputHdcp);
 
     private static bool Changed(string newValue, string currentValue)
     {

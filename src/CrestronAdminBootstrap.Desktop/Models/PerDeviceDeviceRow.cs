@@ -280,13 +280,60 @@ public sealed class PerDeviceDeviceRow : ObservableObject
     public string Status
     {
         get => _status;
-        set => SetProperty(ref _status, value);
+        set
+        {
+            if (SetProperty(ref _status, value))
+            {
+                OnPropertyChanged(nameof(ApplySummary));
+                OnPropertyChanged(nameof(DisplayStatus));
+            }
+        }
     }
 
     public string Detail
     {
         get => _detail;
-        set => SetProperty(ref _detail, value);
+        set
+        {
+            if (SetProperty(ref _detail, value))
+            {
+                OnPropertyChanged(nameof(ApplySummary));
+                OnPropertyChanged(nameof(DisplayStatus));
+            }
+        }
+    }
+
+    public string ApplySummary
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Status) ||
+                string.Equals(Status, "Pending", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Status, "Working", StringComparison.OrdinalIgnoreCase))
+                return "";
+            if (string.IsNullOrWhiteSpace(Detail)) return Status;
+            if (Detail.StartsWith("ERROR:", StringComparison.OrdinalIgnoreCase)) return "Error";
+            if (string.Equals(Detail, "OK", StringComparison.OrdinalIgnoreCase)) return "Fetched";
+            var parts = Detail.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var ok = parts.Count(p => p.EndsWith("=OK", StringComparison.OrdinalIgnoreCase));
+            var skipped = parts.Count(p => p.Contains("skipped", StringComparison.OrdinalIgnoreCase));
+            var summary = new List<string>();
+            if (ok > 0) summary.Add($"{ok} accepted");
+            if (skipped > 0) summary.Add($"{skipped} skipped");
+            return summary.Count > 0 ? string.Join(", ", summary) : Status;
+        }
+    }
+
+    public string DisplayStatus
+    {
+        get
+        {
+            if (!string.Equals(Status, "Failed", StringComparison.OrdinalIgnoreCase))
+                return Status;
+            var hasSkipped = !string.IsNullOrWhiteSpace(Detail) &&
+                             Detail.Contains("skipped", StringComparison.OrdinalIgnoreCase);
+            return hasSkipped ? "OK, with skips" : "Partial";
+        }
     }
 
     public bool NeedsReboot

@@ -877,6 +877,7 @@ public sealed class PowerShellBackend
                         $currentGateway = "$($state.EthernetLanGateway)"
                         $ipId = "$($state.CurrentIpId)"
                         $csAddr = "$($state.CurrentControlSystemAddr)"
+                        $avDeviceRows = @()
                         $avInputRows = @()
                         $avOutputRows = @()
                         $multicastRows = @()
@@ -901,6 +902,17 @@ public sealed class PowerShellBackend
                                 $autoInputRouting = if ($supportsAvRoutingBool -and $null -ne $av.AutomaticInputRouting) {
                                     Convert-CabsToggleText $av.AutomaticInputRouting
                                 } else { 'N/A' }
+
+                                if ($supportsAvRoutingBool) {
+                                    $avDeviceRows += [pscustomobject]@{
+                                        IP = $ip
+                                        Model = $model
+                                        Hostname = $hostname
+                                        SupportsAvRouting = $true
+                                        CurrentAutoInputRouting = $autoInputRouting
+                                        NewAutoInputRouting = $autoInputRouting
+                                    }
+                                }
 
                                 if ($supportsAvMulticast) {
                                     $txStreams = @($av.TransmitMulticastAddresses)
@@ -991,9 +1003,6 @@ public sealed class PowerShellBackend
                                             NewInputHdcp = $currentInputHdcp
                                             SupportsAvSettings = [bool]$supportsAvSettings
                                             SupportsEdidEdit = (($inputEdidNames.Count -gt 0) -or -not [string]::IsNullOrWhiteSpace($currentEdid))
-                                            SupportsAvRouting = $supportsAvRoutingBool
-                                            CurrentAutoInputRouting = $autoInputRouting
-                                            NewAutoInputRouting = $autoInputRouting
                                         }
                                     }
                                 }
@@ -1143,6 +1152,7 @@ public sealed class PowerShellBackend
                             Detail = 'OK'
                             NeedsReboot = $false
                             Timestamp = (Get-Date).ToString('s')
+                            AvDeviceRows = @($avDeviceRows)
                             AvInputRows = @($avInputRows)
                             AvOutputRows = @($avOutputRows)
                             MulticastRows = @($multicastRows)
@@ -1162,6 +1172,7 @@ public sealed class PowerShellBackend
                     }
                 }
             })
+            $avDeviceRows = @($rows | ForEach-Object { @($_.AvDeviceRows) })
             $avInputRows = @($rows | ForEach-Object { @($_.AvInputRows) })
             $avOutputRows = @($rows | ForEach-Object { @($_.AvOutputRows) })
             $multicastRows = @($rows | ForEach-Object { @($_.MulticastRows) })
@@ -1173,6 +1184,7 @@ public sealed class PowerShellBackend
                 Success = $true
                 Count = $rows.Count
                 Rows = @($rows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp)
+                AvDeviceRows = @($avDeviceRows)
                 AvInputRows = @($avInputRows)
                 AvOutputRows = @($avOutputRows)
                 MulticastRows = @($multicastRows)
@@ -1205,6 +1217,7 @@ public sealed class PowerShellBackend
 
     public async Task<PerDeviceStateResult> ApplyPerDeviceChangesAsync(
         IEnumerable<PerDeviceDeviceRow> rows,
+        IEnumerable<PerDeviceAvDeviceRow> avDeviceRows,
         IEnumerable<PerDeviceAvInputRow> avInputRows,
         IEnumerable<PerDeviceAvOutputRow> avOutputRows,
         IEnumerable<PerDeviceMulticastRow> multicastRows,
@@ -1278,7 +1291,16 @@ public sealed class PowerShellBackend
                 row.CurrentInputHdcp,
                 row.NewInputHdcp,
                 row.SupportsAvSettings,
-                row.SupportsEdidEdit,
+                row.SupportsEdidEdit
+            })
+            .ToArray();
+        var cleanAvDeviceRows = avDeviceRows
+            .Where(row => !string.IsNullOrWhiteSpace(row.IP))
+            .Select(row => new
+            {
+                row.IP,
+                row.Model,
+                row.Hostname,
                 row.SupportsAvRouting,
                 row.CurrentAutoInputRouting,
                 row.NewAutoInputRouting
@@ -1364,6 +1386,7 @@ public sealed class PowerShellBackend
         Directory.CreateDirectory(tempDir);
 
         var rowsFile = Path.Combine(tempDir, "perdevice-rows.json");
+        var avDeviceRowsFile = Path.Combine(tempDir, "perdevice-av-device-rows.json");
         var avInputRowsFile = Path.Combine(tempDir, "perdevice-av-input-rows.json");
         var avOutputRowsFile = Path.Combine(tempDir, "perdevice-av-output-rows.json");
         var multicastRowsFile = Path.Combine(tempDir, "perdevice-multicast-rows.json");
@@ -1371,6 +1394,7 @@ public sealed class PowerShellBackend
         var credBlock = BuildCredentialBlock(credUsername, credPassword);
         var resultsCsv = Path.Combine(_dataRoot, "crestron-perdevice.csv");
         await File.WriteAllTextAsync(rowsFile, JsonSerializer.Serialize(cleanRows), cancellationToken).ConfigureAwait(false);
+        await File.WriteAllTextAsync(avDeviceRowsFile, JsonSerializer.Serialize(cleanAvDeviceRows), cancellationToken).ConfigureAwait(false);
         await File.WriteAllTextAsync(avInputRowsFile, JsonSerializer.Serialize(cleanAvInputRows), cancellationToken).ConfigureAwait(false);
         await File.WriteAllTextAsync(avOutputRowsFile, JsonSerializer.Serialize(cleanAvOutputRows), cancellationToken).ConfigureAwait(false);
         await File.WriteAllTextAsync(multicastRowsFile, JsonSerializer.Serialize(cleanMulticastRows), cancellationToken).ConfigureAwait(false);
@@ -1381,6 +1405,7 @@ public sealed class PowerShellBackend
             Import-Module '{{EscapePowerShellString(_moduleManifest)}}' -Force
             {{credBlock}}
             $rowsIn = @(Get-Content '{{EscapePowerShellString(rowsFile)}}' -Raw | ConvertFrom-Json)
+            $avDeviceRowsIn = @(Get-Content '{{EscapePowerShellString(avDeviceRowsFile)}}' -Raw | ConvertFrom-Json)
             $avInputRowsIn = @(Get-Content '{{EscapePowerShellString(avInputRowsFile)}}' -Raw | ConvertFrom-Json)
             $avOutputRowsIn = @(Get-Content '{{EscapePowerShellString(avOutputRowsFile)}}' -Raw | ConvertFrom-Json)
             $multicastRowsIn = @(Get-Content '{{EscapePowerShellString(multicastRowsFile)}}' -Raw | ConvertFrom-Json)
@@ -1503,18 +1528,18 @@ public sealed class PowerShellBackend
                             $details.Add("AVFramework=$(if([bool]$r.Success){'OK'}else{'Failed'})")
                         }
 
-                        $airApplied = $false
-                        foreach ($inputRow in @($using:avInputRowsIn | Where-Object { "$($_.IP)" -eq "$($row.IP)" })) {
-                            if (-not $airApplied -and [bool]$inputRow.SupportsAvRouting -and (Test-CabsChanged $inputRow.NewAutoInputRouting $inputRow.CurrentAutoInputRouting)) {
-                                $air = Convert-CabsToggle $inputRow.NewAutoInputRouting
-                                if ($null -ne $air) {
-                                    $r = Set-CrestronAutoInputRouting -Session $sess -Enabled ([bool]$air)
-                                    $success = $success -and [bool]$r.Success
-                                    if (Test-CabsNeedsReboot $r) { $needsReboot = $true }
-                                    $details.Add("AutoInputRouting=$(if([bool]$r.Success){'OK'}else{'Failed'})")
-                                    $airApplied = $true
-                                }
+                        $avDevRow = @($using:avDeviceRowsIn | Where-Object { "$($_.IP)" -eq "$($row.IP)" }) | Select-Object -First 1
+                        if ($avDevRow -and [bool]$avDevRow.SupportsAvRouting -and (Test-CabsChanged $avDevRow.NewAutoInputRouting $avDevRow.CurrentAutoInputRouting)) {
+                            $air = Convert-CabsToggle $avDevRow.NewAutoInputRouting
+                            if ($null -ne $air) {
+                                $r = Set-CrestronAutoInputRouting -Session $sess -Enabled ([bool]$air)
+                                $success = $success -and [bool]$r.Success
+                                if (Test-CabsNeedsReboot $r) { $needsReboot = $true }
+                                $details.Add("AutoInputRouting=$(if([bool]$r.Success){'OK'}else{'Failed'})")
                             }
+                        }
+
+                        foreach ($inputRow in @($using:avInputRowsIn | Where-Object { "$($_.IP)" -eq "$($row.IP)" })) {
                             if ([bool]$inputRow.SupportsAvSettings -and (Test-CabsChanged $inputRow.NewInputHdcp $inputRow.CurrentInputHdcp)) {
                                 $r = Set-CrestronInputHdcp -Session $sess -Mode "$($inputRow.NewInputHdcp)" -InputIndex ([int]$inputRow.InputIndex)
                                 $success = $success -and [bool]$r.Success
@@ -1758,6 +1783,7 @@ public sealed class PowerShellBackend
                 Success = $true
                 Count = $outRows.Count
                 Rows = @($outRows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp)
+                AvDeviceRows = @($avDeviceRowsIn)
                 AvInputRows = @($avInputRowsIn)
                 AvOutputRows = @($avOutputRowsIn)
                 MulticastRows = @($multicastRowsIn)
@@ -2286,10 +2312,30 @@ public sealed class PowerShellBackend
 
         return new PerDeviceStateResult(
             result.Rows?.Where(row => row is not null).Select(ToPerDeviceRow).ToArray() ?? Array.Empty<PerDeviceDeviceRow>(),
+            result.AvDeviceRows?.Where(row => row is not null).Select(ToPerDeviceAvDeviceRow).ToArray() ?? Array.Empty<PerDeviceAvDeviceRow>(),
             result.AvInputRows?.Where(row => row is not null).Select(ToPerDeviceAvInputRow).ToArray() ?? Array.Empty<PerDeviceAvInputRow>(),
             result.AvOutputRows?.Where(row => row is not null).Select(ToPerDeviceAvOutputRow).ToArray() ?? Array.Empty<PerDeviceAvOutputRow>(),
             result.MulticastRows?.Where(row => row is not null).Select(ToPerDeviceMulticastRow).ToArray() ?? Array.Empty<PerDeviceMulticastRow>(),
             result.ControlSubnetRows?.Where(row => row is not null).Select(ToPerDeviceControlSubnetRow).ToArray() ?? Array.Empty<PerDeviceControlSubnetRow>());
+    }
+
+    private static PerDeviceAvDeviceRow ToPerDeviceAvDeviceRow(PerDeviceAvDeviceRowDto? row)
+    {
+        if (row is null)
+        {
+            return new PerDeviceAvDeviceRow();
+        }
+
+        var currentAutoInputRouting = row.CurrentAutoInputRouting ?? "N/A";
+        return new PerDeviceAvDeviceRow
+        {
+            IP = row.IP ?? "",
+            Model = row.Model ?? "",
+            Hostname = row.Hostname ?? "",
+            SupportsAvRouting = row.SupportsAvRouting == true,
+            CurrentAutoInputRouting = currentAutoInputRouting,
+            NewAutoInputRouting = row.NewAutoInputRouting ?? currentAutoInputRouting
+        };
     }
 
     private static PerDeviceAvInputRow ToPerDeviceAvInputRow(PerDeviceAvInputRowDto? row)
@@ -2313,11 +2359,8 @@ public sealed class PowerShellBackend
             CurrentInputHdcp = currentInputHdcp,
             SupportsAvSettings = row.SupportsAvSettings == true,
             SupportsEdidEdit = row.SupportsEdidEdit == true,
-            SupportsAvRouting = row.SupportsAvRouting == true,
-            CurrentAutoInputRouting = row.CurrentAutoInputRouting ?? "N/A",
             NewEdidName = row.NewEdidName ?? currentEdid,
-            NewInputHdcp = row.NewInputHdcp ?? currentInputHdcp,
-            NewAutoInputRouting = row.NewAutoInputRouting ?? row.CurrentAutoInputRouting ?? "N/A"
+            NewInputHdcp = row.NewInputHdcp ?? currentInputHdcp
         };
 
         foreach (var option in NormalizeOptions(row.EdidNameOptions, currentEdid, avRow.NewEdidName))
@@ -2467,6 +2510,7 @@ public sealed class PowerShellBackend
 
     private static readonly PerDeviceStateResult EmptyPerDeviceStateResult = new(
         Array.Empty<PerDeviceDeviceRow>(),
+        Array.Empty<PerDeviceAvDeviceRow>(),
         Array.Empty<PerDeviceAvInputRow>(),
         Array.Empty<PerDeviceAvOutputRow>(),
         Array.Empty<PerDeviceMulticastRow>(),
@@ -2506,6 +2550,7 @@ public sealed class PowerShellBackend
     private sealed class PerDeviceResultDto
     {
         public List<PerDeviceRowDto>? Rows { get; set; }
+        public List<PerDeviceAvDeviceRowDto>? AvDeviceRows { get; set; }
         public List<PerDeviceAvInputRowDto>? AvInputRows { get; set; }
         public List<PerDeviceAvOutputRowDto>? AvOutputRows { get; set; }
         public List<PerDeviceMulticastRowDto>? MulticastRows { get; set; }
@@ -2622,6 +2667,13 @@ public sealed class PowerShellBackend
         public string? NewInputHdcp { get; set; }
         public bool? SupportsAvSettings { get; set; }
         public bool? SupportsEdidEdit { get; set; }
+    }
+
+    private sealed class PerDeviceAvDeviceRowDto
+    {
+        public string? IP { get; set; }
+        public string? Model { get; set; }
+        public string? Hostname { get; set; }
         public bool? SupportsAvRouting { get; set; }
         public string? CurrentAutoInputRouting { get; set; }
         public string? NewAutoInputRouting { get; set; }

@@ -1442,8 +1442,8 @@
                                             <DataGridTextColumn Header="IPID" Binding="{Binding NewIpId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="75" MinWidth="75" />
                                             <DataGridTextColumn Header="CS IP" Binding="{Binding NewControlSystemAddr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130" MinWidth="130" />
                                             <DataGridCheckBoxColumn Header="Reboot?" Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="85" MinWidth="85" />
-                                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" MinWidth="100" IsReadOnly="True" />
-                                            <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="300" MinWidth="300" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Status" Binding="{Binding DisplayStatus}" Width="120" MinWidth="100" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Result" Binding="{Binding ApplySummary}" Width="160" MinWidth="120" IsReadOnly="True" />
                                             <DataGridTextColumn Header="Time" Binding="{Binding Timestamp}" Width="170" MinWidth="170" IsReadOnly="True" />
                                         </DataGrid.Columns>
                                     </DataGrid>
@@ -1454,7 +1454,7 @@
                                 <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                               VerticalScrollBarVisibility="Disabled">
                                     <DataGrid ItemsSource="{Binding PerDeviceAvInputRows}"
-                                              Width="1260"
+                                              Width="1120"
                                               HorizontalAlignment="Left"
                                               ColumnWidth="Auto"
                                               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -1495,6 +1495,25 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellEditingTemplate>
                                             </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </ScrollViewer>
+                            </GroupBox>
+
+                            <GroupBox Header="Device AV Settings" Margin="0,0,0,10"
+                                      Visibility="{Binding PerDeviceAvDeviceRows.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <DataGrid ItemsSource="{Binding PerDeviceAvDeviceRows}"
+                                              Width="700"
+                                              HorizontalAlignment="Left"
+                                              ColumnWidth="Auto"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                              ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="120" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" IsReadOnly="True" />
+                                            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="190" IsReadOnly="True" />
                                             <DataGridTemplateColumn Header="Auto Input Routing" Width="140" MinWidth="140">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
@@ -1702,6 +1721,71 @@
                                             </DataGridTemplateColumn>
                                         </DataGrid.Columns>
                                     </DataGrid>
+                                </ScrollViewer>
+                            </GroupBox>
+
+                            <GroupBox Header="Device Results" Margin="0,0,0,0"
+                                      Visibility="{Binding PerDeviceRows.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                                <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding PerDeviceRows}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderBrush="{StaticResource BorderBrushDark}"
+                                                        BorderThickness="0,0,0,1" Padding="6,5">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Pending">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Working">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="130" />
+                                                            <ColumnDefinition Width="110" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="145" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="{Binding IP}"
+                                                                   FontWeight="SemiBold" VerticalAlignment="Top" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding DisplayStatus}"
+                                                                   VerticalAlignment="Top">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock"
+                                                                       BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="OK">
+                                                                            <Setter Property="Foreground" Value="#4CAF50" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="Error">
+                                                                            <Setter Property="Foreground" Value="#FF5252" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                                                            <Setter Property="Foreground" Value="#FF9800" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBlock Grid.Column="2" Text="{Binding Detail}"
+                                                                   TextWrapping="Wrap"
+                                                                   Foreground="{DynamicResource MutedTextBrush}"
+                                                                   Margin="8,0,8,0" VerticalAlignment="Top" />
+                                                        <TextBlock Grid.Column="3" Text="{Binding Timestamp}"
+                                                                   Foreground="{DynamicResource MutedTextBrush}"
+                                                                   FontSize="11" VerticalAlignment="Top" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </ScrollViewer>
                             </GroupBox>
                         </StackPanel>

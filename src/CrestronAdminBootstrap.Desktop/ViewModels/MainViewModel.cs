@@ -131,6 +131,7 @@ public sealed class MainViewModel : ObservableObject
         ProvisionRows.CollectionChanged += OnProvisionRowsChanged;
         BlanketRows.CollectionChanged += OnBlanketRowsChanged;
         PerDeviceRows.CollectionChanged += OnPerDeviceRowsChanged;
+        PerDeviceAvDeviceRows.CollectionChanged += OnPerDeviceAvRowsChanged;
         PerDeviceAvInputRows.CollectionChanged += OnPerDeviceAvRowsChanged;
         PerDeviceAvOutputRows.CollectionChanged += OnPerDeviceAvRowsChanged;
         PerDeviceMulticastRows.CollectionChanged += OnPerDeviceAvRowsChanged;
@@ -146,6 +147,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<ProvisionDeviceRow> ProvisionRows { get; } = new();
     public ObservableCollection<BlanketDeviceRow> BlanketRows { get; } = new();
     public ObservableCollection<PerDeviceDeviceRow> PerDeviceRows { get; } = new();
+    public ObservableCollection<PerDeviceAvDeviceRow> PerDeviceAvDeviceRows { get; } = new();
     public ObservableCollection<PerDeviceAvInputRow> PerDeviceAvInputRows { get; } = new();
     public ObservableCollection<PerDeviceAvOutputRow> PerDeviceAvOutputRows { get; } = new();
     public ObservableCollection<PerDeviceMulticastRow> PerDeviceMulticastRows { get; } = new();
@@ -694,6 +696,7 @@ public sealed class MainViewModel : ObservableObject
             var selected = PerDeviceRows.Count(r => r.Selected);
             var selectedIps = PerDeviceRows.Where(r => r.Selected).Select(r => r.IP).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var edited = PerDeviceRows.Count(r => r.HasChanges) +
+                         PerDeviceAvDeviceRows.Count(r => selectedIps.Contains(r.IP) && r.HasChanges) +
                          PerDeviceAvInputRows.Count(r => selectedIps.Contains(r.IP) && r.HasChanges) +
                          PerDeviceAvOutputRows.Count(r => selectedIps.Contains(r.IP) && r.HasChanges) +
                          PerDeviceMulticastRows.Count(r => selectedIps.Contains(r.IP) && r.HasChanges) +
@@ -2595,11 +2598,12 @@ public sealed class MainViewModel : ObservableObject
     {
         var selectedIps = PerDeviceRows.Where(r => r.Selected).Select(r => r.IP).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var selectedRows = PerDeviceRows.Where(r => r.Selected && r.HasChanges).ToArray();
+        var selectedAvDevices = PerDeviceAvDeviceRows.Where(r => selectedIps.Contains(r.IP) && r.HasChanges).ToArray();
         var selectedAvInputs = PerDeviceAvInputRows.Where(r => selectedIps.Contains(r.IP) && r.HasChanges).ToArray();
         var selectedAvOutputs = PerDeviceAvOutputRows.Where(r => selectedIps.Contains(r.IP) && r.HasChanges).ToArray();
         var selectedMulticastRows = PerDeviceMulticastRows.Where(r => selectedIps.Contains(r.IP) && r.HasChanges).ToArray();
         var selectedControlSubnetRows = PerDeviceControlSubnetRows.Where(r => selectedIps.Contains(r.IP) && r.HasChanges).ToArray();
-        var changeCount = selectedRows.Length + selectedAvInputs.Length + selectedAvOutputs.Length + selectedMulticastRows.Length + selectedControlSubnetRows.Length;
+        var changeCount = selectedRows.Length + selectedAvDevices.Length + selectedAvInputs.Length + selectedAvOutputs.Length + selectedMulticastRows.Length + selectedControlSubnetRows.Length;
         if (changeCount == 0)
         {
             if (!skipConfirm)
@@ -2647,6 +2651,7 @@ public sealed class MainViewModel : ObservableObject
             StatusText = $"Applying per-device changes to {selectedIps.Count} device(s)...";
             var result = await _backend.ApplyPerDeviceChangesAsync(
                 PerDeviceRows.Where(r => selectedIps.Contains(r.IP)),
+                PerDeviceAvDeviceRows.Where(r => selectedIps.Contains(r.IP)),
                 PerDeviceAvInputRows.Where(r => selectedIps.Contains(r.IP)),
                 PerDeviceAvOutputRows.Where(r => selectedIps.Contains(r.IP)),
                 PerDeviceMulticastRows.Where(r => selectedIps.Contains(r.IP)),
@@ -2922,6 +2927,7 @@ public sealed class MainViewModel : ObservableObject
     private void ClearPerDeviceRows()
     {
         PerDeviceRows.Clear();
+        PerDeviceAvDeviceRows.Clear();
         PerDeviceAvInputRows.Clear();
         PerDeviceAvOutputRows.Clear();
         PerDeviceMulticastRows.Clear();
@@ -2984,6 +2990,7 @@ public sealed class MainViewModel : ObservableObject
 
         var selectedIps = PerDeviceRows.Where(r => r.Selected).Select(r => r.IP).ToHashSet(StringComparer.OrdinalIgnoreCase);
         return PerDeviceRows.Any(r => r.Selected && r.HasChanges) ||
+               PerDeviceAvDeviceRows.Any(r => selectedIps.Contains(r.IP) && r.HasChanges) ||
                PerDeviceAvInputRows.Any(r => selectedIps.Contains(r.IP) && r.HasChanges) ||
                PerDeviceAvOutputRows.Any(r => selectedIps.Contains(r.IP) && r.HasChanges) ||
                PerDeviceMulticastRows.Any(r => selectedIps.Contains(r.IP) && r.HasChanges) ||
@@ -3256,6 +3263,17 @@ public sealed class MainViewModel : ObservableObject
         PerDeviceRows.Add(row);
     }
 
+    private void AddPerDeviceAvDeviceRow(PerDeviceAvDeviceRow row)
+    {
+        row.PropertyChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(PerDeviceSummary));
+            RaiseCommandStates();
+        };
+
+        PerDeviceAvDeviceRows.Add(row);
+    }
+
     private void AddPerDeviceAvInputRow(PerDeviceAvInputRow row)
     {
         row.PropertyChanged += (_, _) =>
@@ -3402,6 +3420,11 @@ public sealed class MainViewModel : ObservableObject
             row.Timestamp = rowResult.Timestamp;
         }
 
+        foreach (var avDeviceRow in result.AvDeviceRows)
+        {
+            AddPerDeviceAvDeviceRow(avDeviceRow);
+        }
+
         foreach (var inputRow in result.AvInputRows)
         {
             AddPerDeviceAvInputRow(inputRow);
@@ -3433,6 +3456,10 @@ public sealed class MainViewModel : ObservableObject
     {
         var knownIps = PerDeviceRows.Select(r => r.IP).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        for (var i = PerDeviceAvDeviceRows.Count - 1; i >= 0; i--)
+            if (!knownIps.Contains(PerDeviceAvDeviceRows[i].IP))
+                PerDeviceAvDeviceRows.RemoveAt(i);
+
         for (var i = PerDeviceAvInputRows.Count - 1; i >= 0; i--)
             if (!knownIps.Contains(PerDeviceAvInputRows[i].IP))
                 PerDeviceAvInputRows.RemoveAt(i);
@@ -3452,6 +3479,14 @@ public sealed class MainViewModel : ObservableObject
 
     private void RemovePerDeviceAvRowsByIp(ISet<string> ips)
     {
+        for (var i = PerDeviceAvDeviceRows.Count - 1; i >= 0; i--)
+        {
+            if (ips.Contains(PerDeviceAvDeviceRows[i].IP))
+            {
+                PerDeviceAvDeviceRows.RemoveAt(i);
+            }
+        }
+
         for (var i = PerDeviceAvInputRows.Count - 1; i >= 0; i--)
         {
             if (ips.Contains(PerDeviceAvInputRows[i].IP))
