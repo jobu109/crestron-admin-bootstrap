@@ -856,6 +856,7 @@
                         <RowDefinition Height="220" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <ScrollViewer Grid.Row="2"
@@ -1196,14 +1197,79 @@
                             <DataGridCheckBoxColumn Header="Toolbar?" Binding="{Binding SupportsToolbarSettings}" Width="85" IsReadOnly="True" />
                             <DataGridCheckBoxColumn Header="AVF?" Binding="{Binding SupportsAvFrameworkSettings}" Width="70" IsReadOnly="True" />
                             <DataGridCheckBoxColumn Header="Fetched?" Binding="{Binding CapabilitiesFetched}" Width="80" IsReadOnly="True" />
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding DisplayStatus}" Width="120" IsReadOnly="True" />
                             <DataGridCheckBoxColumn Header="Reboot?" Binding="{Binding NeedsReboot}" Width="85" IsReadOnly="True" />
-                            <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*" MinWidth="260" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Result" Binding="{Binding ApplySummary}" Width="160" MinWidth="120" IsReadOnly="True" />
                             <DataGridTextColumn Header="Time" Binding="{Binding Timestamp}" Width="170" IsReadOnly="True" />
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Grid.Row="4"
+                    <GroupBox Grid.Row="4" Header="Apply Results" Margin="0,8,0,0"
+                              Visibility="{Binding BlanketRows.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                        <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding BlanketRows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="{StaticResource BorderBrushDark}"
+                                                BorderThickness="0,0,0,1" Padding="6,5">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Pending">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Working">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="130" />
+                                                    <ColumnDefinition Width="110" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="145" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding IP}"
+                                                           FontWeight="SemiBold" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Column="1" Text="{Binding DisplayStatus}"
+                                                           VerticalAlignment="Top">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Status}" Value="OK">
+                                                                    <Setter Property="Foreground" Value="#4CAF50" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Error">
+                                                                    <Setter Property="Foreground" Value="#FF5252" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                                                    <Setter Property="Foreground" Value="#FF9800" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <TextBlock Grid.Column="2" Text="{Binding Detail}"
+                                                           TextWrapping="Wrap"
+                                                           Foreground="{DynamicResource MutedTextBrush}"
+                                                           Margin="8,0,8,0" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Column="3" Text="{Binding Timestamp}"
+                                                           Foreground="{DynamicResource MutedTextBrush}"
+                                                           FontSize="11" VerticalAlignment="Top" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </GroupBox>
+
+                    <TextBlock Grid.Row="5"
                                Text="{Binding BlanketSummary}"
                                Foreground="{DynamicResource MutedTextBrush}"
                                Margin="0,8,0,0" />
@@ -1760,8 +1826,8 @@
                                                         <TextBlock Grid.Column="1" Text="{Binding DisplayStatus}"
                                                                    VerticalAlignment="Top">
                                                             <TextBlock.Style>
-                                                                <Style TargetType="TextBlock"
-                                                                       BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding Status}" Value="OK">
                                                                             <Setter Property="Foreground" Value="#4CAF50" />
