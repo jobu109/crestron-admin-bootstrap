@@ -1592,7 +1592,7 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellEditingTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Auto Routing" Width="120">
+                                            <DataGridTemplateColumn Header="Auto Input Routing" Width="120">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding NewAutoInputRouting}" />

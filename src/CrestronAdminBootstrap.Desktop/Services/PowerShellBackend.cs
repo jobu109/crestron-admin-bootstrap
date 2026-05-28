@@ -900,8 +900,9 @@ public sealed class PowerShellBackend
                                 $autoInputRouting = if ($supportsAvRoutingBool -and $null -ne $av.AutomaticInputRouting) {
                                     Convert-CabsToggleText $av.AutomaticInputRouting
                                 } else { 'N/A' }
+                                $inputs = @($av.Inputs)
 
-                                if ($supportsAvRoutingBool -and -not $modelIsDecoderOnly) {
+                                if ($supportsAvRoutingBool -and -not $modelIsDecoderOnly -and $inputs.Count -gt 1) {
                                     $avRows += [pscustomobject]@{
                                         RowKind = 'Device'
                                         IP = $ip; Model = $model; Hostname = $hostname
@@ -973,7 +974,6 @@ public sealed class PowerShellBackend
                                 }
 
                                 if ($isNvx -and -not $modelIsDecoderOnly) {
-                                    $inputs = @($av.Inputs)
                                     for ($i = 0; $i -lt $inputs.Count; $i++) {
                                         $inputItem = $inputs[$i]
                                         $inputEdidNames = @($inputItem.EdidOptions | Where-Object {
