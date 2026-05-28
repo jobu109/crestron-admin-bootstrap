@@ -2035,7 +2035,9 @@ public sealed class PowerShellBackend
     {
         if (!File.Exists(_moduleManifest))
         {
-            throw new FileNotFoundException("CrestronAdminBootstrap module manifest was not found.", _moduleManifest);
+            throw new FileNotFoundException(
+                $"CrestronAdminBootstrap module manifest was not found.\n\nExpected: {_moduleManifest}\n\nMake sure the 'src' folder is in the same directory as CrestronBootstrap.exe.",
+                _moduleManifest);
         }
 
         var scriptPath = Path.Combine(Path.GetTempPath(), $"cabs-desktop-{Guid.NewGuid():N}.ps1");
