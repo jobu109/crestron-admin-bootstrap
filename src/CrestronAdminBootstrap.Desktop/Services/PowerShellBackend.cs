@@ -902,17 +902,6 @@ public sealed class PowerShellBackend
                                 } else { 'N/A' }
                                 $inputs = @($av.Inputs)
 
-                                if ($supportsAvRoutingBool -and -not $modelIsDecoderOnly -and $inputs.Count -gt 1) {
-                                    $avRows += [pscustomobject]@{
-                                        RowKind = 'Device'
-                                        IP = $ip; Model = $model; Hostname = $hostname
-                                        PortLabel = 'Device'; PortType = ''
-                                        SupportsAvRouting = $true
-                                        CurrentAutoInputRouting = $autoInputRouting
-                                        NewAutoInputRouting = $autoInputRouting
-                                    }
-                                }
-
                                 if ($supportsAvMulticast) {
                                     $txStreams = @($av.TransmitMulticastAddresses)
                                     $rxStreams = @($av.ReceiveMulticastAddresses)
@@ -986,7 +975,8 @@ public sealed class PowerShellBackend
                                             Sort-Object -Unique)
                                         $currentInputHdcp = Convert-CabsInputHdcpMode $inputItem.HdcpReceiverCapability
                                         $inputLabel = "$($inputItem.InputName)"
-                                        if ([string]::IsNullOrWhiteSpace($inputLabel)) { $inputLabel = "Input $i" }
+                                        if ([string]::IsNullOrWhiteSpace($inputLabel)) { $inputLabel = "Input $($i + 1)" }
+                                        $rowSupportsAvRouting = ($i -eq 0) -and $supportsAvRoutingBool -and $inputs.Count -gt 1
                                         $avRows += [pscustomobject]@{
                                             RowKind = 'Input'
                                             IP = $ip; Model = $model; Hostname = $hostname
@@ -1001,6 +991,9 @@ public sealed class PowerShellBackend
                                             EdidNameOptions = @($inputEdidNames)
                                             CurrentInputHdcp = $currentInputHdcp
                                             NewInputHdcp = $currentInputHdcp
+                                            SupportsAvRouting = $rowSupportsAvRouting
+                                            CurrentAutoInputRouting = if ($rowSupportsAvRouting) { $autoInputRouting } else { 'N/A' }
+                                            NewAutoInputRouting = if ($rowSupportsAvRouting) { $autoInputRouting } else { 'N/A' }
                                         }
                                     }
                                 }
@@ -1012,7 +1005,7 @@ public sealed class PowerShellBackend
                                         $currentOutputHdcp = Convert-CabsOutputHdcpMode $outputItem.HdcpTransmitterMode
                                         $currentOutputResolution = "$($outputItem.Resolution)"
                                         $outputLabel = "$($outputItem.OutputName)"
-                                        if ([string]::IsNullOrWhiteSpace($outputLabel)) { $outputLabel = "Output $i" }
+                                        if ([string]::IsNullOrWhiteSpace($outputLabel)) { $outputLabel = "Output $($i + 1)" }
                                         $resolutionOptions = @(
                                             $currentOutputResolution,
                                             'Auto',
@@ -1483,7 +1476,7 @@ public sealed class PowerShellBackend
                             $details.Add("AVFramework=$(if([bool]$r.Success){'OK'}else{'Failed'})")
                         }
 
-                        $avDevRow = @($using:avRowsIn | Where-Object { "$($_.IP)" -eq "$($row.IP)" -and "$($_.RowKind)" -eq 'Device' }) | Select-Object -First 1
+                        $avDevRow = @($using:avRowsIn | Where-Object { "$($_.IP)" -eq "$($row.IP)" -and "$($_.RowKind)" -eq 'Input' -and [bool]$_.SupportsAvRouting }) | Select-Object -First 1
                         if ($avDevRow -and [bool]$avDevRow.SupportsAvRouting -and (Test-CabsChanged $avDevRow.NewAutoInputRouting $avDevRow.CurrentAutoInputRouting)) {
                             $air = Convert-CabsToggle $avDevRow.NewAutoInputRouting
                             if ($null -ne $air) {
