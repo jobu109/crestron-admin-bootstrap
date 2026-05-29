@@ -35,7 +35,10 @@ function Set-CrestronAutoInputRouting {
         }
     }
 
-    $api = Invoke-CrestronApi -Session $Session -Path '/Device' -Method POST -Body $payload -TimeoutSec $TimeoutSec
+    $api = Invoke-CrestronApi -Session $Session -Path '/Device/AvRouting' -Method POST -Body $payload -TimeoutSec $TimeoutSec
+    if ($api.Status -eq 0) {
+        $api = Invoke-CrestronApi -Session $Session -Path '/Device' -Method POST -Body $payload -TimeoutSec $TimeoutSec
+    }
 
     $sectionResults = @()
     $overallSuccess = $api.Success
