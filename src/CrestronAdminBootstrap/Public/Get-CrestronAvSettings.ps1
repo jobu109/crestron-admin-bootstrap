@@ -69,6 +69,11 @@ function Get-CrestronAvSettings {
             if ($ds.PSObject.Properties.Name -contains 'ActiveAudioSource') {
                 $result.ActiveAudioSource = "$($ds.ActiveAudioSource)"
             }
+
+            if ($ds.PSObject.Properties.Name -contains 'AutoInputRoutingEnabled') {
+                $result.SupportsAvRouting = $true
+                $result.AutomaticInputRouting = [bool]$ds.AutoInputRoutingEnabled
+            }
         }
     }
     catch { }
