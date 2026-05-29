@@ -1849,6 +1849,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
                                     <TextBlock Grid.Row="0"
@@ -1872,6 +1873,16 @@
                                                  Margin="0,0,0,8" />
 
                                     <TextBlock Grid.Row="2"
+                                               Grid.Column="0"
+                                               Text="Confirm password"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,8" />
+                                    <PasswordBox x:Name="SettingsConfirmPasswordBox"
+                                                 Grid.Row="2"
+                                                 Grid.Column="1"
+                                                 Margin="0,0,0,8" />
+
+                                    <TextBlock Grid.Row="3"
                                                Grid.Column="1"
                                                Text="{Binding SettingsSavedPasswordStatus}"
                                                Foreground="{DynamicResource MutedTextBrush}" />

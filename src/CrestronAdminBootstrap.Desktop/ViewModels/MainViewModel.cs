@@ -39,6 +39,7 @@ public sealed class MainViewModel : ObservableObject
     private string _workflowRebootCountdown = "";
     private string _settingsDefaultUsername = "";
     private string _settingsDefaultPassword = "";
+    private string _settingsConfirmPassword = "";
     private string _settingsMostUsedSubnets = "";
     private string _settingsStatus = "";
     private int _mainTabIndex;
@@ -284,6 +285,12 @@ public sealed class MainViewModel : ObservableObject
                 SaveSettingsCommand.RaiseCanExecuteChanged();
             }
         }
+    }
+
+    public string SettingsConfirmPassword
+    {
+        get => _settingsConfirmPassword;
+        set => SetProperty(ref _settingsConfirmPassword, value);
     }
 
     public string SettingsMostUsedSubnets
@@ -673,12 +680,13 @@ public sealed class MainViewModel : ObservableObject
         get
         {
             var selected = BlanketRows.Count(r => r.Selected);
-            var ok = BlanketRows.Count(r => string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase));
+            var ok = BlanketRows.Count(r => string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase) || string.Equals(r.Status, "Rebooting", StringComparison.OrdinalIgnoreCase));
             var failed = BlanketRows.Count(r =>
                 !string.IsNullOrWhiteSpace(r.Status) &&
                 !string.Equals(r.Status, "Pending", StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(r.Status, "Working", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase));
+                !string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(r.Status, "Rebooting", StringComparison.OrdinalIgnoreCase));
             var reboot = BlanketRows.Count(r => r.NeedsReboot);
 
             return $"Loaded {BlanketRows.Count} device(s). Selected: {selected}. OK: {ok}. Failed: {failed}. Reboot needed: {reboot}.";
@@ -695,12 +703,13 @@ public sealed class MainViewModel : ObservableObject
                          PerDeviceAvRows.Count(r => selectedIps.Contains(r.IP) && r.HasChanges) +
                          PerDeviceMulticastRows.Count(r => selectedIps.Contains(r.IP) && r.HasChanges) +
                          PerDeviceControlSubnetRows.Count(r => selectedIps.Contains(r.IP) && r.HasChanges);
-            var ok = PerDeviceRows.Count(r => string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase));
+            var ok = PerDeviceRows.Count(r => string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase) || string.Equals(r.Status, "Rebooting", StringComparison.OrdinalIgnoreCase));
             var failed = PerDeviceRows.Count(r =>
                 !string.IsNullOrWhiteSpace(r.Status) &&
                 !string.Equals(r.Status, "Pending", StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(r.Status, "Working", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase));
+                !string.Equals(r.Status, "OK", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(r.Status, "Rebooting", StringComparison.OrdinalIgnoreCase));
             var reboot = PerDeviceRows.Count(r => r.NeedsReboot);
 
             return $"Loaded {PerDeviceRows.Count} device(s). Selected: {selected}. With changes: {edited}. OK: {ok}. Failed: {failed}. Reboot needed: {reboot}.";
@@ -2988,6 +2997,7 @@ public sealed class MainViewModel : ObservableObject
         var settings = ReadGuiSettingsFile();
         SettingsDefaultUsername = settings.DefaultUsername ?? "";
         SettingsDefaultPassword = "";
+        SettingsConfirmPassword = "";
         SettingsDarkMode = settings.DarkMode;
         SettingsHasSavedPassword = !string.IsNullOrWhiteSpace(settings.ProtectedDefaultPassword);
         SettingsMostUsedSubnets = string.Join(
@@ -3018,6 +3028,12 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        if (!string.IsNullOrEmpty(SettingsDefaultPassword) && SettingsDefaultPassword != SettingsConfirmPassword)
+        {
+            SettingsStatus = "Passwords do not match.";
+            return;
+        }
+
         var existing = ReadGuiSettingsFile();
         var protectedPassword = existing.ProtectedDefaultPassword ?? "";
         if (!string.IsNullOrEmpty(SettingsDefaultPassword))
@@ -3044,6 +3060,7 @@ public sealed class MainViewModel : ObservableObject
 
         WriteGuiSettingsFile(settings);
         SettingsDefaultPassword = "";
+        SettingsConfirmPassword = "";
         SettingsHasSavedPassword = !string.IsNullOrWhiteSpace(settings.ProtectedDefaultPassword);
         SettingsMostUsedSubnets = string.Join(Environment.NewLine, subnets);
         ReloadSubnetOptions(subnets);
@@ -3071,6 +3088,7 @@ public sealed class MainViewModel : ObservableObject
 
         WriteGuiSettingsFile(settings);
         SettingsDefaultPassword = "";
+        SettingsConfirmPassword = "";
         SettingsHasSavedPassword = false;
         SettingsStatus = "Saved password cleared.";
         StatusText = "Saved password cleared.";

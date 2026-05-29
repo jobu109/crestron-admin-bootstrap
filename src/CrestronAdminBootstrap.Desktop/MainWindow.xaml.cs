@@ -9,6 +9,7 @@ namespace CrestronAdminBootstrap.Desktop;
 public partial class MainWindow : Window
 {
     private bool _syncingSettingsPassword;
+    private bool _syncingSettingsConfirmPassword;
 
     public MainWindow()
     {
@@ -20,12 +21,14 @@ public partial class MainWindow : Window
 
         SettingsDefaultPasswordBox.PasswordChanged += (_, _) =>
         {
-            if (_syncingSettingsPassword)
-            {
-                return;
-            }
-
+            if (_syncingSettingsPassword) return;
             viewModel.SettingsDefaultPassword = SettingsDefaultPasswordBox.Password;
+        };
+
+        SettingsConfirmPasswordBox.PasswordChanged += (_, _) =>
+        {
+            if (_syncingSettingsConfirmPassword) return;
+            viewModel.SettingsConfirmPassword = SettingsConfirmPasswordBox.Password;
         };
 
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -33,31 +36,29 @@ public partial class MainWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(MainViewModel.SettingsDefaultPassword))
+        if (e.PropertyName == nameof(MainViewModel.SettingsDarkMode) &&
+            sender is MainViewModel themeViewModel)
         {
-            if (e.PropertyName == nameof(MainViewModel.SettingsDarkMode) &&
-                sender is MainViewModel themeViewModel)
-            {
-                ApplyTheme(themeViewModel.SettingsDarkMode);
-            }
-
+            ApplyTheme(themeViewModel.SettingsDarkMode);
             return;
         }
 
-        if (sender is not MainViewModel viewModel ||
-            SettingsDefaultPasswordBox.Password == viewModel.SettingsDefaultPassword)
+        if (sender is not MainViewModel viewModel) return;
+
+        if (e.PropertyName == nameof(MainViewModel.SettingsDefaultPassword) &&
+            SettingsDefaultPasswordBox.Password != viewModel.SettingsDefaultPassword)
         {
-            return;
+            _syncingSettingsPassword = true;
+            try { SettingsDefaultPasswordBox.Password = viewModel.SettingsDefaultPassword; }
+            finally { _syncingSettingsPassword = false; }
         }
 
-        _syncingSettingsPassword = true;
-        try
+        if (e.PropertyName == nameof(MainViewModel.SettingsConfirmPassword) &&
+            SettingsConfirmPasswordBox.Password != viewModel.SettingsConfirmPassword)
         {
-            SettingsDefaultPasswordBox.Password = viewModel.SettingsDefaultPassword;
-        }
-        finally
-        {
-            _syncingSettingsPassword = false;
+            _syncingSettingsConfirmPassword = true;
+            try { SettingsConfirmPasswordBox.Password = viewModel.SettingsConfirmPassword; }
+            finally { _syncingSettingsConfirmPassword = false; }
         }
     }
 

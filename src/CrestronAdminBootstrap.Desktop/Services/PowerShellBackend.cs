@@ -979,7 +979,7 @@ public sealed class PowerShellBackend
                                         $inputLabel = if ([string]::IsNullOrWhiteSpace($rawInputLabel) -or $rawInputLabel -imatch '^(input|in)\d+$') {
                                             if ($portTypeUpper) { "$portTypeUpper In $($i + 1)" } else { "Input $($i + 1)" }
                                         } else { $rawInputLabel }
-                                        $rowSupportsAvRouting = ($i -eq 0) -and $supportsAvRoutingBool -and $inputs.Count -gt 1
+                                        $rowSupportsAvRouting = ($i -eq 0) -and $supportsAvRoutingBool
                                         $avRows += [pscustomobject]@{
                                             RowKind = 'Input'
                                             IP = $ip; Model = $model; Hostname = $hostname
