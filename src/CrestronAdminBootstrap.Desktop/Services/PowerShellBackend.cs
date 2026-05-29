@@ -1489,7 +1489,13 @@ public sealed class PowerShellBackend
                                 $r = Set-CrestronAutoInputRouting -Session $sess -Enabled ([bool]$air)
                                 $success = $success -and [bool]$r.Success
                                 if (Test-CabsNeedsReboot $r) { $needsReboot = $true }
-                                $details.Add("AutoInputRouting=$(if([bool]$r.Success){'OK'}else{'Failed'})")
+                                if ([bool]$r.Success) {
+                                    $details.Add("AutoInputRouting=OK")
+                                } else {
+                                    $sidInfo = ($r.SectionResults | ForEach-Object { "$($_.Path):$($_.StatusId)" }) -join ','
+                                    $httpStatus = "$($r.Status)"
+                                    $details.Add("AutoInputRouting=Failed(HTTP=$httpStatus$(if($sidInfo){';'+$sidInfo}))")
+                                }
                             }
                         }
 
