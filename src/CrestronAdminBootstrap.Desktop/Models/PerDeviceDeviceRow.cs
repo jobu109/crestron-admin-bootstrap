@@ -109,6 +109,8 @@ public sealed class PerDeviceDeviceRow : ObservableObject
         set => SetProperty(ref _supportsAvFrameworkSettings, value);
     }
 
+    public string CurrentIPMode { get; init; } = "N/A";
+
     public string IPMode
     {
         get => _ipMode;
@@ -355,6 +357,8 @@ public sealed class PerDeviceDeviceRow : ObservableObject
         Changed(Gateway, CurrentGateway) ||
         Changed(PrimaryDns, CurrentDns1) ||
         Changed(SecondaryDns, CurrentDns2) ||
+        (!string.Equals(IPMode, "N/A", StringComparison.OrdinalIgnoreCase) &&
+         !string.Equals(IPMode, CurrentIPMode, StringComparison.OrdinalIgnoreCase)) ||
         (HasWifi && DisableWifi) ||
         Changed(NewAutoBrightness, CurrentAutoBrightness) ||
         Changed(NewBrightness, CurrentBrightness) ||

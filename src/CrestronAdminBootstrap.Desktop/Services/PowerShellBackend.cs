@@ -1119,6 +1119,7 @@ public sealed class PowerShellBackend
                             SupportsDisplaySettings = [bool]$supportsDisplay
                             SupportsToolbarSettings = [bool]$supportsToolbar
                             SupportsAvFrameworkSettings = [bool]$state.SupportsAvFrameworkSettings
+                            CurrentIPMode = if ([bool]$state.SupportsNetwork) { $ipMode } else { 'N/A' }
                             IPMode = if ([bool]$state.SupportsNetwork) { $ipMode } else { 'N/A' }
                             CurrentIP = $currentIp
                             NewIP = if ([bool]$state.SupportsNetwork) { $currentIp } else { 'N/A' }
@@ -1232,6 +1233,7 @@ public sealed class PowerShellBackend
                 row.SupportsDisplaySettings,
                 row.SupportsToolbarSettings,
                 row.SupportsAvFrameworkSettings,
+                row.CurrentIPMode,
                 row.IPMode,
                 row.CurrentIP,
                 row.NewIP,
@@ -1687,6 +1689,7 @@ public sealed class PowerShellBackend
 
                         $networkChanged = [bool]$row.SupportsNetwork -and (
                             (Test-CabsValue $row.IPMode -and "$($row.IPMode)" -in @('DHCP','Static') -and (
+                                ("$($row.IPMode)" -ne "$($row.CurrentIPMode)") -or
                                 (Test-CabsChanged $row.NewIP $row.CurrentIP) -or
                                 (Test-CabsChanged $row.SubnetMask $row.CurrentSubnet) -or
                                 (Test-CabsChanged $row.Gateway $row.CurrentGateway) -or
@@ -2226,6 +2229,7 @@ public sealed class PowerShellBackend
             SupportsDisplaySettings = row.SupportsDisplaySettings == true,
             SupportsToolbarSettings = row.SupportsToolbarSettings == true,
             SupportsAvFrameworkSettings = row.SupportsAvFrameworkSettings == true,
+            CurrentIPMode = row.CurrentIPMode ?? "N/A",
             IPMode = row.IPMode ?? "N/A",
             CurrentIP = row.CurrentIP ?? "",
             NewIP = row.NewIP ?? "N/A",
@@ -2536,6 +2540,7 @@ public sealed class PowerShellBackend
         public bool? SupportsDisplaySettings { get; set; }
         public bool? SupportsToolbarSettings { get; set; }
         public bool? SupportsAvFrameworkSettings { get; set; }
+        public string? CurrentIPMode { get; set; }
         public string? IPMode { get; set; }
         public string? CurrentIP { get; set; }
         public string? NewIP { get; set; }
