@@ -27,17 +27,21 @@ function Set-CrestronAutoInputRouting {
         throw "Requires PowerShell 7+."
     }
 
-    $payload = @{
-        Device = @{
-            AvRouting = @{
-                AutomaticInputRouting = $Enabled
-            }
-        }
-    }
+    # Try most-specific to least-specific endpoint/body formats.
+    # Some NVX firmware drops the connection for the full Device wrapper.
+    $payloadBare    = @{ AutomaticInputRouting = $Enabled }
+    $payloadWrapped = @{ AvRouting = @{ AutomaticInputRouting = $Enabled } }
+    $payloadFull    = @{ Device = @{ AvRouting = @{ AutomaticInputRouting = $Enabled } } }
 
-    $api = Invoke-CrestronApi -Session $Session -Path '/Device/AvRouting' -Method POST -Body $payload -TimeoutSec $TimeoutSec
+    $api = Invoke-CrestronApi -Session $Session -Path '/Device/AvRouting' -Method POST -Body $payloadBare    -TimeoutSec $TimeoutSec
     if ($api.Status -eq 0) {
-        $api = Invoke-CrestronApi -Session $Session -Path '/Device' -Method POST -Body $payload -TimeoutSec $TimeoutSec
+        $api = Invoke-CrestronApi -Session $Session -Path '/Device/AvRouting' -Method POST -Body $payloadWrapped -TimeoutSec $TimeoutSec
+    }
+    if ($api.Status -eq 0) {
+        $api = Invoke-CrestronApi -Session $Session -Path '/Device/AvRouting' -Method POST -Body $payloadFull    -TimeoutSec $TimeoutSec
+    }
+    if ($api.Status -eq 0) {
+        $api = Invoke-CrestronApi -Session $Session -Path '/Device'           -Method POST -Body $payloadFull    -TimeoutSec $TimeoutSec
     }
 
     $sectionResults = @()
