@@ -1,34 +1,53 @@
 function Invoke-CrestronTelnetCommand {
     <#
     .SYNOPSIS
-        Sends a single command through the Crestron text console over telnet.
-
+        Sends a single command through the Crestron text console over TCP.
     .DESCRIPTION
         Used as a fallback for settings that are exposed by console command but
-        not by the CresNext web API. The helper handles the common username and
-        password prompts, sends the requested command, then exits the session.
+        not by the CresNext web API. Tries port 41795 (Crestron 4-Series console)
+        first, then falls back to port 23 (standard telnet). Handles the common
+        username and password prompts, sends the requested command, then exits.
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$IP,
         [Parameter(Mandatory)][pscredential]$Credential,
         [Parameter(Mandatory)][string]$Command,
-        [int]$Port = 23,
+        [int[]]$Ports = @(41795, 23),
         [int]$TimeoutSec = 10
     )
 
-    $client = [System.Net.Sockets.TcpClient]::new()
-    $connected = $false
+    # Try each port in order; use a short per-port timeout so a refused/filtered
+    # port does not stall the whole operation.
+    $perPortSec = [Math]::Min(5, $TimeoutSec)
+    $client = $null
+    $connectedPort = 0
+
+    foreach ($tryPort in $Ports) {
+        $tryClient = [System.Net.Sockets.TcpClient]::new()
+        $isLast = ($tryPort -eq $Ports[-1])
+        $waitSec = if ($isLast) { $TimeoutSec } else { $perPortSec }
+
+        try {
+            $async = $tryClient.BeginConnect($IP, $tryPort, $null, $null)
+            if ($async.AsyncWaitHandle.WaitOne([TimeSpan]::FromSeconds($waitSec))) {
+                $tryClient.EndConnect($async)
+                $client = $tryClient
+                $connectedPort = $tryPort
+                break
+            }
+        }
+        catch { }
+
+        try { $tryClient.Dispose() } catch { }
+    }
+
+    if (-not $client) {
+        $portList = $Ports -join ', '
+        throw "Could not connect to console on ${IP} (tried ports: $portList)."
+    }
 
     try {
-        $async = $client.BeginConnect($IP, $Port, $null, $null)
-        if (-not $async.AsyncWaitHandle.WaitOne([TimeSpan]::FromSeconds($TimeoutSec))) {
-            throw "Timed out connecting to telnet on $IP`:$Port."
-        }
-
-        $client.EndConnect($async)
-        $connected = $true
-
         $stream = $client.GetStream()
         $stream.ReadTimeout = 750
         $stream.WriteTimeout = 2000
@@ -127,6 +146,7 @@ function Invoke-CrestronTelnetCommand {
 
         [pscustomobject]@{
             IP        = $IP
+            Port      = $connectedPort
             Command   = $Command
             Success   = $true
             Output    = $output
@@ -134,11 +154,6 @@ function Invoke-CrestronTelnetCommand {
         }
     }
     finally {
-        if ($connected) {
-            try { $client.Close() } catch { }
-        }
-        else {
-            try { $client.Dispose() } catch { }
-        }
+        try { $client.Close() } catch { }
     }
 }
