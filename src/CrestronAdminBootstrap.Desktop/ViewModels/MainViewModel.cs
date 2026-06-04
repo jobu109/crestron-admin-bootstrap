@@ -66,9 +66,9 @@ public sealed class MainViewModel : ObservableObject
     private bool _autoUpdateEnabled = true;
     private bool _applyDisplay;
     private bool _autoBrightnessEnabled = true;
-    private int _brightness = 80;
+    private int _brightness = 70;
     private bool _screensaverEnabled = true;
-    private int _standbyTimeout = 10;
+    private int _standbyTimeout = 60;
     private bool _toolbarEnabled = true;
     private bool _applyAvFramework;
     private bool _avFrameworkEnabled = true;
