@@ -21,6 +21,7 @@ public sealed class PerDeviceControlSubnetRow : ObservableObject
     public string Hostname { get; init; } = "";
     public bool SupportsControlSubnet { get; init; }
     public bool SupportsRouter { get; init; }
+    public bool SupportsIgmpVersion { get; init; }
     public bool SupportsIgmpProxy { get; init; }
     public string CurrentEnabled { get; init; } = "N/A";
     public bool? CurrentDhcp { get; init; }
@@ -108,7 +109,7 @@ public sealed class PerDeviceControlSubnetRow : ObservableObject
          Changed(NewIPAddress, CurrentIPAddress) ||
          Changed(NewSubnetMask, CurrentSubnetMask) ||
          Changed(NewGateway, CurrentGateway) ||
-         ChoiceChanged(NewIgmpVersion, CurrentIgmpVersion, "V2", "V3") ||
+         (SupportsIgmpVersion && ChoiceChanged(NewIgmpVersion, CurrentIgmpVersion, "V2", "V3")) ||
          (SupportsRouter && ToggleChanged(NewRouterAutomaticMode, CurrentRouterAutomaticMode)) ||
          (SupportsRouter && Changed(NewRouterPrefix, CurrentRouterPrefix)) ||
          (SupportsRouter && Changed(NewRouterOnlineDelay, CurrentRouterOnlineDelay)) ||

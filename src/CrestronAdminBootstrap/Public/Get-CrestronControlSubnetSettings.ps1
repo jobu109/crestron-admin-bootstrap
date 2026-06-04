@@ -235,6 +235,7 @@ function Get-CrestronControlSubnetSettings {
             Hostname                 = if ($na.HostName) { "$($na.HostName)" } else { "$($Session.Hostname)" }
             SupportsControlSubnet    = $false
             SupportsRouter           = [bool]$router
+            SupportsIgmpVersion      = $false
             SupportsIgmpProxy        = $false
             ControlSubnetAdapterName = ''
             FetchedAt                = (Get-Date).ToString('s')
@@ -271,7 +272,9 @@ function Get-CrestronControlSubnetSettings {
         $currentSubnetMask = $routerPrefixSubnetMask
     }
 
-    $igmpVersion = ConvertTo-CabsIgmpVersionText (Get-CabsPropertyValue -Object $na -Names @('IgmpVersion','IGMPVersion') -Pattern '(?i)^igmp.*version$')
+    $igmpVersionPropertyName = Get-CabsPropertyName -Object $na -Names @('IgmpVersion','IGMPVersion') -Pattern '(?i)^igmp.*version$'
+    $supportsIgmpVersion = -not [string]::IsNullOrWhiteSpace($igmpVersionPropertyName)
+    $igmpVersion = if ($supportsIgmpVersion) { ConvertTo-CabsIgmpVersionText $na.$igmpVersionPropertyName } else { '' }
 
     $igmpProxyProperty = ''
     $igmpProxyValue = $null
@@ -329,6 +332,7 @@ function Get-CrestronControlSubnetSettings {
 
         SupportsControlSubnet    = $true
         SupportsRouter           = [bool]$router
+        SupportsIgmpVersion      = $supportsIgmpVersion
         SupportsIgmpProxy        = [bool]($igmpProxyProperty -or $Credential)
         ControlSubnetAdapterName = $adapterName
         IsReadOnly               = if ($controlSubnet.PSObject.Properties.Name -contains 'IsAdapterReadOnly') { [bool]$controlSubnet.IsAdapterReadOnly } else { $false }

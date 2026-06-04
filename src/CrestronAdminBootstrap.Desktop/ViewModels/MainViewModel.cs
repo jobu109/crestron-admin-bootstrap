@@ -812,9 +812,22 @@ public sealed class MainViewModel : ObservableObject
             SetWorkflowStep(1, provisionOk > 0 ? "Done" : "Failed", $"Provisioned {provisionOk} of {provisionTargets.Length} device(s).");
             LoadBlanketFromProvision();
 
+            SetWorkflowStep(2, "Running", $"Scanning {selectedCidrs.Length} subnet(s) for additional reachable devices...");
+            var reachableScanRows = await _backend.ScanReachableDevicesAsync(selectedCidrs, progress, _scanCancellation.Token).ConfigureAwait(true);
+            var additionalRows = AddOrSelectBlanketDevices(reachableScanRows.Select(r => r.IP));
+            foreach (var target in additionalRows)
+            {
+                var scanRow = reachableScanRows.FirstOrDefault(r => string.Equals(r.IP, target.IP, StringComparison.OrdinalIgnoreCase));
+                if (scanRow is not null && string.Equals(target.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    target.Detail = $"Discovered: {scanRow.MatchedSig}";
+                    target.Timestamp = scanRow.ScannedAt;
+                }
+            }
+
             if (BlanketRows.Count == 0)
             {
-                WorkflowStatus = "Workflow stopped: no devices were provisioned.";
+                WorkflowStatus = "Workflow stopped: no devices found to configure.";
                 SetWorkflowRunning(false, false);
                 return;
             }

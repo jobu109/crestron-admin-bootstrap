@@ -1079,6 +1079,7 @@ public sealed class PowerShellBackend
                                     Hostname = $hostname
                                     SupportsControlSubnet = [bool]$controlSubnet.SupportsControlSubnet
                                     SupportsRouter = [bool]$controlSubnet.SupportsRouter
+                                    SupportsIgmpVersion = [bool]$controlSubnet.SupportsIgmpVersion
                                     SupportsIgmpProxy = [bool]$controlSubnet.SupportsIgmpProxy
                                     CurrentEnabled = $currentEnabled
                                     NewEnabled = $currentEnabled
@@ -1312,6 +1313,7 @@ public sealed class PowerShellBackend
                 row.Hostname,
                 row.SupportsControlSubnet,
                 row.SupportsRouter,
+                row.SupportsIgmpVersion,
                 row.SupportsIgmpProxy,
                 row.CurrentEnabled,
                 row.NewEnabled,
@@ -1618,7 +1620,7 @@ public sealed class PowerShellBackend
                                     }
                                 }
 
-                                if ("$($controlRow.NewIgmpVersion)" -in @('V2','V3') -and (Test-CabsChanged $controlRow.NewIgmpVersion $controlRow.CurrentIgmpVersion)) {
+                                if ([bool]$controlRow.SupportsIgmpVersion -and "$($controlRow.NewIgmpVersion)" -in @('V2','V3') -and (Test-CabsChanged $controlRow.NewIgmpVersion $controlRow.CurrentIgmpVersion)) {
                                     $controlArgs.IgmpVersion = "$($controlRow.NewIgmpVersion)"
                                 }
 
@@ -2392,6 +2394,7 @@ public sealed class PowerShellBackend
             Hostname = row.Hostname ?? "",
             SupportsControlSubnet = row.SupportsControlSubnet == true,
             SupportsRouter = row.SupportsRouter == true,
+            SupportsIgmpVersion = row.SupportsIgmpVersion == true,
             SupportsIgmpProxy = row.SupportsIgmpProxy == true,
             CurrentEnabled = row.CurrentEnabled ?? "N/A",
             NewEnabled = row.NewEnabled ?? row.CurrentEnabled ?? "N/A",
@@ -2630,6 +2633,7 @@ public sealed class PowerShellBackend
         public string? Hostname { get; set; }
         public bool? SupportsControlSubnet { get; set; }
         public bool? SupportsRouter { get; set; }
+        public bool? SupportsIgmpVersion { get; set; }
         public bool? SupportsIgmpProxy { get; set; }
         public string? CurrentEnabled { get; set; }
         public string? NewEnabled { get; set; }
