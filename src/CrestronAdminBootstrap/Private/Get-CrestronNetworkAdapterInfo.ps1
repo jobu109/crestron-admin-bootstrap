@@ -319,10 +319,14 @@ function Get-CrestronNetworkAdapterProperties {
 
 function Get-CrestronNetworkAdapterInfo {
     param(
-        [Parameter(Mandatory)]$NetworkAdapters,
+        $NetworkAdapters,
         [string]$SessionIP = '',
         [switch]$Wifi
     )
+
+    if ($null -eq $NetworkAdapters) {
+        return $null
+    }
 
     $sessionIpText = "$SessionIP".Trim()
     $adapterProperties = @()

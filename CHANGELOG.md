@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0.13] - 2026-06-25
+
+### Fixed
+
+- Hardened device-state reads when a device returns a null or missing `NetworkAdapters` payload, preventing RMC4-style scan/load rows from failing with a `NetworkAdapters` parameter binding error.
+
 ## [0.13.1] - 2026-05-22
 
 ### Changed
@@ -333,7 +339,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.13...HEAD
+[1.0.0.13]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.12...v1.0.0.13
 [0.13.1]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.6...v0.13.0
 [0.12.6]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.5...v0.12.6

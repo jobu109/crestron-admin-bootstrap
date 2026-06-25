@@ -62,7 +62,13 @@ function Get-CrestronDeviceCapabilities {
         $state = $null
     }
 
-    $supportsNetwork = Test-CrestronCapabilityPath -Path '/Device/NetworkAdapters'
+    $supportsNetwork = if ($state -and
+        ($state.PSObject.Properties.Name -contains 'SupportsNetwork')) {
+        [bool]$state.SupportsNetwork
+    }
+    else {
+        Test-CrestronCapabilityPath -Path '/Device/NetworkAdapters'
+    }
     $supportsDevice = Test-CrestronCapabilityPath -Path '/Device'
 
     $supportsIpTable = (Test-CrestronCapabilityPath -Path '/Device/IpTableV2') -or

@@ -123,22 +123,33 @@ function Get-CrestronDeviceState {
     # adapter that contains the connected session IP, which keeps DM-NAX and
     # other non-NVX devices from being mistaken for a secondary/control adapter.
     $networkSource = $na
-    $ethInfo = Get-CrestronNetworkAdapterInfo -NetworkAdapters $networkSource -SessionIP $Session.IP
+    $ethInfo = if ($networkSource) {
+        Get-CrestronNetworkAdapterInfo -NetworkAdapters $networkSource -SessionIP $Session.IP
+    }
+    else {
+        $null
+    }
 
     if ($ethernetNa -and
         (-not $ethInfo -or
          (-not (Test-CrestronUsableIpv4String $ethInfo.CurrentIP) -and
           -not (Test-CrestronUsableIpv4String $ethInfo.StaticIP)))) {
         $ethernetInfo = Get-CrestronNetworkAdapterInfo -NetworkAdapters $ethernetNa -SessionIP $Session.IP
-        if ($ethernetInfo -and
-            ((Test-CrestronUsableIpv4String $ethernetInfo.CurrentIP) -or
-             (Test-CrestronUsableIpv4String $ethernetInfo.StaticIP))) {
+        if ($null -eq $networkSource -or
+            ($ethernetInfo -and
+             ((Test-CrestronUsableIpv4String $ethernetInfo.CurrentIP) -or
+              (Test-CrestronUsableIpv4String $ethernetInfo.StaticIP)))) {
             $networkSource = $ethernetNa
             $ethInfo = $ethernetInfo
         }
     }
 
-    $wifiInfo = Get-CrestronNetworkAdapterInfo -NetworkAdapters $networkSource -SessionIP $Session.IP -Wifi
+    $wifiInfo = if ($networkSource) {
+        Get-CrestronNetworkAdapterInfo -NetworkAdapters $networkSource -SessionIP $Session.IP -Wifi
+    }
+    else {
+        $null
+    }
     $eth = if ($ethInfo) { $ethInfo.Adapter } else { $null }
     $wifi = if ($wifiInfo) { $wifiInfo.Adapter } else { $null }
 
@@ -186,6 +197,7 @@ function Get-CrestronDeviceState {
 
     $dnsServers = Get-CrestronNetworkDnsServers -NetworkAdapters $networkSource
     $hasWifi = [bool]$wifiInfo
+    $supportsNetwork = $null -ne $networkSource
 
     # Extract first IP-table entry for GUI prefill.
     $currentIpId = $null
@@ -284,7 +296,7 @@ function Get-CrestronDeviceState {
 
         CurrentDeviceMode        = $currentDeviceMode
         SupportsModeChange       = $supportsModeChange
-        SupportsNetwork          = $true
+        SupportsNetwork          = $supportsNetwork
         SupportsIpTable          = [bool]$ipTableJson
         SupportsWifi             = $hasWifi
         SupportsDisplaySettings  = if ($displaySettings) { [bool]$displaySettings.SupportsDisplaySettings } else { $false }
@@ -300,7 +312,7 @@ function Get-CrestronDeviceState {
         CurrentToolbarEnabled    = if ($displaySettings) { $displaySettings.ToolbarEnabled } else { $null }
         CurrentAvFrameworkEnabled = if ($avFrameworkSettings) { $avFrameworkSettings.AvFrameworkEnabled } else { $null }
 
-        RawJson                  = if ($networkSource -eq $ethernetNa) { @{ Device = @{ Ethernet = $ethernetNa; NetworkAdapters = $na } } } else { $api.BodyJson }
+        RawJson                  = if ($ethernetNa -and $networkSource -eq $ethernetNa) { @{ Device = @{ Ethernet = $ethernetNa; NetworkAdapters = $na } } } else { $api.BodyJson }
         FetchedAt                = (Get-Date).ToString('s')
     }
 }
