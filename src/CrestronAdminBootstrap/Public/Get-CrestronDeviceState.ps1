@@ -123,6 +123,7 @@ function Get-CrestronDeviceState {
     # adapter that contains the connected session IP, which keeps DM-NAX and
     # other non-NVX devices from being mistaken for a secondary/control adapter.
     $networkSource = $na
+    $networkSourcePath = if ($na) { '/Device/NetworkAdapters' } else { '' }
     $ethInfo = if ($networkSource) {
         Get-CrestronNetworkAdapterInfo -NetworkAdapters $networkSource -SessionIP $Session.IP
     }
@@ -140,6 +141,7 @@ function Get-CrestronDeviceState {
              ((Test-CrestronUsableIpv4String $ethernetInfo.CurrentIP) -or
               (Test-CrestronUsableIpv4String $ethernetInfo.StaticIP)))) {
             $networkSource = $ethernetNa
+            $networkSourcePath = '/Device/Ethernet'
             $ethInfo = $ethernetInfo
         }
     }
@@ -197,7 +199,8 @@ function Get-CrestronDeviceState {
 
     $dnsServers = Get-CrestronNetworkDnsServers -NetworkAdapters $networkSource
     $hasWifi = [bool]$wifiInfo
-    $supportsNetwork = $null -ne $networkSource
+    $supportsNetworkRead = $null -ne $networkSource
+    $supportsNetworkWrite = $null -ne $na
 
     # Extract first IP-table entry for GUI prefill.
     $currentIpId = $null
@@ -296,7 +299,9 @@ function Get-CrestronDeviceState {
 
         CurrentDeviceMode        = $currentDeviceMode
         SupportsModeChange       = $supportsModeChange
-        SupportsNetwork          = $supportsNetwork
+        SupportsNetwork          = $supportsNetworkWrite
+        SupportsNetworkRead      = $supportsNetworkRead
+        NetworkSourcePath        = $networkSourcePath
         SupportsIpTable          = [bool]$ipTableJson
         SupportsWifi             = $hasWifi
         SupportsDisplaySettings  = if ($displaySettings) { [bool]$displaySettings.SupportsDisplaySettings } else { $false }

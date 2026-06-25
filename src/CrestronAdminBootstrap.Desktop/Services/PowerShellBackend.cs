@@ -1109,27 +1109,34 @@ public sealed class PowerShellBackend
                         }
                         catch { }
 
+                        $supportsNetworkWrite = if ($null -ne $state.SupportsNetwork) { [bool]$state.SupportsNetwork } else { $true }
+                        $supportsNetworkRead = if ($state.PSObject.Properties.Name -contains 'SupportsNetworkRead') {
+                            [bool]$state.SupportsNetworkRead
+                        } else {
+                            $supportsNetworkWrite
+                        }
+
                         [pscustomobject]@{
                             IP = $ip
                             Model = $model
                             CurrentHostname = $hostname
-                            NewHostname = if ([bool]$state.SupportsNetwork) { $hostname } else { 'N/A' }
-                            SupportsNetwork = if ($null -ne $state.SupportsNetwork) { [bool]$state.SupportsNetwork } else { $true }
+                            NewHostname = if ($supportsNetworkRead) { $hostname } else { 'N/A' }
+                            SupportsNetwork = $supportsNetworkWrite
                             SupportsIpTable = [bool]$state.SupportsIpTable
                             HasWifi = [bool]$state.HasWifi
                             SupportsDisplaySettings = [bool]$supportsDisplay
                             SupportsToolbarSettings = [bool]$supportsToolbar
                             SupportsAvFrameworkSettings = [bool]$state.SupportsAvFrameworkSettings
-                            CurrentIPMode = if ([bool]$state.SupportsNetwork) { $ipMode } else { 'N/A' }
-                            IPMode = if ([bool]$state.SupportsNetwork) { $ipMode } else { 'N/A' }
+                            CurrentIPMode = if ($supportsNetworkRead) { $ipMode } else { 'N/A' }
+                            IPMode = if ($supportsNetworkRead) { $ipMode } else { 'N/A' }
                             CurrentIP = $currentIp
-                            NewIP = if ([bool]$state.SupportsNetwork) { $currentIp } else { 'N/A' }
+                            NewIP = if ($supportsNetworkRead) { $currentIp } else { 'N/A' }
                             CurrentSubnet = $currentSubnet
-                            SubnetMask = if ([bool]$state.SupportsNetwork) { $currentSubnet } else { 'N/A' }
+                            SubnetMask = if ($supportsNetworkRead) { $currentSubnet } else { 'N/A' }
                             CurrentGateway = $currentGateway
-                            Gateway = if ([bool]$state.SupportsNetwork) { $currentGateway } else { 'N/A' }
+                            Gateway = if ($supportsNetworkRead) { $currentGateway } else { 'N/A' }
                             CurrentDns1 = $dns1
-                            PrimaryDns = if ([bool]$state.SupportsNetwork) { $dns1 } else { 'N/A' }
+                            PrimaryDns = if ($supportsNetworkRead) { $dns1 } else { 'N/A' }
                             CurrentDns2 = ''
                             SecondaryDns = ''
                             DisableWifi = $false

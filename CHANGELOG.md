@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0.14] - 2026-06-25
+
+### Fixed
+
+- RMC4-style devices whose network state is readable only from `/Device/Ethernet` now display current network values as read-only instead of attempting unsupported hostname/network writes through `NetworkAdapters`.
+
 ## [1.0.0.13] - 2026-06-25
 
 ### Fixed
@@ -339,7 +345,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.13...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.14...HEAD
+[1.0.0.14]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.13...v1.0.0.14
 [1.0.0.13]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.12...v1.0.0.13
 [0.13.1]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.12.6...v0.13.0

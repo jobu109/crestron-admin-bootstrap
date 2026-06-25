@@ -6856,13 +6856,21 @@ function Start-PerDeviceFetch {
                         }
                         catch { }
 
+                        $supportsNetworkWrite = if ($null -ne $state.SupportsNetwork) { [bool]$state.SupportsNetwork } else { $true }
+                        $supportsNetworkRead = if ($state.PSObject.Properties.Name -contains 'SupportsNetworkRead') {
+                            [bool]$state.SupportsNetworkRead
+                        } else {
+                            $supportsNetworkWrite
+                        }
+
                         $q.Enqueue([pscustomobject]@{
                             IP                       = $ip
                             Model                    = $modelText
                             CurrentHostname          = $state.Hostname
                             CurrentDhcp              = $state.EthernetLanDhcp
                             CurrentWifi              = $state.WifiEnabled
-                            SupportsNetwork          = if ($null -ne $state.SupportsNetwork) { [bool]$state.SupportsNetwork } else { $true }
+                            SupportsNetwork          = $supportsNetworkWrite
+                            SupportsNetworkRead      = $supportsNetworkRead
                             SupportsIpTable          = [bool]$state.SupportsIpTable
                             HasWifi                  = $state.HasWifi
                             CurrentIP                = $state.EthernetLanIP
@@ -7166,7 +7174,13 @@ function Start-PerDeviceFetch {
                     $row.NewAvFramework = 'N/A'
                 }
 
-                if ([bool]$item.SupportsNetwork) {
+                $supportsNetworkRead = if ($item.PSObject.Properties.Name -contains 'SupportsNetworkRead') {
+                    [bool]$item.SupportsNetworkRead
+                } else {
+                    [bool]$item.SupportsNetwork
+                }
+
+                if ($supportsNetworkRead) {
                     $row.NewHostname = "$($item.CurrentHostname)"
 
                     $row.IPMode = if ([bool]$item.CurrentDhcp) {
