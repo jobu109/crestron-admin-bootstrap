@@ -1445,7 +1445,7 @@ public sealed class PowerShellBackend
 
                     try {
                         if ([bool]$row.SupportsNetwork -and (Test-CabsChanged $row.NewHostname $row.CurrentHostname)) {
-                            $r = Set-CrestronHostname -Session $sess -Hostname "$($row.NewHostname)"
+                            $r = Set-CrestronHostname -Session $sess -Hostname "$($row.NewHostname)" -TimeoutSec 10
                             $success = $success -and [bool]$r.Success
                             if (Test-CabsNeedsReboot $r) { $needsReboot = $true }
                             if ([bool]$r.Success) { $needsReboot = $true }
@@ -1721,9 +1721,25 @@ public sealed class PowerShellBackend
                             if (Test-CabsValue $row.PrimaryDns) { $netArgs.PrimaryDns = "$($row.PrimaryDns)" }
                             if (Test-CabsValue $row.SecondaryDns) { $netArgs.SecondaryDns = "$($row.SecondaryDns)" }
                             if ([bool]$row.HasWifi -and [bool]$row.DisableWifi) { $netArgs.DisableWifi = $true }
+                            $netArgs.TimeoutSec = 8
                             $r = Set-CrestronNetwork @netArgs
                             $success = $success -and [bool]$r.Success
-                            $details.Add("Network=$(if([bool]$r.Success){'OK'}else{'Failed'})")
+                            $networkDetail = if ([bool]$r.Success) {
+                                if ($r.PSObject.Properties.Name -contains 'ConnectionLostAccepted' -and [bool]$r.ConnectionLostAccepted) {
+                                    'OK(connection moved)'
+                                }
+                                else {
+                                    'OK'
+                                }
+                            }
+                            else {
+                                $statusText = "$($r.Status)"
+                                $writePathText = "$($r.WritePath)"
+                                if ([string]::IsNullOrWhiteSpace($statusText)) { $statusText = 'unknown' }
+                                if ([string]::IsNullOrWhiteSpace($writePathText)) { $writePathText = 'unknown' }
+                                "Failed(HTTP=$statusText; Path=$writePathText)"
+                            }
+                            $details.Add("Network=$networkDetail")
                         }
 
                         if ($details.Count -eq 0) {
@@ -1822,10 +1838,10 @@ public sealed class PowerShellBackend
                     Import-Module $using:manifest -Force -ErrorAction Stop
                     $sec = ConvertTo-SecureString $using:userPass -AsPlainText -Force
                     $cred = [pscredential]::new($using:userName, $sec)
-                    $sess = Connect-CrestronDevice -IP $ip -Credential $cred
+                    $sess = Connect-CrestronDevice -IP $ip -Credential $cred -TimeoutSec 5
 
                     try {
-                        $result = Restart-CrestronDevice -Session $sess
+                        $result = Restart-CrestronDevice -Session $sess -TimeoutSec 5
                         [pscustomobject]@{
                             IP = $ip
                             Status = "$($result.Status)"

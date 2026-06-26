@@ -4783,6 +4783,32 @@ function Test-ResultNeedsReboot {
 
 $Script:SuppressRebootNeededNotice = $false
 
+function Get-EffectiveRebootIP {
+    param($Row)
+
+    if (-not $Row) { return '' }
+
+    $rowIp = "$($Row.IP)".Trim()
+    $newIp = if ($Row.PSObject.Properties.Name -contains 'NewIP') { "$($Row.NewIP)".Trim() } else { '' }
+    $currentIp = if ($Row.PSObject.Properties.Name -contains 'CurrentIP') { "$($Row.CurrentIP)".Trim() } else { '' }
+
+    if ([string]::IsNullOrWhiteSpace($newIp) -or $newIp -eq 'N/A') {
+        return $rowIp
+    }
+
+    $parsed = $null
+    if (-not [System.Net.IPAddress]::TryParse($newIp, [ref]$parsed)) {
+        return $rowIp
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($currentIp) -and
+        $newIp -eq $currentIp) {
+        return $rowIp
+    }
+
+    return $newIp
+}
+
 function Show-RebootNeededNotice {
     param(
         [int]$Count,
@@ -4868,9 +4894,16 @@ function Invoke-RebootNeededRows {
         $Script:WorkflowState.RebootAlreadyRequested = $true
     }
 
+    $rebootRowByTargetIP = @{}
     $ipsToReboot = @($Rows |
         Where-Object { [bool]$_.NeedsReboot } |
-        Select-Object -ExpandProperty IP)
+        ForEach-Object {
+            $targetIp = Get-EffectiveRebootIP $_
+            if (-not [string]::IsNullOrWhiteSpace($targetIp)) {
+                $rebootRowByTargetIP[$targetIp] = $_
+                $targetIp
+            }
+        })
 
     if ($ipsToReboot.Count -eq 0) {
         Update-Status "Reboot requested, but no $AreaName rows are marked NeedsReboot."
@@ -4881,6 +4914,9 @@ function Invoke-RebootNeededRows {
         param($item)
 
         $row = $RowsByIP[$item.IP]
+        if (-not $row -and $rebootRowByTargetIP.ContainsKey($item.IP)) {
+            $row = $rebootRowByTargetIP[$item.IP]
+        }
         if ($row) {
             $row.Status = if ($item.Success -eq 'True') { 'Rebooting' } else { 'RebootFail' }
             $row.Detail = $item.Detail
@@ -8309,8 +8345,20 @@ function Start-PerDeviceApply {
                                     $netArgs.DisableWifi = $true
                                 }
 
+                                $netArgs.TimeoutSec = 8
                                 $r2 = Set-CrestronNetwork @netArgs
-                                $stepResults += "Network=$(if($r2.Success){'OK'}else{$r2.Status})"
+                                $networkResultText = if ($r2.Success) {
+                                    if ($r2.PSObject.Properties.Name -contains 'ConnectionLostAccepted' -and [bool]$r2.ConnectionLostAccepted) {
+                                        'OK(connection moved)'
+                                    }
+                                    else {
+                                        'OK'
+                                    }
+                                }
+                                else {
+                                    $r2.Status
+                                }
+                                $stepResults += "Network=$networkResultText"
 
                                 if (Test-ResultNeedsReboot $r2) {
                                     $needsReboot = $true
@@ -9560,10 +9608,21 @@ $Script:UI.BlanketRebootButton.Add_Click({
 # Per-Device tab — reboot all loaded
 $Script:UI.PerDeviceRebootButton.Add_Click({
     Invoke-RebootButtonAction -Name 'Per-Device reboot' -Action {
-    $ips = @($Script:PerDeviceState.Rows | Where-Object NeedsReboot | Select-Object -ExpandProperty IP)
+    $rowsToReboot = @($Script:PerDeviceState.Rows | Where-Object NeedsReboot)
+    $rowsByRebootIp = @{}
+    $ips = @($rowsToReboot | ForEach-Object {
+        $targetIp = Get-EffectiveRebootIP $_
+        if (-not [string]::IsNullOrWhiteSpace($targetIp)) {
+            $rowsByRebootIp[$targetIp] = $_
+            $targetIp
+        }
+    })
     Invoke-RebootBulk -Ips $ips -StatusCallback {
         param($item)
         $row = Get-PerDeviceRowByIP $item.IP
+        if (-not $row -and $rowsByRebootIp.ContainsKey($item.IP)) {
+            $row = $rowsByRebootIp[$item.IP]
+        }
         if ($row) {
             $row.Status = if ($item.Success -eq 'True') { 'Rebooting' } else { 'RebootFail' }
             $row.Detail = $item.Detail

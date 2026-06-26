@@ -92,11 +92,24 @@ function Set-CrestronNetwork {
         }
     }
 
+    $connectionLost = $false
+    if ($IPMode -eq 'Static' -and $NewIP -and $NewIP -ne $Session.IP) {
+        $connectionLost = $true
+    } elseif ($IPMode -eq 'DHCP') {
+        # DHCP-assigned IP may or may not match. Assume the current session can drop.
+        $connectionLost = $true
+    }
+
     function Convert-CabsNetworkSetResult {
-        param($Api)
+        param(
+            $Api,
+            [bool]$AssumeSuccessOnConnectionLoss = $false,
+            [string]$AttemptPath = ''
+        )
 
         $sectionResults = @()
         $overallSuccess = $true
+        $connectionLostAccepted = $false
 
         if ($Api.BodyJson -and $Api.BodyJson.Actions) {
             foreach ($action in $Api.BodyJson.Actions) {
@@ -124,10 +137,28 @@ function Set-CrestronNetwork {
             $clean.Substring(0, [Math]::Min(300, $clean.Length))
         } else { '' }
 
+        if ($AssumeSuccessOnConnectionLoss -and
+            [int]$Api.Status -eq 0 -and
+            [string]::IsNullOrWhiteSpace($bodyPreview)) {
+            $overallSuccess = $true
+            $connectionLostAccepted = $true
+            $bodyPreview = 'No HTTP response after network-change POST; assuming accepted because the device moved/dropped the current connection.'
+
+            if ($sectionResults.Count -eq 0) {
+                $sectionResults += [pscustomobject]@{
+                    Path       = if ([string]::IsNullOrWhiteSpace($AttemptPath)) { 'Network' } else { $AttemptPath }
+                    StatusId   = 0
+                    StatusInfo = $bodyPreview
+                    Ok         = $true
+                }
+            }
+        }
+
         [pscustomobject]@{
-            OverallSuccess = $overallSuccess
-            SectionResults = $sectionResults
-            BodyPreview    = $bodyPreview
+            OverallSuccess          = $overallSuccess
+            ConnectionLostAccepted  = $connectionLostAccepted
+            SectionResults          = $sectionResults
+            BodyPreview             = $bodyPreview
         }
     }
 
@@ -302,22 +333,22 @@ function Set-CrestronNetwork {
     $api = $null
     $parsed = $null
     $writePath = ''
+    $postTimeoutSec = if ($connectionLost) {
+        [Math]::Max(1, [Math]::Min($TimeoutSec, 8))
+    }
+    else {
+        [Math]::Max(1, [Math]::Min($TimeoutSec, 12))
+    }
 
     foreach ($attempt in $attempts) {
         $api = Invoke-CrestronApi -Session $Session -Path $attempt.Path -Method POST `
-                                  -Body $attempt.Body -TimeoutSec $TimeoutSec
-        $parsed = Convert-CabsNetworkSetResult $api
+                                  -Body $attempt.Body -TimeoutSec $postTimeoutSec
+        $parsed = Convert-CabsNetworkSetResult `
+            -Api $api `
+            -AssumeSuccessOnConnectionLoss:$connectionLost `
+            -AttemptPath $attempt.Path
         $writePath = "$($attempt.WritePath)"
         if ($parsed.OverallSuccess) { break }
-    }
-
-    # Connection lost flag — IP change means we can't reuse the session
-    $connectionLost = $false
-    if ($IPMode -eq 'Static' -and $NewIP -and $NewIP -ne $Session.IP) {
-        $connectionLost = $true
-    } elseif ($IPMode -eq 'DHCP') {
-        # DHCP-assigned IP may or may not match — we can't know. Assume yes.
-        $connectionLost = $true
     }
 
     [pscustomobject]@{
@@ -329,6 +360,7 @@ function Set-CrestronNetwork {
         WifiDisabled   = [bool]$DisableWifi
         WritePath      = $writePath
         ConnectionLost = $connectionLost
+        ConnectionLostAccepted = [bool]$parsed.ConnectionLostAccepted
         SectionResults = $parsed.SectionResults
         Response       = $parsed.BodyPreview
         Timestamp      = (Get-Date).ToString('s')

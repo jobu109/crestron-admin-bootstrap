@@ -959,10 +959,17 @@ public sealed class MainViewModel : ObservableObject
         MainTabIndex = 0;
         SetWorkflowStep(4, "Running", "Preparing reboot list...");
 
-        var rebootIps = PerDeviceRows
+        var perDeviceRebootRows = PerDeviceRows
             .Where(r => r.Selected && r.NeedsReboot)
+            .ToArray();
+        var perDeviceOriginalIps = perDeviceRebootRows
             .Select(r => r.IP)
-            .Concat(BlanketRows.Where(r => r.Selected && r.NeedsReboot).Select(r => r.IP))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var rebootIps = perDeviceRebootRows
+            .Select(GetEffectiveFetchIp)
+            .Concat(BlanketRows
+                .Where(r => r.Selected && r.NeedsReboot && !perDeviceOriginalIps.Contains(r.IP))
+                .Select(r => r.IP))
             .Where(ip => !string.IsNullOrWhiteSpace(ip))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
@@ -1022,9 +1029,10 @@ public sealed class MainViewModel : ObservableObject
             var results = await _backend.RebootDevicesAsync(rebootIps, _sessionUsername, _sessionPassword, progress, _scanCancellation.Token).ConfigureAwait(true);
             var byIp = results.ToDictionary(r => r.IP, StringComparer.OrdinalIgnoreCase);
 
-            foreach (var row in PerDeviceRows.Where(r => rebootIps.Contains(r.IP, StringComparer.OrdinalIgnoreCase)))
+            foreach (var row in perDeviceRebootRows)
             {
-                if (byIp.TryGetValue(row.IP, out var result))
+                if (byIp.TryGetValue(GetEffectiveFetchIp(row), out var result) ||
+                    byIp.TryGetValue(row.IP, out result))
                 {
                     row.Status = result.Success ? "Rebooting" : "Reboot failed";
                     row.Detail = result.Success ? "Reboot command accepted." : result.Response;
@@ -1595,7 +1603,7 @@ public sealed class MainViewModel : ObservableObject
         var perDevOut   = new List<PerDeviceDeviceRow>();
 
         var perDeviceSnapshot = PerDeviceRows
-            .Where(r => rebootedSet.Contains(r.IP))
+            .Where(r => rebootedSet.Contains(r.IP) || rebootedSet.Contains(GetEffectiveFetchIp(r)))
             .ToList();
 
         foreach (var oldRow in perDeviceSnapshot)
@@ -1639,7 +1647,7 @@ public sealed class MainViewModel : ObservableObject
 
         // Also include blanket-only rows (no per-device counterpart) that were rebooted
         var handledIps = perDeviceSnapshot
-            .Select(r => r.IP)
+            .SelectMany(r => new[] { r.IP, GetEffectiveFetchIp(r) })
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var br in BlanketRows.Where(r => rebootedSet.Contains(r.IP) && !handledIps.Contains(r.IP)))
@@ -2791,16 +2799,22 @@ public sealed class MainViewModel : ObservableObject
         var rows = PerDeviceRows
             .Where(r => r.Selected && (!onlyMarkedReboot || r.NeedsReboot))
             .ToArray();
+        var rowsByRebootIp = rows
+            .GroupBy(GetEffectiveFetchIp, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
         return RebootSelectedIpsAsync(
             "Per Device",
-            rows.Select(r => r.IP),
+            rowsByRebootIp.Keys,
             result =>
             {
-                var row = rows.FirstOrDefault(r => string.Equals(r.IP, result.IP, StringComparison.OrdinalIgnoreCase));
-                if (row is null)
+                if (!rowsByRebootIp.TryGetValue(result.IP, out var row))
                 {
-                    return;
+                    row = rows.FirstOrDefault(r => string.Equals(r.IP, result.IP, StringComparison.OrdinalIgnoreCase));
+                    if (row is null)
+                    {
+                        return;
+                    }
                 }
 
                 row.Status = result.Success ? "Rebooting" : "Reboot failed";

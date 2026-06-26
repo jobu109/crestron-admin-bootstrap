@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0.16] - 2026-06-26
+
+### Fixed
+
+- Static IP changes that intentionally drop the current device connection are now treated as accepted instead of retrying multiple payloads until the UI appears hung.
+- Per-device reboot actions now target the new static IP when a device IP was changed during apply, avoiding reboot attempts against the old address.
+
 ## [1.0.0.15] - 2026-06-26
 
 ### Fixed
@@ -351,7 +358,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.15...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.16...HEAD
+[1.0.0.16]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.15...v1.0.0.16
 [1.0.0.15]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.14...v1.0.0.15
 [1.0.0.14]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.13...v1.0.0.14
 [1.0.0.13]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.12...v1.0.0.13
