@@ -1992,38 +1992,6 @@ public sealed class PowerShellBackend
         }
     }
 
-    public Task LaunchLegacyGuiAsync(CancellationToken cancellationToken)
-    {
-        var guiPath = Path.Combine(_repoRoot, "wrapper", "CrestronBootstrap.Gui.ps1");
-        if (!File.Exists(guiPath))
-        {
-            throw new FileNotFoundException("Legacy GUI script was not found.", guiPath);
-        }
-
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = _pwshPath,
-            WorkingDirectory = _dataRoot,
-            UseShellExecute = false
-        };
-        startInfo.ArgumentList.Add("-Sta");
-        startInfo.ArgumentList.Add("-NoProfile");
-        startInfo.ArgumentList.Add("-File");
-        startInfo.ArgumentList.Add(guiPath);
-        startInfo.ArgumentList.Add("-WorkingDirectory");
-        startInfo.ArgumentList.Add(_dataRoot);
-        startInfo.ArgumentList.Add("-ModuleManifestPath");
-        startInfo.ArgumentList.Add(_moduleManifest);
-
-        var process = Process.Start(startInfo);
-        if (process is null)
-        {
-            throw new InvalidOperationException("PowerShell did not launch the legacy GUI.");
-        }
-
-        return Task.CompletedTask;
-    }
-
     private async Task<string> RunJsonScriptAsync(
         string script,
         IProgress<string>? progress,
@@ -2198,11 +2166,11 @@ public sealed class PowerShellBackend
         return
             "$settingsPath = '" + sp + "'\n" +
             "            if (-not (Test-Path $settingsPath)) {\n" +
-            "                throw 'Saved credentials were not found. Save credentials in the legacy GUI Settings tab first.'\n" +
+            "                throw 'Saved credentials were not found. Save credentials in the Settings tab first.'\n" +
             "            }\n" +
             "            $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json\n" +
             "            if (-not $settings.DefaultUsername -or -not $settings.ProtectedDefaultPassword) {\n" +
-            "                throw 'Saved credentials are incomplete. Save username/password in the legacy GUI Settings tab first.'\n" +
+            "                throw 'Saved credentials are incomplete. Save username/password in the Settings tab first.'\n" +
             "            }\n" +
             "            $secure = ConvertTo-SecureString $settings.ProtectedDefaultPassword\n" +
             "            $credential = [pscredential]::new([string]$settings.DefaultUsername, $secure)\n" +

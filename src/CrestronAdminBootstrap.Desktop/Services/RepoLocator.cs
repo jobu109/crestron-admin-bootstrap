@@ -33,21 +33,6 @@ public static class RepoLocator
             "CrestronAdminBootstrap");
         Directory.CreateDirectory(dataRoot);
 
-        var appDataSettings = Path.Combine(dataRoot, "gui-settings.json");
-        var legacySettings = Path.Combine(repoRoot, "gui-settings.json");
-
-        if (!File.Exists(appDataSettings) && File.Exists(legacySettings))
-        {
-            try
-            {
-                File.Copy(legacySettings, appDataSettings);
-            }
-            catch
-            {
-                return legacySettings;
-            }
-        }
-
-        return appDataSettings;
+        return Path.Combine(dataRoot, "gui-settings.json");
     }
 }

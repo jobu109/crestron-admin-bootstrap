@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0.17] - 2026-06-26
+
+### Removed
+
+- Removed the legacy PowerShell GUI from the desktop app path. The compiled app no longer exposes, launches, bundles, or copies `wrapper\CrestronBootstrap.Gui.ps1`.
+- Removed legacy root `gui-settings.json` migration; the desktop app now uses its app-data settings path directly.
+
 ## [1.0.0.16] - 2026-06-26
 
 ### Fixed
@@ -358,7 +365,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.16...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.17...HEAD
+[1.0.0.17]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.16...v1.0.0.17
 [1.0.0.16]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.15...v1.0.0.16
 [1.0.0.15]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.14...v1.0.0.15
 [1.0.0.14]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.13...v1.0.0.14

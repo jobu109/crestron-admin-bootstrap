@@ -88,13 +88,6 @@ if (-not (Test-Path -LiteralPath $exe)) {
     throw "Publish finished but the EXE was not found at $exe"
 }
 
-$wrapperSource = Join-Path $repoRoot 'wrapper/CrestronBootstrap.Gui.ps1'
-if (Test-Path -LiteralPath $wrapperSource) {
-    $wrapperDest = Join-Path $publishRoot 'wrapper/CrestronBootstrap.Gui.ps1'
-    New-Item -ItemType Directory -Path (Split-Path -Parent $wrapperDest) -Force | Out-Null
-    Copy-Item -LiteralPath $wrapperSource -Destination $wrapperDest -Force
-}
-
 $label = if ([string]::IsNullOrWhiteSpace($Version)) { 'dev' } else { $Version.TrimStart('v') }
 $zipPath = Join-Path $repoRoot "dist/CrestronAdminBootstrap-$label-$Runtime.zip"
 if (Test-Path -LiteralPath $zipPath) {

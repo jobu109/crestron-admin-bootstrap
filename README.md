@@ -9,9 +9,6 @@ iex (irm https://raw.githubusercontent.com/jobu109/crestron-admin-bootstrap/main
 # GUI (recommended)
 CrestronBootstrap.exe
 
-# Text menu (older interface, scriptable)
-CrestronBootstrap.exe --text
-
 # Or call the module cmdlets directly from PowerShell 7
 Find-CrestronBootup -CidrFile .\subnets.txt
 Set-CrestronAdmin   -InputCsv .\crestron-bootup.csv
@@ -60,8 +57,6 @@ Per-Device and Blanket Settings tabs have an "Add Devices..." button that opens 
 
 Reboot buttons sit on Provision, Blanket Settings, and Per-Device tabs and always confirm before sending the reboot signal. CresNext settings changes require a reboot to take effect, so the typical flow is apply → reboot → verify.
 
-Pass `--text` to launch the original text menu instead of the GUI.
-
 ## Requirements
 
 - **PowerShell 7+** (PS 5.1 will not work — TLS handshake to Crestron's web server fails)
@@ -103,7 +98,7 @@ Clone the repo, copy `src\CrestronAdminBootstrap\` into your PowerShell modules 
 
 ### .exe distribution (for techs)
 
-A pre-built **signed** `CrestronBootstrap.exe` is attached to each GitHub release. It's a menu-driven wrapper around the same module — no PowerShell knowledge required. Drop the .exe in a folder, drop a `subnets.txt` next to it, double-click.
+A pre-built `CrestronBootstrap.exe` is attached to each GitHub release. It is the compiled desktop app around the same module, so no PowerShell knowledge is required. Drop the .exe in a folder, drop a `subnets.txt` next to it, double-click.
 
 **One-time setup per machine:** install the signing certificate (`jobu109-codesigning.cer`, also on the release) into Trusted Publishers so Windows trusts the signature. See [INSTALL-CERT.md](INSTALL-CERT.md) for instructions.
 
@@ -250,9 +245,6 @@ crestron-admin-bootstrap/
 │  └─ Private/                       # Internal helpers
 │     ├─ Expand-Cidr.ps1
 │     └─ Test-CrestronBootupPage.ps1
-├─ wrapper/
-│  ├─ CrestronBootstrap.Launcher.ps1 # Menu-driven UI
-│  └─ Build-Exe.ps1                  # PS2EXE build (run once per release)
 └─ examples/
    ├─ subnets.example.txt
    └─ full-workflow.ps1

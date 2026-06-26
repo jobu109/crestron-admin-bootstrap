@@ -123,7 +123,6 @@ public sealed class MainViewModel : ObservableObject
         SaveSettingsCommand = new AsyncRelayCommand(_ => SaveSettingsAsync(), () => !IsBusy);
         ClearSettingsPasswordCommand = new RelayCommand(ClearSettingsPassword, () => !IsBusy && SettingsHasSavedPassword);
         ReloadSettingsCommand = new RelayCommand(LoadSettingsForEditor, () => !IsBusy);
-        LaunchLegacyGuiCommand = new AsyncRelayCommand(_ => LaunchLegacyGuiAsync(), () => !IsBusy);
         OpenSettingsFolderCommand = new RelayCommand(OpenSettingsFolder, () => !string.IsNullOrWhiteSpace(SettingsDirectory));
         OpenOutputFolderCommand = new RelayCommand(OpenOutputFolder, () => !string.IsNullOrWhiteSpace(DataRoot));
 
@@ -188,7 +187,6 @@ public sealed class MainViewModel : ObservableObject
     public AsyncRelayCommand SaveSettingsCommand { get; }
     public RelayCommand ClearSettingsPasswordCommand { get; }
     public RelayCommand ReloadSettingsCommand { get; }
-    public AsyncRelayCommand LaunchLegacyGuiCommand { get; }
     public RelayCommand OpenSettingsFolderCommand { get; }
     public RelayCommand OpenOutputFolderCommand { get; }
 
@@ -2197,20 +2195,6 @@ public sealed class MainViewModel : ObservableObject
             : null;
     }
 
-    private async Task LaunchLegacyGuiAsync()
-    {
-        try
-        {
-            await _backend.LaunchLegacyGuiAsync(CancellationToken.None).ConfigureAwait(true);
-            StatusText = "Legacy PowerShell GUI launched.";
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"Legacy GUI launch failed: {ex.Message}";
-            MessageBox.Show(ex.Message, "Legacy GUI launch failed", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
     private void OpenSettingsFolder()
     {
         OpenFolder(SettingsDirectory, "Settings folder");
@@ -3570,7 +3554,6 @@ public sealed class MainViewModel : ObservableObject
         SaveSettingsCommand.RaiseCanExecuteChanged();
         ClearSettingsPasswordCommand.RaiseCanExecuteChanged();
         ReloadSettingsCommand.RaiseCanExecuteChanged();
-        LaunchLegacyGuiCommand.RaiseCanExecuteChanged();
         OpenSettingsFolderCommand.RaiseCanExecuteChanged();
         OpenOutputFolderCommand.RaiseCanExecuteChanged();
     }
