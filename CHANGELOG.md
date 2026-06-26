@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0.15] - 2026-06-26
+
+### Fixed
+
+- RMC4-style devices that expose primary network settings through `/Device/Ethernet` can now apply DHCP/static IP and hostname changes using the Ethernet payload instead of the `NetworkAdapters` payload.
+
 ## [1.0.0.14] - 2026-06-25
 
 ### Fixed
@@ -345,7 +351,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.14...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.15...HEAD
+[1.0.0.15]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.14...v1.0.0.15
 [1.0.0.14]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.13...v1.0.0.14
 [1.0.0.13]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.12...v1.0.0.13
 [0.13.1]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v0.13.0...v0.13.1

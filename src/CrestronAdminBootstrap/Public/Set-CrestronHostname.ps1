@@ -47,64 +47,153 @@ function Set-CrestronHostname {
         throw "Hostname '$Hostname' is invalid. Allowed: letters, digits, hyphens. Must not start or end with a hyphen."
     }
 
-    $payload = @{
-        Device = @{
-            NetworkAdapters = @{
-                HostName = $Hostname
-            }
-        }
-    }
+    function Convert-CabsHostnameResult {
+        param($Api)
 
-    $api = Invoke-CrestronApi -Session $Session -Path '/Device' -Method POST `
-                              -Body $payload -TimeoutSec $TimeoutSec
+        $sectionResults = @()
+        $overallSuccess = $true
+        $needsReboot    = $false
 
-    # Parse per-section StatusId (same pattern as Set-CrestronSettings)
-    $sectionResults = @()
-    $overallSuccess = $true
-    $needsReboot    = $false
-
-    if ($api.BodyJson -and $api.BodyJson.Actions) {
-        foreach ($action in $api.BodyJson.Actions) {
-            foreach ($r in @($action.Results)) {
-                $rPath = "$($r.Path)$(if ($r.Property) { '.' + $r.Property } else { '' })"
-                $sid   = [int]$r.StatusId
-                $rOk   = $sid -in 0,1,5,-4
-                if (-not $rOk) { $overallSuccess = $false }
-                if ($sid -eq 1 -or "$($r.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
-                    $needsReboot = $true
-                }
-                $sectionResults += [pscustomobject]@{
-                    Path       = $rPath
-                    StatusId   = $sid
-                    StatusInfo = $r.StatusInfo
-                    Ok         = $rOk
+        if ($Api.BodyJson -and $Api.BodyJson.Actions) {
+            foreach ($action in $Api.BodyJson.Actions) {
+                foreach ($r in @($action.Results)) {
+                    $rPath = "$($r.Path)$(if ($r.Property) { '.' + $r.Property } else { '' })"
+                    $sid   = [int]$r.StatusId
+                    $rOk   = $sid -in 0,1,5,-4
+                    if (-not $rOk) { $overallSuccess = $false }
+                    if ($sid -eq 1 -or "$($r.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
+                        $needsReboot = $true
+                    }
+                    $sectionResults += [pscustomobject]@{
+                        Path       = $rPath
+                        StatusId   = $sid
+                        StatusInfo = $r.StatusInfo
+                        Ok         = $rOk
+                    }
                 }
             }
         }
-    } else {
-        $overallSuccess = $api.Success
+        else {
+            $overallSuccess = $Api.Success
+        }
+
+        if (-not $Api.Success) { $overallSuccess = $false }
+        if ($overallSuccess -and -not $needsReboot) {
+            $needsReboot = $true
+        }
+
+        $bodyPreview = if ($Api.Body) {
+            $clean = ($Api.Body -replace '\s+', ' ').Trim()
+            $clean.Substring(0, [Math]::Min(300, $clean.Length))
+        } else { '' }
+
+        [pscustomobject]@{
+            OverallSuccess = $overallSuccess
+            NeedsReboot    = $needsReboot
+            SectionResults = $sectionResults
+            BodyPreview    = $bodyPreview
+        }
     }
 
-    if (-not $api.Success) { $overallSuccess = $false }
-    if ($overallSuccess -and -not $needsReboot) {
-        # Hostname changes do not fully take effect until reboot, and some
-        # devices return a plain OK instead of a reboot-required status.
-        $needsReboot = $true
+    $hasNetworkAdapters = $false
+    $hasEthernet = $false
+
+    try {
+        $currentApi = Invoke-CrestronApi -Session $Session -Path '/Device/NetworkAdapters' -Method GET -TimeoutSec $TimeoutSec
+        $hasNetworkAdapters = [bool]($currentApi.Success -and $currentApi.BodyJson.Device.NetworkAdapters)
+    } catch { }
+
+    if (-not $hasNetworkAdapters) {
+        try {
+            $ethernetApi = Invoke-CrestronApi -Session $Session -Path '/Device/Ethernet' -Method GET -TimeoutSec $TimeoutSec
+            $hasEthernet = [bool]($ethernetApi.Success -and
+                $ethernetApi.BodyJson -and
+                $ethernetApi.BodyJson.Device -and
+                $ethernetApi.BodyJson.Device.Ethernet -and
+                -not ($ethernetApi.BodyJson.Device.Ethernet -is [string]))
+        } catch { }
     }
 
-    $bodyPreview = if ($api.Body) {
-        $clean = ($api.Body -replace '\s+', ' ').Trim()
-        $clean.Substring(0, [Math]::Min(300, $clean.Length))
-    } else { '' }
+    $attempts = if ($hasNetworkAdapters) {
+        @([pscustomobject]@{
+            Path = '/Device'
+            Body = @{
+                Device = @{
+                    NetworkAdapters = @{
+                        HostName = $Hostname
+                    }
+                }
+            }
+            WritePath = 'NetworkAdapters'
+        })
+    }
+    elseif ($hasEthernet) {
+        @(
+            [pscustomobject]@{
+                Path = '/Device'
+                Body = @{
+                    Device = @{
+                        Ethernet = @{
+                            HostName = $Hostname
+                        }
+                    }
+                }
+                WritePath = 'Ethernet'
+            },
+            [pscustomobject]@{
+                Path = '/Device/Ethernet'
+                Body = @{
+                    Device = @{
+                        Ethernet = @{
+                            HostName = $Hostname
+                        }
+                    }
+                }
+                WritePath = 'Ethernet'
+            },
+            [pscustomobject]@{
+                Path = '/Device/Ethernet'
+                Body = @{
+                    Ethernet = @{
+                        HostName = $Hostname
+                    }
+                }
+                WritePath = 'Ethernet'
+            },
+            [pscustomobject]@{
+                Path = '/Device/Ethernet'
+                Body = @{
+                    HostName = $Hostname
+                }
+                WritePath = 'Ethernet'
+            }
+        )
+    }
+    else {
+        throw "Device $($Session.IP) does not expose NetworkAdapters or Ethernet hostname settings."
+    }
+
+    $api = $null
+    $parsed = $null
+    $writePath = ''
+
+    foreach ($attempt in $attempts) {
+        $api = Invoke-CrestronApi -Session $Session -Path $attempt.Path -Method POST `
+                                  -Body $attempt.Body -TimeoutSec $TimeoutSec
+        $parsed = Convert-CabsHostnameResult $api
+        $writePath = "$($attempt.WritePath)"
+        if ($parsed.OverallSuccess) { break }
+    }
 
     [pscustomobject]@{
         IP             = $Session.IP
         Status         = $api.Status
-        Success        = $overallSuccess
+        Success        = $parsed.OverallSuccess
         Hostname       = $Hostname
-        NeedsReboot    = $needsReboot
-        SectionResults = $sectionResults
-        Response       = $bodyPreview
+        NeedsReboot    = $parsed.NeedsReboot
+        WritePath      = $writePath
+        SectionResults = $parsed.SectionResults
+        Response       = $parsed.BodyPreview
         Timestamp      = (Get-Date).ToString('s')
     }
 }

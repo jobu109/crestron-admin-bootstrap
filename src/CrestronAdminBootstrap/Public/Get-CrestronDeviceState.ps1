@@ -200,7 +200,7 @@ function Get-CrestronDeviceState {
     $dnsServers = Get-CrestronNetworkDnsServers -NetworkAdapters $networkSource
     $hasWifi = [bool]$wifiInfo
     $supportsNetworkRead = $null -ne $networkSource
-    $supportsNetworkWrite = $null -ne $na
+    $supportsNetworkWrite = ($null -ne $na) -or ($networkSourcePath -eq '/Device/Ethernet')
 
     # Extract first IP-table entry for GUI prefill.
     $currentIpId = $null

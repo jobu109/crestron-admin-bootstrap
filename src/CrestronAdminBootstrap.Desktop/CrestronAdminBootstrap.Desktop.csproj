@@ -9,7 +9,7 @@
     <ApplicationIcon Condition="Exists('App.ico')">App.ico</ApplicationIcon>
     <AssemblyName>CrestronBootstrap</AssemblyName>
     <RootNamespace>CrestronAdminBootstrap.Desktop</RootNamespace>
-    <Version>1.0.0.14</Version>
+    <Version>1.0.0.15</Version>
     <Company>Michael Floyd</Company>
     <Product>Crestron Admin Bootstrap</Product>
     <Description>Compiled desktop shell for Crestron Admin Bootstrap</Description>

@@ -92,8 +92,96 @@ function Set-CrestronNetwork {
         }
     }
 
+    function Convert-CabsNetworkSetResult {
+        param($Api)
+
+        $sectionResults = @()
+        $overallSuccess = $true
+
+        if ($Api.BodyJson -and $Api.BodyJson.Actions) {
+            foreach ($action in $Api.BodyJson.Actions) {
+                foreach ($r in @($action.Results)) {
+                    $rPath = "$($r.Path)$(if ($r.Property) { '.' + $r.Property } else { '' })"
+                    $sid   = [int]$r.StatusId
+                    $rOk   = $sid -in 0,1,5,-4
+                    if (-not $rOk) { $overallSuccess = $false }
+                    $sectionResults += [pscustomobject]@{
+                        Path       = $rPath
+                        StatusId   = $sid
+                        StatusInfo = $r.StatusInfo
+                        Ok         = $rOk
+                    }
+                }
+            }
+        } else {
+            $overallSuccess = $Api.Success
+        }
+
+        if (-not $Api.Success) { $overallSuccess = $false }
+
+        $bodyPreview = if ($Api.Body) {
+            $clean = ($Api.Body -replace '\s+', ' ').Trim()
+            $clean.Substring(0, [Math]::Min(300, $clean.Length))
+        } else { '' }
+
+        [pscustomobject]@{
+            OverallSuccess = $overallSuccess
+            SectionResults = $sectionResults
+            BodyPreview    = $bodyPreview
+        }
+    }
+
+    function New-CabsDnsList {
+        $dnsList = @()
+        $dnsList += if ($PrimaryDns)   { $PrimaryDns }   else { '' }
+        $dnsList += if ($SecondaryDns) { $SecondaryDns } else { '' }
+        return $dnsList
+    }
+
+    function New-CabsIpv4Payload {
+        param([switch]$SingularStaticAddress)
+
+        $payload = @{
+            IsDhcpEnabled = ($IPMode -eq 'DHCP')
+        }
+
+        if ($IPMode -eq 'Static') {
+            $address = @{
+                Address    = $NewIP
+                SubnetMask = $SubnetMask
+            }
+
+            if ($SingularStaticAddress) {
+                $payload['StaticAddress'] = $address
+            }
+            else {
+                $payload['StaticAddresses'] = @($address)
+            }
+
+            $payload['StaticDefaultGateway'] = $Gateway
+        }
+
+        return $payload
+    }
+
+    function New-CabsEthernetBody {
+        param([switch]$SingularStaticAddress)
+
+        $body = @{
+            IPv4 = (New-CabsIpv4Payload -SingularStaticAddress:$SingularStaticAddress)
+        }
+
+        if ($PrimaryDns -or $SecondaryDns) {
+            $body['DnsSettings'] = @{ IPv4 = @{ StaticDns = @(New-CabsDnsList) } }
+        }
+
+        return $body
+    }
+
     $adapterName = 'EthernetLan'
     $wifiAdapterName = 'Wifi'
+    $currentNetworkAdapters = $null
+    $hasEthernet = $false
 
     try {
         $currentApi = Invoke-CrestronApi -Session $Session -Path '/Device/NetworkAdapters' `
@@ -118,83 +206,110 @@ function Set-CrestronNetwork {
         }
     }
     catch {
-        # Fall back to the original EthernetLan/Wifi adapter names.
+        # Fall back to Ethernet probing below.
     }
 
-    # Build primary Ethernet IPv4 block
-    $ipv4 = @{
-        IsDhcpEnabled = ($IPMode -eq 'DHCP')
-    }
-    if ($IPMode -eq 'Static') {
-        $ipv4.StaticAddresses = @(@{
-            Address    = $NewIP
-            SubnetMask = $SubnetMask
-        })
-        $ipv4.StaticDefaultGateway = $Gateway
-    }
-
-    $eth = @{
-        IPv4             = $ipv4
-        IsAdapterEnabled = $true
+    if (-not $currentNetworkAdapters) {
+        try {
+            $ethernetApi = Invoke-CrestronApi -Session $Session -Path '/Device/Ethernet' `
+                                             -Method GET -TimeoutSec $TimeoutSec
+            $hasEthernet = [bool]($ethernetApi.Success -and
+                $ethernetApi.BodyJson -and
+                $ethernetApi.BodyJson.Device -and
+                $ethernetApi.BodyJson.Device.Ethernet -and
+                -not ($ethernetApi.BodyJson.Device.Ethernet -is [string]))
+        } catch { }
     }
 
-    $adapters = @{}
-    $adapters[$adapterName] = $eth
+    $attempts = @()
 
-    if ($DisableWifi) {
-        $adapters[$wifiAdapterName] = @{ IsAdapterEnabled = $false }
-    }
+    if ($currentNetworkAdapters) {
+        $ipv4 = New-CabsIpv4Payload
 
-    $na = @{
-        Adapters = $adapters
-    }
-
-    # DNS block (only included when at least one server supplied)
-    if ($PrimaryDns -or $SecondaryDns) {
-        $dnsList = @()
-        $dnsList += if ($PrimaryDns)   { $PrimaryDns }   else { '' }
-        $dnsList += if ($SecondaryDns) { $SecondaryDns } else { '' }
-        $na.DnsSettings = @{ IPv4 = @{ StaticDns = $dnsList } }
-    }
-
-    $payload = @{
-        Device = @{
-            NetworkAdapters = $na
+        $eth = @{
+            IPv4             = $ipv4
+            IsAdapterEnabled = $true
         }
-    }
 
-    $api = Invoke-CrestronApi -Session $Session -Path '/Device' -Method POST `
-                              -Body $payload -TimeoutSec $TimeoutSec
+        $adapters = @{}
+        $adapters[$adapterName] = $eth
 
-    # Parse StatusId per result
-    $sectionResults = @()
-    $overallSuccess = $true
+        if ($DisableWifi) {
+            $adapters[$wifiAdapterName] = @{ IsAdapterEnabled = $false }
+        }
 
-    if ($api.BodyJson -and $api.BodyJson.Actions) {
-        foreach ($action in $api.BodyJson.Actions) {
-            foreach ($r in @($action.Results)) {
-                $rPath = "$($r.Path)$(if ($r.Property) { '.' + $r.Property } else { '' })"
-                $sid   = [int]$r.StatusId
-                $rOk   = $sid -in 0,1,5,-4
-                if (-not $rOk) { $overallSuccess = $false }
-                $sectionResults += [pscustomobject]@{
-                    Path       = $rPath
-                    StatusId   = $sid
-                    StatusInfo = $r.StatusInfo
-                    Ok         = $rOk
+        $na = @{
+            Adapters = $adapters
+        }
+
+        if ($PrimaryDns -or $SecondaryDns) {
+            $na['DnsSettings'] = @{ IPv4 = @{ StaticDns = @(New-CabsDnsList) } }
+        }
+
+        $attempts += [pscustomobject]@{
+            Path = '/Device'
+            Body = @{
+                Device = @{
+                    NetworkAdapters = $na
                 }
             }
+            WritePath = 'NetworkAdapters'
         }
-    } else {
-        $overallSuccess = $api.Success
+    }
+    elseif ($hasEthernet) {
+        foreach ($singular in @($false, $true)) {
+            $ethernetBody = New-CabsEthernetBody -SingularStaticAddress:$singular
+            $attempts += [pscustomobject]@{
+                Path = '/Device'
+                Body = @{
+                    Device = @{
+                        Ethernet = $ethernetBody
+                    }
+                }
+                WritePath = 'Ethernet'
+            }
+        }
+
+        foreach ($singular in @($false, $true)) {
+            $ethernetBody = New-CabsEthernetBody -SingularStaticAddress:$singular
+            $attempts += [pscustomobject]@{
+                Path = '/Device/Ethernet'
+                Body = @{
+                    Device = @{
+                        Ethernet = $ethernetBody
+                    }
+                }
+                WritePath = 'Ethernet'
+            }
+            $attempts += [pscustomobject]@{
+                Path = '/Device/Ethernet'
+                Body = @{
+                    Ethernet = $ethernetBody
+                }
+                WritePath = 'Ethernet'
+            }
+            $attempts += [pscustomobject]@{
+                Path = '/Device/Ethernet'
+                Body = $ethernetBody
+                WritePath = 'Ethernet'
+            }
+        }
+    }
+    else {
+        throw "Device $($Session.IP) does not expose NetworkAdapters or Ethernet network settings."
     }
 
-    if (-not $api.Success) { $overallSuccess = $false }
+    $api = $null
+    $parsed = $null
+    $writePath = ''
 
-    $bodyPreview = if ($api.Body) {
-        $clean = ($api.Body -replace '\s+', ' ').Trim()
-        $clean.Substring(0, [Math]::Min(300, $clean.Length))
-    } else { '' }
+    foreach ($attempt in $attempts) {
+        $api = Invoke-CrestronApi -Session $Session -Path $attempt.Path -Method POST `
+                                  -Body $attempt.Body -TimeoutSec $TimeoutSec
+        $parsed = Convert-CabsNetworkSetResult $api
+        $writePath = "$($attempt.WritePath)"
+        if ($parsed.OverallSuccess) { break }
+    }
 
     # Connection lost flag — IP change means we can't reuse the session
     $connectionLost = $false
@@ -210,11 +325,12 @@ function Set-CrestronNetwork {
         IPMode         = $IPMode
         NewIP          = if ($IPMode -eq 'Static') { $NewIP } else { '<DHCP>' }
         Status         = $api.Status
-        Success        = $overallSuccess
+        Success        = $parsed.OverallSuccess
         WifiDisabled   = [bool]$DisableWifi
+        WritePath      = $writePath
         ConnectionLost = $connectionLost
-        SectionResults = $sectionResults
-        Response       = $bodyPreview
+        SectionResults = $parsed.SectionResults
+        Response       = $parsed.BodyPreview
         Timestamp      = (Get-Date).ToString('s')
     }
 }
