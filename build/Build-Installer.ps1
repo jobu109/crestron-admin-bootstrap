@@ -21,6 +21,80 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
+$powerShellVersion = '7.6.3'
+$powerShellMsiName = "PowerShell-$powerShellVersion-win-x64.msi"
+$powerShellReleaseBaseUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$powerShellVersion"
+
+function Invoke-CabsDownloadFile {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Uri,
+
+        [Parameter(Mandatory)]
+        [string]$OutFile
+    )
+
+    Write-Host "Downloading $Uri"
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    }
+    catch {
+        # Best effort for older Windows PowerShell hosts.
+    }
+
+    Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing
+}
+
+function Get-CabsPowerShellMsiHash {
+    param(
+        [Parameter(Mandatory)]
+        [string]$PrereqDir
+    )
+
+    $hashFile = Join-Path $PrereqDir "PowerShell-$powerShellVersion-hashes.sha256"
+    if (-not (Test-Path -LiteralPath $hashFile)) {
+        Invoke-CabsDownloadFile -Uri "$powerShellReleaseBaseUrl/hashes.sha256" -OutFile $hashFile
+    }
+
+    $hashLine = Get-Content -LiteralPath $hashFile | Where-Object {
+        $_ -like "*$powerShellMsiName*"
+    } | Select-Object -First 1
+
+    if (-not $hashLine -or $hashLine -notmatch '(?i)\b(?<hash>[0-9a-f]{64})\b') {
+        throw "Could not find a SHA256 entry for $powerShellMsiName in $hashFile"
+    }
+
+    return $Matches['hash'].ToUpperInvariant()
+}
+
+function Ensure-PowerShellPrerequisite {
+    $prereqDir = Join-Path $repoRoot 'dist\prerequisites'
+    if (-not (Test-Path -LiteralPath $prereqDir)) {
+        New-Item -ItemType Directory -Path $prereqDir | Out-Null
+    }
+
+    $msiPath = Join-Path $prereqDir $powerShellMsiName
+    $expectedHash = Get-CabsPowerShellMsiHash -PrereqDir $prereqDir
+
+    if (Test-Path -LiteralPath $msiPath) {
+        $actualHash = (Get-FileHash -LiteralPath $msiPath -Algorithm SHA256).Hash.ToUpperInvariant()
+        if ($actualHash -eq $expectedHash) {
+            Write-Host "PowerShell prerequisite already present: $msiPath"
+            return
+        }
+
+        Write-Warning "Existing PowerShell prerequisite hash does not match. Re-downloading $powerShellMsiName."
+        Remove-Item -LiteralPath $msiPath -Force
+    }
+
+    Invoke-CabsDownloadFile -Uri "$powerShellReleaseBaseUrl/$powerShellMsiName" -OutFile $msiPath
+
+    $downloadedHash = (Get-FileHash -LiteralPath $msiPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($downloadedHash -ne $expectedHash) {
+        Remove-Item -LiteralPath $msiPath -Force
+        throw "SHA256 mismatch for $powerShellMsiName. Expected $expectedHash, got $downloadedHash."
+    }
+}
 
 # ── Locate Inno Setup compiler ────────────────────────────────────────────────
 if ([string]::IsNullOrWhiteSpace($IsccPath)) {
@@ -66,11 +140,17 @@ if (-not (Test-Path $exe)) {
     exit 1
 }
 
+# ── Ensure installer prerequisites ────────────────────────────────────────────
+Write-Host ''
+Write-Host '=== Preparing installer prerequisites ===' -ForegroundColor Cyan
+Ensure-PowerShellPrerequisite
+
 # ── Compile installer ─────────────────────────────────────────────────────────
 Write-Host ''
 Write-Host '=== Building installer ===' -ForegroundColor Cyan
 $issFile = Join-Path $repoRoot 'installer\CrestronAdminBootstrap.iss'
-& $IsccPath "/DAppVersion=$Version" $issFile
+$powerShellVersionDefine = "/DPowerShellVersion=""$powerShellVersion"""
+& $IsccPath "/DAppVersion=$Version" $powerShellVersionDefine $issFile
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Inno Setup failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE

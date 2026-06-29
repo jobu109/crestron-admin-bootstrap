@@ -59,7 +59,7 @@ Reboot buttons sit on Provision, Blanket Settings, and Per-Device tabs and alway
 
 ## Requirements
 
-- **PowerShell 7+** (PS 5.1 will not work — TLS handshake to Crestron's web server fails)
+- **PowerShell 7+** for manual and `.zip` installs (PS 5.1 will not work — TLS handshake to Crestron's web server fails). The Windows Setup installer bundles PowerShell 7 and installs it if missing.
 - **`curl.exe`** (bundled with Windows 10/11)
 - Network access to TCP 443 on target devices
 
@@ -98,11 +98,13 @@ Clone the repo, copy `src\CrestronAdminBootstrap\` into your PowerShell modules 
 
 ### .exe distribution (for techs)
 
-A pre-built `CrestronBootstrap.exe` is attached to each GitHub release. It is the compiled desktop app around the same module, so no PowerShell knowledge is required. Drop the .exe in a folder, drop a `subnets.txt` next to it, double-click.
+For new laptops, use `CrestronAdminBootstrap-Setup-v<version>-win-x64.exe` from the GitHub release. The setup installer carries the PowerShell 7 prerequisite and installs it if `pwsh.exe` is missing.
+
+A pre-built `.zip` is also attached to each GitHub release. It contains the compiled desktop app around the same module, but that portable path expects PowerShell 7 to already be installed. Extract it, drop a `subnets.txt` next to `CrestronBootstrap.exe`, and double-click.
 
 **One-time setup per machine:** install the signing certificate (`jobu109-codesigning.cer`, also on the release) into Trusted Publishers so Windows trusts the signature. See [INSTALL-CERT.md](INSTALL-CERT.md) for instructions.
 
-Note that the .exe still requires PowerShell 7 + the module on the target machine — it'll detect missing pieces and offer to install them the first time you run it.
+If the app is launched without setup and PowerShell 7 is missing, it reports the missing prerequisite before any scan or provisioning workflow runs.
 
 ## Usage
 

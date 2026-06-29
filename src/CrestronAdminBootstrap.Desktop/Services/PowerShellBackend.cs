@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -2079,9 +2080,16 @@ public sealed class PowerShellBackend
                 }
             };
 
-            if (!process.Start())
+            try
             {
-                throw new InvalidOperationException("PowerShell process did not start.");
+                if (!process.Start())
+                {
+                    throw new InvalidOperationException("PowerShell process did not start.");
+                }
+            }
+            catch (Win32Exception ex) when (ex.NativeErrorCode is 2 or 3)
+            {
+                throw new FileNotFoundException(MissingPowerShellMessage(), _pwshPath, ex);
             }
 
             process.BeginOutputReadLine();
@@ -2132,7 +2140,9 @@ public sealed class PowerShellBackend
     {
         var candidates = new[]
         {
+            Path.Combine(AppContext.BaseDirectory, "PowerShell", "7", "pwsh.exe"),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "PowerShell", "7", "pwsh.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "PowerShell", "7", "pwsh.exe"),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "PowerShell", "7", "pwsh.exe"),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "PowerShell", "7", "pwsh.exe")
         };
@@ -2145,7 +2155,49 @@ public sealed class PowerShellBackend
             }
         }
 
-        return "pwsh.exe";
+        var pathPowerShell = FindOnPath("pwsh.exe");
+        if (pathPowerShell is not null)
+        {
+            return pathPowerShell;
+        }
+
+        throw new FileNotFoundException(MissingPowerShellMessage(), "pwsh.exe");
+    }
+
+    private static string? FindOnPath(string fileName)
+    {
+        var path = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        foreach (var directory in path.Split(Path.PathSeparator))
+        {
+            var cleanDirectory = directory.Trim().Trim('"');
+            if (string.IsNullOrWhiteSpace(cleanDirectory))
+            {
+                continue;
+            }
+
+            if (cleanDirectory.Contains(@"\Microsoft\WindowsApps", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var candidate = Path.Combine(cleanDirectory, fileName);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static string MissingPowerShellMessage()
+    {
+        return "PowerShell 7 (pwsh.exe) was not found. Install Crestron Admin Bootstrap with the Setup installer so it can add PowerShell 7, or install PowerShell 7 from https://aka.ms/powershell.";
     }
 
     private static string EscapePowerShellString(string value)

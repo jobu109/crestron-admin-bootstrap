@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0.18] - 2026-06-29
+
+### Fixed
+
+- Setup now bundles and installs PowerShell 7.6.3 when `pwsh.exe` is missing, preventing new laptops from failing when scans start.
+- Desktop startup now reports a clear missing-PowerShell prerequisite message if the app is launched outside the setup path.
+
 ## [1.0.0.17] - 2026-06-26
 
 ### Removed
@@ -365,7 +372,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.17...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.18...HEAD
+[1.0.0.18]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.17...v1.0.0.18
 [1.0.0.17]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.16...v1.0.0.17
 [1.0.0.16]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.15...v1.0.0.16
 [1.0.0.15]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.14...v1.0.0.15
