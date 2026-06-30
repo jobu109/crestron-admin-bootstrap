@@ -22,6 +22,8 @@
         <SolidColorBrush x:Key="ProgressActiveBrush" Color="#FF4444" />
         <SolidColorBrush x:Key="AccentBrush" Color="#2D7DD2" />
         <SolidColorBrush x:Key="AccentBrushHover" Color="#3D8EE4" />
+        <SolidColorBrush x:Key="ToolLaunchBrush" Color="#217A55" />
+        <SolidColorBrush x:Key="ToolLaunchBorderBrush" Color="#39A879" />
         <SolidColorBrush x:Key="InputBrush" Color="#1E1F22" />
         <SolidColorBrush x:Key="InputBorderBrush" Color="#616671" />
         <SolidColorBrush x:Key="GridHeaderBrush" Color="#363941" />
@@ -82,6 +84,12 @@
         <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AccentBrushHover}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="ToolLaunchButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{DynamicResource ToolLaunchBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ToolLaunchBorderBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
@@ -1319,6 +1327,16 @@
                                 <Button Content="Clear"
                                         Command="{Binding ClearPerDeviceCommand}"
                                         Margin="8,0,0,0" />
+                                <Button Content="Firmware Updater"
+                                        Command="{Binding OpenFirmwareUpdaterCommand}"
+                                        Style="{StaticResource ToolLaunchButtonStyle}"
+                                        Margin="8,0,0,0"
+                                        ToolTip="Launches Crestron Firmware Updater." />
+                                <Button Content="Toolbox"
+                                        Command="{Binding OpenToolboxCommand}"
+                                        Style="{StaticResource ToolLaunchButtonStyle}"
+                                        Margin="8,0,0,0"
+                                        ToolTip="Launches Crestron Toolbox." />
                             </WrapPanel>
 
                             <WrapPanel Grid.Row="1" Margin="0,8,0,0">
@@ -1416,7 +1434,7 @@
                                 <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                               VerticalScrollBarVisibility="Disabled">
                                     <DataGrid ItemsSource="{Binding PerDeviceRows}"
-                                              Width="2260"
+                                              Width="2305"
                                               HorizontalAlignment="Left"
                                               ColumnWidth="Auto"
                                               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -1508,7 +1526,7 @@
                                             </DataGridTemplateColumn>
                                             <DataGridTextColumn Header="IPID" Binding="{Binding NewIpId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="75" MinWidth="75" />
                                             <DataGridTextColumn Header="Host IP" Binding="{Binding NewControlSystemAddr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130" MinWidth="130" />
-                                            <DataGridCheckBoxColumn Header="Reboot?" Binding="{Binding NeedsReboot, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="85" MinWidth="85" />
+                                            <DataGridTextColumn Header="Firmware" Binding="{Binding Firmware}" Width="130" MinWidth="130" IsReadOnly="True" />
                                             <DataGridTextColumn Header="Status" Binding="{Binding DisplayStatus}" Width="120" MinWidth="100" IsReadOnly="True" />
                                             <DataGridTextColumn Header="Result" Binding="{Binding ApplySummary}" Width="160" MinWidth="120" IsReadOnly="True" />
                                             <DataGridTextColumn Header="Time" Binding="{Binding Timestamp}" Width="170" MinWidth="170" IsReadOnly="True" />

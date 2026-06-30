@@ -149,7 +149,7 @@ Ensure-PowerShellPrerequisite
 Write-Host ''
 Write-Host '=== Building installer ===' -ForegroundColor Cyan
 $issFile = Join-Path $repoRoot 'installer\CrestronAdminBootstrap.iss'
-$powerShellVersionDefine = "/DPowerShellVersion=""$powerShellVersion"""
+$powerShellVersionDefine = "/DPowerShellVersion=$powerShellVersion"
 & $IsccPath "/DAppVersion=$Version" $powerShellVersionDefine $issFile
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Inno Setup failed with exit code $LASTEXITCODE"

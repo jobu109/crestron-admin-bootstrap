@@ -6,6 +6,7 @@ public sealed class PerDeviceDeviceRow : ObservableObject
 {
     private bool _selected = true;
     private string _model = "";
+    private string _firmware = "";
     private string _currentHostname = "";
     private string _newHostname = "N/A";
     private bool _supportsNetwork;
@@ -59,6 +60,12 @@ public sealed class PerDeviceDeviceRow : ObservableObject
     {
         get => _model;
         set => SetProperty(ref _model, value);
+    }
+
+    public string Firmware
+    {
+        get => _firmware;
+        set => SetProperty(ref _firmware, value);
     }
 
     public string CurrentHostname

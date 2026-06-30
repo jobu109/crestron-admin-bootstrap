@@ -120,6 +120,8 @@ public sealed class MainViewModel : ObservableObject
         SelectAllPerDeviceCommand = new RelayCommand(() => SetAllPerDeviceRows(true), () => !IsBusy && PerDeviceRows.Count > 0);
         DeselectAllPerDeviceCommand = new RelayCommand(() => SetAllPerDeviceRows(false), () => !IsBusy && PerDeviceRows.Count > 0);
         ClearPerDeviceCommand = new RelayCommand(ClearPerDeviceRows, () => !IsBusy && PerDeviceRows.Count > 0);
+        OpenFirmwareUpdaterCommand = new RelayCommand(OpenFirmwareUpdater, () => !IsBusy);
+        OpenToolboxCommand = new RelayCommand(OpenToolbox, () => !IsBusy);
         SaveSettingsCommand = new AsyncRelayCommand(_ => SaveSettingsAsync(), () => !IsBusy);
         ClearSettingsPasswordCommand = new RelayCommand(ClearSettingsPassword, () => !IsBusy && SettingsHasSavedPassword);
         ReloadSettingsCommand = new RelayCommand(LoadSettingsForEditor, () => !IsBusy);
@@ -184,6 +186,8 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand SelectAllPerDeviceCommand { get; }
     public RelayCommand DeselectAllPerDeviceCommand { get; }
     public RelayCommand ClearPerDeviceCommand { get; }
+    public RelayCommand OpenFirmwareUpdaterCommand { get; }
+    public RelayCommand OpenToolboxCommand { get; }
     public AsyncRelayCommand SaveSettingsCommand { get; }
     public RelayCommand ClearSettingsPasswordCommand { get; }
     public RelayCommand ReloadSettingsCommand { get; }
@@ -2205,6 +2209,88 @@ public sealed class MainViewModel : ObservableObject
         OpenFolder(DataRoot, "Output folder");
     }
 
+    private void OpenFirmwareUpdater()
+    {
+        LaunchExternalTool(
+            FindFirmwareUpdaterPath(),
+            "Crestron Firmware Updater",
+            @"C:\Program Files (x86)\Crestron\Firmware Updater\Firmware Updater.exe",
+            "Install Crestron Firmware Updater, then try again.");
+    }
+
+    private void OpenToolbox()
+    {
+        LaunchExternalTool(
+            FindToolboxPath(),
+            "Crestron Toolbox",
+            @"C:\Program Files (x86)\Crestron\Toolbox\Toolbox.exe",
+            "Install Crestron Toolbox, then try again.");
+    }
+
+    private void LaunchExternalTool(string? toolPath, string displayName, string expectedPath, string installHint)
+    {
+        if (string.IsNullOrWhiteSpace(toolPath))
+        {
+            StatusText = $"{displayName} was not found.";
+            MessageBox.Show(
+                $"{displayName} was not found.\n\nExpected: {expectedPath}\n\n{installHint}",
+                $"{displayName} not found",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = toolPath,
+                UseShellExecute = true
+            };
+            var workingDirectory = Path.GetDirectoryName(toolPath);
+            if (!string.IsNullOrWhiteSpace(workingDirectory))
+            {
+                startInfo.WorkingDirectory = workingDirectory;
+            }
+
+            Process.Start(startInfo);
+            StatusText = $"Opened {displayName}.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"{displayName} launch failed: {ex.Message}";
+            MessageBox.Show(ex.Message, $"{displayName} launch failed", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private static string? FindFirmwareUpdaterPath()
+    {
+        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var candidates = new[]
+        {
+            Path.Combine(programFilesX86, "Crestron", "Firmware Updater", "Firmware Updater.exe"),
+            Path.Combine(programFilesX86, "Crestron", "Firmware Updater", "resources", "bin", "FirmwareUpdater.exe"),
+            Path.Combine(programFiles, "Crestron", "Firmware Updater", "Firmware Updater.exe"),
+            Path.Combine(programFiles, "Crestron", "Firmware Updater", "resources", "bin", "FirmwareUpdater.exe")
+        };
+
+        return candidates.FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && File.Exists(path));
+    }
+
+    private static string? FindToolboxPath()
+    {
+        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var candidates = new[]
+        {
+            Path.Combine(programFilesX86, "Crestron", "Toolbox", "Toolbox.exe"),
+            Path.Combine(programFiles, "Crestron", "Toolbox", "Toolbox.exe")
+        };
+
+        return candidates.FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && File.Exists(path));
+    }
+
     private void OpenFolder(string path, string label)
     {
         try
@@ -3371,6 +3457,7 @@ public sealed class MainViewModel : ObservableObject
             }
 
             row.Model = rowResult.Model;
+            row.Firmware = rowResult.Firmware;
             row.CurrentHostname = rowResult.CurrentHostname;
             row.NewHostname = rowResult.NewHostname;
             row.SupportsNetwork = rowResult.SupportsNetwork;
@@ -3551,6 +3638,8 @@ public sealed class MainViewModel : ObservableObject
         SelectAllPerDeviceCommand.RaiseCanExecuteChanged();
         DeselectAllPerDeviceCommand.RaiseCanExecuteChanged();
         ClearPerDeviceCommand.RaiseCanExecuteChanged();
+        OpenFirmwareUpdaterCommand.RaiseCanExecuteChanged();
+        OpenToolboxCommand.RaiseCanExecuteChanged();
         SaveSettingsCommand.RaiseCanExecuteChanged();
         ClearSettingsPasswordCommand.RaiseCanExecuteChanged();
         ReloadSettingsCommand.RaiseCanExecuteChanged();

@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-30
+
+### Added
+
+- Per Device rows now show the current device firmware version fetched from `/Device/DeviceInfo`.
+- Per Device toolbar now includes launcher buttons for Crestron Firmware Updater and Crestron Toolbox.
+
+### Changed
+
+- Replaced the editable Per Device `Reboot?` grid column with a read-only `Firmware` column.
+- External-tool launcher buttons now use a distinct accent color.
+
+### Fixed
+
+- Fixed installer build quoting for the bundled PowerShell prerequisite version define.
+
 ## [1.0.0.18] - 2026-06-29
 
 ### Fixed
@@ -372,7 +388,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   may need adjustment for older or future firmware.
 - Same admin credentials applied to every device in a single run by design.
 
-[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.18...HEAD
+[Unreleased]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.18...v1.0.1
 [1.0.0.18]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.17...v1.0.0.18
 [1.0.0.17]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.16...v1.0.0.17
 [1.0.0.16]: https://github.com/jobu109/crestron-admin-bootstrap/compare/v1.0.0.15...v1.0.0.16

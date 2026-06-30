@@ -860,6 +860,8 @@ public sealed class PowerShellBackend
                         $dns1 = if ($dnsArr.Count -ge 1) { "$($dnsArr[0])" } else { '' }
                         $model = "$($sess.Model)"
                         if ([string]::IsNullOrWhiteSpace($model)) { $model = "$($state.Model)" }
+                        $firmware = "$($sess.Firmware)"
+                        if ([string]::IsNullOrWhiteSpace($firmware)) { $firmware = 'N/A' }
                         $modelKey = $model.Trim().ToUpperInvariant()
                         $modelLooksDisplayCapable = $modelKey -match '^(TS|TSW|TSS|TST|DGE)(-|$)'
                         $supportsDisplay = [bool]$state.SupportsDisplaySettings -or $modelLooksDisplayCapable
@@ -1120,6 +1122,7 @@ public sealed class PowerShellBackend
                         [pscustomobject]@{
                             IP = $ip
                             Model = $model
+                            Firmware = $firmware
                             CurrentHostname = $hostname
                             NewHostname = if ($supportsNetworkRead) { $hostname } else { 'N/A' }
                             SupportsNetwork = $supportsNetworkWrite
@@ -1183,12 +1186,12 @@ public sealed class PowerShellBackend
             $multicastRows = @($rows | ForEach-Object { @($_.MulticastRows) })
             $controlSubnetRows = @($rows | ForEach-Object { @($_.ControlSubnetRows) })
 
-            $rows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp |
+            $rows | Select-Object IP,Model,Firmware,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp |
                 Export-Csv -NoTypeInformation -Path '{{EscapePowerShellString(resultsCsv)}}'
             $payload = [pscustomobject]@{
                 Success = $true
                 Count = $rows.Count
-                Rows = @($rows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp)
+                Rows = @($rows | Select-Object IP,Model,Firmware,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp)
                 AvRows = @($avRows)
                 MulticastRows = @($multicastRows)
                 ControlSubnetRows = @($controlSubnetRows)
@@ -1234,6 +1237,7 @@ public sealed class PowerShellBackend
             {
                 row.IP,
                 row.Model,
+                row.Firmware,
                 row.CurrentHostname,
                 row.NewHostname,
                 row.SupportsNetwork,
@@ -1440,6 +1444,8 @@ public sealed class PowerShellBackend
                     $sec = ConvertTo-SecureString $using:userPass -AsPlainText -Force
                     $cred = [pscredential]::new($using:userName, $sec)
                     $sess = Connect-CrestronDevice -IP "$($row.IP)" -Credential $cred
+                    $firmware = "$($sess.Firmware)"
+                    if (-not [string]::IsNullOrWhiteSpace($firmware)) { $row.Firmware = $firmware }
                     $success = $true
                     $needsReboot = $false
                     $details = New-Object System.Collections.Generic.List[string]
@@ -1766,12 +1772,12 @@ public sealed class PowerShellBackend
                 }
             })
 
-            $outRows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp |
+            $outRows | Select-Object IP,Model,Firmware,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp |
                 Export-Csv -NoTypeInformation -Path '{{EscapePowerShellString(resultsCsv)}}'
             $payload = [pscustomobject]@{
                 Success = $true
                 Count = $outRows.Count
-                Rows = @($outRows | Select-Object IP,Model,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp)
+                Rows = @($outRows | Select-Object IP,Model,Firmware,CurrentHostname,NewHostname,SupportsNetwork,SupportsIpTable,HasWifi,SupportsDisplaySettings,SupportsToolbarSettings,SupportsAvFrameworkSettings,IPMode,CurrentIP,NewIP,CurrentSubnet,SubnetMask,CurrentGateway,Gateway,CurrentDns1,PrimaryDns,CurrentDns2,SecondaryDns,DisableWifi,CurrentAutoBrightness,NewAutoBrightness,CurrentBrightness,NewBrightness,CurrentScreensaver,NewScreensaver,CurrentStandbyTimeout,NewStandbyTimeout,CurrentToolbar,NewToolbar,CurrentAvFramework,NewAvFramework,CurrentIpId,NewIpId,CurrentControlSystemAddr,NewControlSystemAddr,Status,Detail,NeedsReboot,Timestamp)
                 AvRows = @($avRowsIn)
                 MulticastRows = @($multicastRowsIn)
                 ControlSubnetRows = @($controlSubnetRowsIn)
@@ -2266,6 +2272,7 @@ public sealed class PowerShellBackend
             Selected = true,
             IP = row.IP ?? "",
             Model = row.Model ?? "",
+            Firmware = row.Firmware ?? "",
             CurrentHostname = row.CurrentHostname ?? "",
             NewHostname = row.NewHostname ?? "N/A",
             SupportsNetwork = row.SupportsNetwork == true,
@@ -2578,6 +2585,7 @@ public sealed class PowerShellBackend
     {
         public string? IP { get; set; }
         public string? Model { get; set; }
+        public string? Firmware { get; set; }
         public string? CurrentHostname { get; set; }
         public string? NewHostname { get; set; }
         public bool? SupportsNetwork { get; set; }
