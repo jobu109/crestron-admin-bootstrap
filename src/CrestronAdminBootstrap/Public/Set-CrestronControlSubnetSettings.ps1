@@ -504,7 +504,35 @@ function Set-CrestronControlSubnetSettings {
     if (-not [string]::IsNullOrWhiteSpace($telnetCommand)) {
         $igmpProxyCommandAccepted = $false
 
+        try {
+            $telnetResult = Invoke-CrestronSshCommand `
+                -IP $Session.IP `
+                -Credential $Credential `
+                -Command $telnetCommand `
+                -TimeoutSec $TimeoutSec
+
+            $igmpProxyCommandAccepted = $true
+            $needsReboot = $true
+            $appliedSections += 'IGMPPROXY (SSH)'
+            $sectionResults += [pscustomobject]@{
+                Path       = 'IGMPPROXY'
+                StatusId   = 1
+                StatusInfo = "Command sent through SSH on port $($telnetResult.Port); reboot required for IGMP proxy changes to take effect."
+                Ok         = $true
+            }
+        }
+        catch {
+            $sectionResults += [pscustomobject]@{
+                Path       = 'IGMPPROXY.SSH'
+                StatusId   = -1
+                StatusInfo = "$($_.Exception.Message)"
+                Ok         = $false
+            }
+        }
+
         foreach ($consolePort in @(Get-CabsIgmpProxyConsolePorts)) {
+            if ($igmpProxyCommandAccepted) { break }
+
             try {
                 $telnetResult = Invoke-CrestronTelnetCommand `
                     -IP $Session.IP `
@@ -512,11 +540,6 @@ function Set-CrestronControlSubnetSettings {
                     -Command $telnetCommand `
                     -Ports @($consolePort) `
                     -TimeoutSec $TimeoutSec
-
-                $cleanTelnetOutput = if ($telnetResult.Output) { ($telnetResult.Output -replace '\s+', ' ').Trim() } else { '' }
-                if ([string]::IsNullOrWhiteSpace($cleanTelnetOutput)) {
-                    throw "No readable console response after sending $telnetCommand."
-                }
 
                 $igmpProxyCommandAccepted = $true
                 $needsReboot = $true

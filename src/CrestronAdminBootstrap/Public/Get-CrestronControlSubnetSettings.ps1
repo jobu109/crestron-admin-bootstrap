@@ -373,7 +373,27 @@ function Get-CrestronControlSubnetSettings {
         $igmpProxyTransport = if ($igmpProxyProperty) { 'WebApi+Telnet' } else { 'Telnet' }
         $consoleRead = $false
 
+        try {
+            $proxyCommand = Invoke-CrestronSshCommand `
+                -IP $Session.IP `
+                -Credential $Credential `
+                -Command 'IGMPPROXY' `
+                -TimeoutSec ([Math]::Max(5, [Math]::Min($TimeoutSec, 10)))
+
+            $sshProxyValue = ConvertFrom-CabsIgmpProxyOutput $proxyCommand.Output
+            if ($null -ne $sshProxyValue) {
+                $igmpProxyValue = $sshProxyValue
+                $igmpProxyTransport = "SSH:$($proxyCommand.Port)"
+                $consoleRead = $true
+            }
+        }
+        catch {
+            # Try telnet below before falling back to web API state.
+        }
+
         foreach ($consolePort in @(Get-CabsIgmpProxyConsolePorts)) {
+            if ($consoleRead) { break }
+
             try {
                 $proxyCommand = Invoke-CrestronTelnetCommand `
                     -IP $Session.IP `

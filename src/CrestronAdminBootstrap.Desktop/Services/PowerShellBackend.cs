@@ -1667,8 +1667,20 @@ public sealed class PowerShellBackend
                                 if ($controlArgs.Count -gt 1) {
                                     $r = Set-CrestronControlSubnetSettings @controlArgs
                                     $success = $success -and [bool]$r.Success
-                                    if (Test-CabsNeedsReboot $r) { $needsReboot = $true }
-                                    $details.Add("ControlSubnet=$(if([bool]$r.Success){'OK'}else{'Failed'})")
+                                    $controlNeedsReboot = Test-CabsNeedsReboot $r
+                                    if ($controlNeedsReboot) { $needsReboot = $true }
+                                    if ([bool]$r.Success) {
+                                        $details.Add("ControlSubnet=$(if($controlNeedsReboot){'OK; reboot required'}else{'OK'})")
+                                    } else {
+                                        $sectionInfo = @($r.SectionResults | Where-Object { -not [bool]$_.Ok } | ForEach-Object {
+                                            "$($_.Path): $($_.StatusInfo)"
+                                        }) -join '; '
+                                        if ([string]::IsNullOrWhiteSpace($sectionInfo)) {
+                                            $details.Add('ControlSubnet=Failed')
+                                        } else {
+                                            $details.Add("ControlSubnet=Failed($sectionInfo)")
+                                        }
+                                    }
 
                                     if ([bool]$r.Success) {
                                         if ($controlArgs.ContainsKey('Enabled')) { $controlRow.CurrentEnabled = "$($controlRow.NewEnabled)" }
