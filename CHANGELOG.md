@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-07-08
+
+### Fixed
+
+- Firmware reporting now ignores CresNext/API version fields such as `2.3.1` and prefers firmware-shaped values from device/update endpoints.
+- Control Subnet reads now detect adapters exposed through alternate containers such as `InterfaceList` and convert CIDR prefix lengths to dotted subnet masks.
+- Control Subnet applies now try alternate network/router payload shapes and use the IGMP proxy command fallback when available.
+
 ## [1.0.1] - 2026-06-30
 
 ### Added

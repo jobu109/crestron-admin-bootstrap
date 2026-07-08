@@ -57,6 +57,70 @@ function Get-CrestronControlSubnetSettings {
         return $Object.$name
     }
 
+    function Test-CabsControlSubnetAdapterCandidate {
+        param(
+            [string]$Name,
+            $Adapter
+        )
+
+        $adapterType = "$((Get-CrestronObjectPropertyValue -Object $Adapter -Names @('AdapterType','Type','InterfaceType','Name','AdapterName','InterfaceName')))"
+        return (($Name -match '(?i)control.?subnet') -or ($adapterType -match '(?i)control.?subnet'))
+    }
+
+    function Get-CabsContainerStyle {
+        param($Container)
+
+        if ($Container -is [System.Collections.IDictionary]) { return 'Map' }
+        if ($Container -is [System.Collections.IEnumerable] -and -not ($Container -is [string])) { return 'List' }
+        return 'Object'
+    }
+
+    function Get-CabsControlSubnetAdapterInfo {
+        param($NetworkAdapters)
+
+        if (-not $NetworkAdapters) { return $null }
+
+        foreach ($containerName in @('Adapters','AdapterList','NetworkAdapters','NetworkAdapterList','Interfaces','InterfaceList')) {
+            $container = Get-CabsPropertyValue -Object $NetworkAdapters -Names @($containerName) -Pattern ''
+            if (-not $container) { continue }
+
+            foreach ($property in @(Get-CrestronNetworkAdapterProperties -Adapters $container)) {
+                if (Test-CabsControlSubnetAdapterCandidate -Name "$($property.Name)" -Adapter $property.Value) {
+                    $containerStyle = if ($containerName -match '(?i)(list|interfaces?)$') {
+                        'List'
+                    }
+                    else {
+                        Get-CabsContainerStyle $container
+                    }
+
+                    return [pscustomobject]@{
+                        Name           = "$($property.Name)"
+                        Adapter        = $property.Value
+                        ContainerName  = $containerName
+                        ContainerStyle = $containerStyle
+                    }
+                }
+            }
+        }
+
+        foreach ($property in @(Get-CrestronNetworkAdapterProperties -Adapters $NetworkAdapters)) {
+            if ($property.Name -in @('HostName','Hostname','DomainName','DnsSettings','DNSSettings','IgmpVersion','IGMPVersion')) {
+                continue
+            }
+
+            if (Test-CabsControlSubnetAdapterCandidate -Name "$($property.Name)" -Adapter $property.Value) {
+                return [pscustomobject]@{
+                    Name           = "$($property.Name)"
+                    Adapter        = $property.Value
+                    ContainerName  = ''
+                    ContainerStyle = 'Direct'
+                }
+            }
+        }
+
+        return $null
+    }
+
     function Get-CabsFirstAddress {
         param($Addresses)
 
@@ -192,19 +256,11 @@ function Get-CrestronControlSubnetSettings {
     }
 
     $na = $networkApi.BodyJson.Device.NetworkAdapters
-    $adapterName = ''
-    $controlSubnet = $null
-
-    if ($na.Adapters) {
-        $adapterName = Get-CabsPropertyName `
-            -Object $na.Adapters `
-            -Names @('ControlSubnet') `
-            -Pattern '(?i)control.*subnet'
-
-        if ($adapterName) {
-            $controlSubnet = $na.Adapters.$adapterName
-        }
-    }
+    $controlInfo = Get-CabsControlSubnetAdapterInfo -NetworkAdapters $na
+    $adapterName = if ($controlInfo) { "$($controlInfo.Name)" } else { '' }
+    $adapterContainerName = if ($controlInfo) { "$($controlInfo.ContainerName)" } else { '' }
+    $adapterContainerStyle = if ($controlInfo) { "$($controlInfo.ContainerStyle)" } else { '' }
+    $controlSubnet = if ($controlInfo) { $controlInfo.Adapter } else { $null }
 
     $router = $null
 
@@ -238,19 +294,27 @@ function Get-CrestronControlSubnetSettings {
             SupportsIgmpVersion      = $false
             SupportsIgmpProxy        = $false
             ControlSubnetAdapterName = ''
+            ControlSubnetAdapterContainer = ''
+            ControlSubnetAdapterContainerStyle = ''
             FetchedAt                = (Get-Date).ToString('s')
         }
     }
 
     $ipv4 = Get-CabsPropertyValue -Object $controlSubnet -Names @('IPv4','Ipv4') -Pattern '(?i)^ipv4$'
-    $currentAddress = if ($ipv4) { Get-CabsFirstAddress $ipv4.Addresses } else { $null }
-    $staticAddress = if ($ipv4) { Get-CabsFirstAddress $ipv4.StaticAddresses } else { $null }
-    $currentIpAddress = if ($currentAddress) { Get-CabsUsableIpv4String $currentAddress.Address } else { '' }
-    $currentSubnetMask = if ($currentAddress) { Get-CabsUsableIpv4String $currentAddress.SubnetMask } else { '' }
-    $staticIpAddress = if ($staticAddress) { Get-CabsUsableIpv4String $staticAddress.Address } else { '' }
-    $staticSubnetMask = if ($staticAddress) { Get-CabsUsableIpv4String $staticAddress.SubnetMask } else { '' }
-    $defaultGateway = if ($ipv4 -and $ipv4.DefaultGateway) { Get-CabsUsableIpv4String $ipv4.DefaultGateway } else { '' }
-    $staticDefaultGateway = if ($ipv4 -and $ipv4.StaticDefaultGateway) { Get-CabsUsableIpv4String $ipv4.StaticDefaultGateway } else { '' }
+    if (-not $ipv4 -and (Test-CrestronObjectLooksLikeIpv4Config $controlSubnet)) {
+        $ipv4 = $controlSubnet
+    }
+
+    $currentEntries = if ($ipv4) { @(Get-CrestronIpv4AddressEntries -IPv4 $ipv4) } else { @() }
+    $staticEntries = if ($ipv4) { @(Get-CrestronIpv4AddressEntries -IPv4 $ipv4 -Static) } else { @() }
+    $currentAddress = @($currentEntries | Where-Object { Get-CrestronIpv4AddressText $_ } | Select-Object -First 1)[0]
+    $staticAddress = @($staticEntries | Where-Object { Get-CrestronIpv4AddressText $_ } | Select-Object -First 1)[0]
+    $currentIpAddress = Get-CrestronIpv4AddressText $currentAddress
+    $currentSubnetMask = Get-CrestronIpv4SubnetMaskText $currentAddress
+    $staticIpAddress = Get-CrestronIpv4AddressText $staticAddress
+    $staticSubnetMask = Get-CrestronIpv4SubnetMaskText $staticAddress
+    $defaultGateway = if ($ipv4) { Get-CrestronIpv4GatewayText -IPv4 $ipv4 -PreferStatic:$false } else { '' }
+    $staticDefaultGateway = if ($ipv4) { Get-CrestronIpv4GatewayText -IPv4 $ipv4 -PreferStatic:$true } else { '' }
 
     $routerPrefix = if ($router -and $router.PSObject.Properties.Name -contains 'RouterPrefix') { "$($router.RouterPrefix)" } else { '' }
     $routerAddress = if ($router) {
@@ -335,16 +399,19 @@ function Get-CrestronControlSubnetSettings {
         SupportsIgmpVersion      = $supportsIgmpVersion
         SupportsIgmpProxy        = [bool]($igmpProxyProperty -or $Credential)
         ControlSubnetAdapterName = $adapterName
+        ControlSubnetAdapterContainer = $adapterContainerName
+        ControlSubnetAdapterContainerStyle = $adapterContainerStyle
         IsReadOnly               = if ($controlSubnet.PSObject.Properties.Name -contains 'IsAdapterReadOnly') { [bool]$controlSubnet.IsAdapterReadOnly } else { $false }
         IsActive                 = if ($controlSubnet.PSObject.Properties.Name -contains 'IsActive') { [bool]$controlSubnet.IsActive } else { $false }
-        IsEnabled                = if ($controlSubnet.PSObject.Properties.Name -contains 'IsAdapterEnabled') { [bool]$controlSubnet.IsAdapterEnabled } else { $null }
-        IsDhcpEnabled            = if ($ipv4 -and $ipv4.PSObject.Properties.Name -contains 'IsDhcpEnabled') { [bool]$ipv4.IsDhcpEnabled } else { $null }
+        IsEnabled                = ConvertTo-CabsBoolText (Get-CrestronObjectPropertyValue -Object $controlSubnet -Names @('IsAdapterEnabled','IsEnabled','Enabled'))
+        IsDhcpEnabled            = ConvertTo-CabsBoolText (Get-CrestronObjectPropertyValue -Object $ipv4 -Names @('IsDhcpEnabled','DhcpEnabled','IsDHCPEnabled'))
         CurrentIPAddress         = $currentIpAddress
         CurrentSubnetMask        = $currentSubnetMask
         StaticIPAddress          = $staticIpAddress
         StaticSubnetMask         = $staticSubnetMask
         DefaultGateway           = $defaultGateway
         StaticDefaultGateway     = $staticDefaultGateway
+        IgmpVersionPropertyName  = $igmpVersionPropertyName
         IgmpVersion              = $igmpVersion
 
         RouterAutomaticMode      = if ($router -and $router.PSObject.Properties.Name -contains 'AutomaticMode') { ConvertTo-CabsBoolText $router.AutomaticMode } else { $null }

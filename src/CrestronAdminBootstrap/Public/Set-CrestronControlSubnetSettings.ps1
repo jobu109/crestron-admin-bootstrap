@@ -46,6 +46,136 @@ function Set-CrestronControlSubnetSettings {
         return $true
     }
 
+    function New-CabsControlSubnetIpv4Payloads {
+        if (-not $hasIpMode) {
+            return @($null)
+        }
+
+        if ($IPMode -eq 'DHCP') {
+            return @(@{
+                IsDhcpEnabled = $true
+            })
+        }
+
+        return @(
+            @{
+                IsDhcpEnabled = $false
+                StaticAddresses = @(@{
+                    Address    = $IPAddress
+                    SubnetMask = $SubnetMask
+                })
+                StaticDefaultGateway = $Gateway
+            },
+            @{
+                IsDhcpEnabled = $false
+                StaticAddress = @{
+                    Address    = $IPAddress
+                    SubnetMask = $SubnetMask
+                }
+                StaticDefaultGateway = $Gateway
+            },
+            @{
+                IsDhcpEnabled = $false
+                Addresses = @(@{
+                    Address    = $IPAddress
+                    SubnetMask = $SubnetMask
+                })
+                DefaultGateway = $Gateway
+            },
+            @{
+                IsDhcpEnabled = $false
+                Address = $IPAddress
+                SubnetMask = $SubnetMask
+                DefaultGateway = $Gateway
+            }
+        )
+    }
+
+    function Convert-CabsControlSubnetApiResult {
+        param(
+            $Api,
+            [string]$Attempt
+        )
+
+        $sectionResults = @()
+        $overallSuccess = if ($Api) { [bool]$Api.Success } else { $true }
+        $needsReboot = $false
+
+        if ($Api -and $Api.BodyJson -and $Api.BodyJson.Actions) {
+            foreach ($action in @($Api.BodyJson.Actions)) {
+                foreach ($r in @($action.Results)) {
+                    $path = "$($r.Path)"
+
+                    if ($r.Property -and $path -notmatch "\.$([regex]::Escape("$($r.Property)"))$") {
+                        $path = "$path.$($r.Property)"
+                    }
+
+                    $sid = [int]$r.StatusId
+                    $ok = $sid -in 0,1,5,-4
+
+                    if (-not $ok) {
+                        $overallSuccess = $false
+                    }
+
+                    if ($sid -eq 1 -or "$($r.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
+                        $needsReboot = $true
+                    }
+
+                    $sectionResults += [pscustomobject]@{
+                        Path       = $path
+                        StatusId   = $sid
+                        StatusInfo = "$($r.StatusInfo)"
+                        Ok         = $ok
+                        Attempt    = $Attempt
+                    }
+                }
+            }
+        }
+
+        if ($Api -and -not $Api.Success) {
+            $overallSuccess = $false
+        }
+
+        $bodyPreview = if ($Api -and $Api.Body) {
+            $clean = ($Api.Body -replace '\s+', ' ').Trim()
+            $clean.Substring(0, [Math]::Min(300, $clean.Length))
+        }
+        else {
+            ''
+        }
+
+        [pscustomobject]@{
+            OverallSuccess = $overallSuccess
+            NeedsReboot    = $needsReboot
+            SectionResults = $sectionResults
+            BodyPreview    = $bodyPreview
+        }
+    }
+
+    function Invoke-CabsControlSubnetAttempts {
+        param(
+            [object[]]$Attempts
+        )
+
+        $last = $null
+        foreach ($attempt in @($Attempts)) {
+            $apiResult = Invoke-CrestronApi -Session $Session -Path $attempt.Path -Method POST `
+                                           -Body $attempt.Body -TimeoutSec $TimeoutSec
+            $parsed = Convert-CabsControlSubnetApiResult -Api $apiResult -Attempt "$($attempt.Label)"
+            $last = [pscustomobject]@{
+                Api    = $apiResult
+                Parsed = $parsed
+                Label  = "$($attempt.Label)"
+            }
+
+            if ($parsed.OverallSuccess) {
+                return $last
+            }
+        }
+
+        return $last
+    }
+
     $hasEnabled = $PSBoundParameters.ContainsKey('Enabled') -and $null -ne $Enabled
     $hasIpMode = $PSBoundParameters.ContainsKey('IPMode') -and -not [string]::IsNullOrWhiteSpace($IPMode)
     $hasIgmpVersion = $PSBoundParameters.ContainsKey('IgmpVersion') -and -not [string]::IsNullOrWhiteSpace($IgmpVersion)
@@ -92,48 +222,156 @@ function Set-CrestronControlSubnetSettings {
     }
 
     $adapterName = if ($current.ControlSubnetAdapterName) { "$($current.ControlSubnetAdapterName)" } else { 'ControlSubnet' }
-    $networkAdapters = @{}
-    $adapterBody = @{}
+    $adapterContainer = if ($current.ControlSubnetAdapterContainer) { "$($current.ControlSubnetAdapterContainer)" } else { 'Adapters' }
+    $adapterContainerStyle = if ($current.ControlSubnetAdapterContainerStyle) { "$($current.ControlSubnetAdapterContainerStyle)" } else { 'Map' }
     $appliedSections = @()
     $telnetCommand = ''
     $telnetResult = $null
+    $api = $null
+    $bodyPreview = ''
+    $needsReboot = $false
+    $sectionResults = @()
 
+    $adapterBaseBody = @{}
     if ($hasEnabled) {
-        $adapterBody.IsAdapterEnabled = [bool]$Enabled
+        $adapterBaseBody.IsAdapterEnabled = [bool]$Enabled
     }
 
-    if ($hasIpMode) {
-        $ipv4 = @{
-            IsDhcpEnabled = ($IPMode -eq 'DHCP')
-        }
+    $adapterPayloads = @()
+    if ($adapterBaseBody.Count -gt 0 -or $hasIpMode) {
+        foreach ($ipv4Payload in @(New-CabsControlSubnetIpv4Payloads)) {
+            $body = @{}
+            foreach ($key in @($adapterBaseBody.Keys)) {
+                $body[$key] = $adapterBaseBody[$key]
+            }
 
-        if ($IPMode -eq 'Static') {
-            $ipv4.StaticAddresses = @(@{
-                Address    = $IPAddress
-                SubnetMask = $SubnetMask
-            })
-            $ipv4.StaticDefaultGateway = $Gateway
-        }
+            if ($null -ne $ipv4Payload) {
+                $body.IPv4 = $ipv4Payload
+            }
 
-        $adapterBody.IPv4 = $ipv4
+            $adapterPayloads += $body
+        }
     }
 
-    if ($adapterBody.Count -gt 0) {
-        $networkAdapters.Adapters = @{
-            $adapterName = $adapterBody
+    $igmpVersionNames = @()
+    if ($hasIgmpVersion) {
+        if (-not [string]::IsNullOrWhiteSpace("$($current.IgmpVersionPropertyName)")) {
+            $igmpVersionNames += "$($current.IgmpVersionPropertyName)"
         }
-        $appliedSections += "NetworkAdapters.Adapters.$adapterName"
+        $igmpVersionNames += @('IgmpVersion','IGMPVersion')
+        $igmpVersionNames = @($igmpVersionNames | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    }
+    else {
+        $igmpVersionNames = @('')
+    }
+
+    $networkPayloads = @()
+    foreach ($adapterPayload in @($adapterPayloads)) {
+        $containerNames = @('Adapters')
+        if (-not [string]::IsNullOrWhiteSpace($adapterContainer)) {
+            $containerNames += $adapterContainer
+        }
+        $containerNames = @($containerNames | Select-Object -Unique)
+
+        foreach ($containerName in @($containerNames)) {
+            foreach ($igmpName in @($igmpVersionNames)) {
+                $networkAdapters = @{}
+                if ($adapterPayload.Count -gt 0) {
+                    if ($adapterContainerStyle -eq 'List' -and $containerName -eq $adapterContainer) {
+                        $adapterListBody = @{}
+                        foreach ($key in @($adapterPayload.Keys)) {
+                            $adapterListBody[$key] = $adapterPayload[$key]
+                        }
+                        if (-not $adapterListBody.ContainsKey('Name')) {
+                            $adapterListBody.Name = $adapterName
+                        }
+                        $networkAdapters[$containerName] = @($adapterListBody)
+                    }
+                    else {
+                        $networkAdapters[$containerName] = @{
+                            $adapterName = $adapterPayload
+                        }
+                    }
+                }
+
+                if (-not [string]::IsNullOrWhiteSpace($igmpName)) {
+                    $networkAdapters[$igmpName] = $IgmpVersion
+                }
+
+                if ($networkAdapters.Count -gt 0) {
+                    $networkPayloads += [pscustomobject]@{
+                        NetworkAdapters = $networkAdapters
+                        Label           = "NetworkAdapters.$containerName"
+                    }
+                }
+            }
+        }
+
+        foreach ($igmpName in @($igmpVersionNames)) {
+            $networkAdapters = @{}
+            if ($adapterPayload.Count -gt 0) {
+                $networkAdapters[$adapterName] = $adapterPayload
+            }
+            if (-not [string]::IsNullOrWhiteSpace($igmpName)) {
+                $networkAdapters[$igmpName] = $IgmpVersion
+            }
+            if ($networkAdapters.Count -gt 0) {
+                $networkPayloads += [pscustomobject]@{
+                    NetworkAdapters = $networkAdapters
+                    Label           = "NetworkAdapters.$adapterName"
+                }
+            }
+        }
+    }
+
+    if ($adapterPayloads.Count -eq 0 -and $hasIgmpVersion) {
+        foreach ($igmpName in @($igmpVersionNames)) {
+            $networkPayloads += [pscustomobject]@{
+                NetworkAdapters = @{ $igmpName = $IgmpVersion }
+                Label           = "NetworkAdapters.$igmpName"
+            }
+        }
+    }
+
+    if ($adapterPayloads.Count -gt 0) {
+        $appliedSections += "NetworkAdapters.$adapterContainer.$adapterName"
     }
 
     if ($hasIgmpVersion) {
-        $networkAdapters.IgmpVersion = $IgmpVersion
         $appliedSections += 'NetworkAdapters.IgmpVersion'
     }
 
-    $deviceBody = @{}
+    $networkPayloads = @($networkPayloads | ForEach-Object {
+        $json = $_.NetworkAdapters | ConvertTo-Json -Depth 12 -Compress
+        [pscustomobject]@{
+            NetworkAdapters = $_.NetworkAdapters
+            Label           = $_.Label
+            Json            = $json
+        }
+    } | Sort-Object Json -Unique)
 
-    if ($networkAdapters.Count -gt 0) {
-        $deviceBody.NetworkAdapters = $networkAdapters
+    $networkAttempts = @()
+    foreach ($networkPayload in @($networkPayloads)) {
+        $networkAttempts += [pscustomobject]@{
+            Path  = '/Device'
+            Body  = @{ Device = @{ NetworkAdapters = $networkPayload.NetworkAdapters } }
+            Label = "$($networkPayload.Label) via /Device"
+        }
+        $networkAttempts += [pscustomobject]@{
+            Path  = '/Device/NetworkAdapters'
+            Body  = @{ Device = @{ NetworkAdapters = $networkPayload.NetworkAdapters } }
+            Label = "$($networkPayload.Label) via /Device/NetworkAdapters Device"
+        }
+        $networkAttempts += [pscustomobject]@{
+            Path  = '/Device/NetworkAdapters'
+            Body  = @{ NetworkAdapters = $networkPayload.NetworkAdapters }
+            Label = "$($networkPayload.Label) via /Device/NetworkAdapters wrapped"
+        }
+        $networkAttempts += [pscustomobject]@{
+            Path  = '/Device/NetworkAdapters'
+            Body  = $networkPayload.NetworkAdapters
+            Label = "$($networkPayload.Label) via /Device/NetworkAdapters direct"
+        }
     }
 
     $routerBody = @{}
@@ -165,14 +403,11 @@ function Set-CrestronControlSubnetSettings {
             ''
         }
 
-        if (-not $proxyProperty) {
-            if (-not $Credential) {
-                throw "Device $($Session.IP) does not expose a detected IGMP proxy web API property. Provide -Credential to use the IGMPPROXY telnet command fallback."
-            }
-
+        if ($Credential) {
             $telnetCommand = if ([bool]$IgmpProxyEnabled) { 'IGMPPROXY ON' } else { 'IGMPPROXY OFF' }
         }
-        else {
+
+        if ($proxyProperty) {
             $currentProxy = if ($current.RawRouter -and $proxyProperty) {
                 $current.RawRouter.$proxyProperty
             }
@@ -190,63 +425,97 @@ function Set-CrestronControlSubnetSettings {
                 $routerBody[$proxyProperty] = [bool]$IgmpProxyEnabled
             }
         }
+        elseif (-not $Credential) {
+            throw "Device $($Session.IP) does not expose a detected IGMP proxy web API property. Provide -Credential to use the IGMPPROXY telnet command fallback."
+        }
     }
 
     if ($routerBody.Count -gt 0) {
-        $deviceBody.Router = $routerBody
         $appliedSections += 'Router'
     }
 
-    if ($deviceBody.Count -eq 0 -and [string]::IsNullOrWhiteSpace($telnetCommand)) {
+    $routerAttempts = @()
+    if ($routerBody.Count -gt 0) {
+        $routerAttempts += [pscustomobject]@{
+            Path  = '/Device'
+            Body  = @{ Device = @{ Router = $routerBody } }
+            Label = 'Router via /Device'
+        }
+        $routerAttempts += [pscustomobject]@{
+            Path  = '/Device/Router'
+            Body  = @{ Device = @{ Router = $routerBody } }
+            Label = 'Router via /Device/Router Device'
+        }
+        $routerAttempts += [pscustomobject]@{
+            Path  = '/Device/Router'
+            Body  = @{ Router = $routerBody }
+            Label = 'Router via /Device/Router wrapped'
+        }
+        $routerAttempts += [pscustomobject]@{
+            Path  = '/Device/Router'
+            Body  = $routerBody
+            Label = 'Router via /Device/Router direct'
+        }
+    }
+
+    if ($networkAttempts.Count -eq 0 -and $routerAttempts.Count -eq 0 -and [string]::IsNullOrWhiteSpace($telnetCommand)) {
         throw "No control subnet payload was built."
     }
 
-    $payload = if ($deviceBody.Count -gt 0) { @{ Device = $deviceBody } } else { $null }
+    $networkSuccess = ($networkAttempts.Count -eq 0)
+    $routerSuccess = ($routerAttempts.Count -eq 0)
 
-    $api = if ($payload) {
-        Invoke-CrestronApi -Session $Session -Path '/Device' -Method POST -Body $payload -TimeoutSec $TimeoutSec
-    }
-    else {
-        $null
-    }
-
-    $sectionResults = @()
-    $overallSuccess = if ($api) { $api.Success } else { $true }
-    $needsReboot = $false
-
-    if ($api -and $api.BodyJson -and $api.BodyJson.Actions) {
-        foreach ($action in @($api.BodyJson.Actions)) {
-            foreach ($r in @($action.Results)) {
-                $path = "$($r.Path)"
-
-                if ($r.Property -and $path -notmatch "\.$([regex]::Escape("$($r.Property)"))$") {
-                    $path = "$path.$($r.Property)"
+    if ($networkAttempts.Count -gt 0 -and $routerAttempts.Count -gt 0) {
+        $combinedAttempts = @()
+        foreach ($networkPayload in @($networkPayloads)) {
+            $combinedAttempts += [pscustomobject]@{
+                Path  = '/Device'
+                Body  = @{
+                    Device = @{
+                        NetworkAdapters = $networkPayload.NetworkAdapters
+                        Router = $routerBody
+                    }
                 }
+                Label = "$($networkPayload.Label) + Router via /Device"
+            }
+        }
 
-                $sid = [int]$r.StatusId
-                $ok = $sid -in 0,1,5,-4
-
-                if (-not $ok) {
-                    $overallSuccess = $false
-                }
-
-                if ($sid -eq 1 -or "$($r.StatusInfo)" -match '(?i)reboot|restart|power cycle') {
-                    $needsReboot = $true
-                }
-
-                $sectionResults += [pscustomobject]@{
-                    Path       = $path
-                    StatusId   = $sid
-                    StatusInfo = "$($r.StatusInfo)"
-                    Ok         = $ok
-                }
+        $combined = Invoke-CabsControlSubnetAttempts -Attempts $combinedAttempts
+        if ($combined) {
+            $api = $combined.Api
+            $sectionResults += @($combined.Parsed.SectionResults)
+            if ($combined.Parsed.NeedsReboot) { $needsReboot = $true }
+            if ($combined.Parsed.BodyPreview) { $bodyPreview = $combined.Parsed.BodyPreview }
+            if ($combined.Parsed.OverallSuccess) {
+                $networkSuccess = $true
+                $routerSuccess = $true
             }
         }
     }
 
-    if ($api -and -not $api.Success) {
-        $overallSuccess = $false
+    if (-not $networkSuccess -and $networkAttempts.Count -gt 0) {
+        $network = Invoke-CabsControlSubnetAttempts -Attempts $networkAttempts
+        if ($network) {
+            $api = $network.Api
+            $sectionResults += @($network.Parsed.SectionResults)
+            if ($network.Parsed.NeedsReboot) { $needsReboot = $true }
+            if ($network.Parsed.BodyPreview) { $bodyPreview = $network.Parsed.BodyPreview }
+            $networkSuccess = [bool]$network.Parsed.OverallSuccess
+        }
     }
+
+    if (-not $routerSuccess -and $routerAttempts.Count -gt 0) {
+        $router = Invoke-CabsControlSubnetAttempts -Attempts $routerAttempts
+        if ($router) {
+            $api = $router.Api
+            $sectionResults += @($router.Parsed.SectionResults)
+            if ($router.Parsed.NeedsReboot) { $needsReboot = $true }
+            if ($router.Parsed.BodyPreview) { $bodyPreview = $router.Parsed.BodyPreview }
+            $routerSuccess = [bool]$router.Parsed.OverallSuccess
+        }
+    }
+
+    $overallSuccess = [bool]($networkSuccess -and $routerSuccess)
 
     if (-not [string]::IsNullOrWhiteSpace($telnetCommand)) {
         try {
@@ -263,9 +532,14 @@ function Set-CrestronControlSubnetSettings {
                 StatusInfo = 'Command sent through telnet'
                 Ok         = $true
             }
+            if ($hasIgmpProxy -and $routerBody.Count -eq 0) {
+                $overallSuccess = $overallSuccess -and $true
+            }
         }
         catch {
-            $overallSuccess = $false
+            if ($routerBody.Count -eq 0 -or -not $routerSuccess) {
+                $overallSuccess = $false
+            }
             $sectionResults += [pscustomobject]@{
                 Path       = 'IGMPPROXY'
                 StatusId   = -1
@@ -275,16 +549,9 @@ function Set-CrestronControlSubnetSettings {
         }
     }
 
-    $bodyPreview = if ($api -and $api.Body) {
-        $clean = ($api.Body -replace '\s+', ' ').Trim()
-        $clean.Substring(0, [Math]::Min(300, $clean.Length))
-    }
-    elseif ($telnetResult -and $telnetResult.Output) {
+    if ([string]::IsNullOrWhiteSpace($bodyPreview) -and $telnetResult -and $telnetResult.Output) {
         $clean = ($telnetResult.Output -replace '\s+', ' ').Trim()
-        $clean.Substring(0, [Math]::Min(300, $clean.Length))
-    }
-    else {
-        ''
+        $bodyPreview = $clean.Substring(0, [Math]::Min(300, $clean.Length))
     }
 
     [pscustomobject]@{

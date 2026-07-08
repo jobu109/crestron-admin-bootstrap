@@ -179,7 +179,16 @@ function Connect-CrestronDevice {
                 $family   = $di.Category
                 $model    = $di.Model
                 $hostName = $di.Name
-                $firmware = $di.Version
+
+                $probeSession = [pscustomobject]@{
+                    IP            = $IP
+                    CookieJarPath = $jar
+                    XsrfToken     = $token
+                }
+                $firmware = Get-CrestronFirmwareVersion `
+                    -Session $probeSession `
+                    -SeedObjects @($infoJson) `
+                    -TimeoutSec ([Math]::Max(1, [Math]::Min($TimeoutSec, 5)))
             }
         }
     } catch {

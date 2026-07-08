@@ -44,6 +44,7 @@ function Test-CrestronUsableIpv4String {
     $text = "$Value".Trim()
     if ([string]::IsNullOrWhiteSpace($text)) { return $false }
     if ($text -in @('0.0.0.0','::','N/A','null')) { return $false }
+    if ($text -notmatch '^(\d{1,3}\.){3}\d{1,3}$') { return $false }
 
     $parsed = $null
     if (-not [System.Net.IPAddress]::TryParse($text, [ref]$parsed)) {
@@ -211,6 +212,9 @@ function Get-CrestronIpv4SubnetMaskText {
         -Names @('SubnetMask','Mask','Netmask','CurrentSubnetMask','StaticSubnetMask')
 
     $mask = Get-CrestronUsableIpv4String $value
+    if ($mask) { return $mask }
+
+    $mask = ConvertTo-CrestronSubnetMaskFromPrefix $value
     if ($mask) { return $mask }
 
     $prefix = Get-CrestronObjectPropertyValue `

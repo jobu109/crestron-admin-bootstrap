@@ -271,9 +271,23 @@ function Get-CrestronDeviceState {
         $supportsModeChange = $false
     }
 
+    $firmwareVersion = "$($Session.Firmware)"
+    if ([string]::IsNullOrWhiteSpace($firmwareVersion)) {
+        try {
+            $firmwareVersion = Get-CrestronFirmwareVersion `
+                -Session $Session `
+                -SeedObjects @($api.BodyJson, $deviceSpecificJson) `
+                -TimeoutSec ([Math]::Max(1, [Math]::Min($TimeoutSec, 5)))
+        }
+        catch {
+            $firmwareVersion = ''
+        }
+    }
+
     [pscustomobject]@{
         IP                       = $Session.IP
         Model                    = $Session.Model
+        Firmware                 = $firmwareVersion
         Hostname                 = if ($networkSource.HostName) { $networkSource.HostName } elseif ($na.HostName) { $na.HostName } else { $Session.Hostname }
         DomainName               = if ($ethInfo) { $ethInfo.DomainName } else { '' }
 

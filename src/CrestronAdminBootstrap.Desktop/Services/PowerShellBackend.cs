@@ -860,7 +860,8 @@ public sealed class PowerShellBackend
                         $dns1 = if ($dnsArr.Count -ge 1) { "$($dnsArr[0])" } else { '' }
                         $model = "$($sess.Model)"
                         if ([string]::IsNullOrWhiteSpace($model)) { $model = "$($state.Model)" }
-                        $firmware = "$($sess.Firmware)"
+                        $firmware = "$($state.Firmware)"
+                        if ([string]::IsNullOrWhiteSpace($firmware)) { $firmware = "$($sess.Firmware)" }
                         if ([string]::IsNullOrWhiteSpace($firmware)) { $firmware = 'N/A' }
                         $modelKey = $model.Trim().ToUpperInvariant()
                         $modelLooksDisplayCapable = $modelKey -match '^(TS|TSW|TSS|TST|DGE)(-|$)'
