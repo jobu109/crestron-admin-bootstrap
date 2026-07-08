@@ -245,6 +245,10 @@ function Get-CrestronControlSubnetSettings {
         return $null
     }
 
+    function Get-CabsIgmpProxyConsolePorts {
+        @(41795, 23)
+    }
+
     $networkApi = Invoke-CrestronApi -Session $Session -Path '/Device/NetworkAdapters' -Method GET -TimeoutSec $TimeoutSec
 
     if (-not $networkApi.Success) {
@@ -367,24 +371,31 @@ function Get-CrestronControlSubnetSettings {
 
     if ($Credential) {
         $igmpProxyTransport = if ($igmpProxyProperty) { 'WebApi+Telnet' } else { 'Telnet' }
+        $consoleRead = $false
 
-        try {
-            $proxyCommand = Invoke-CrestronTelnetCommand `
-                -IP $Session.IP `
-                -Credential $Credential `
-                -Command 'IGMPPROXY' `
-                -TimeoutSec ([Math]::Max(5, [Math]::Min($TimeoutSec, 10)))
+        foreach ($consolePort in @(Get-CabsIgmpProxyConsolePorts)) {
+            try {
+                $proxyCommand = Invoke-CrestronTelnetCommand `
+                    -IP $Session.IP `
+                    -Credential $Credential `
+                    -Command 'IGMPPROXY' `
+                    -Ports @($consolePort) `
+                    -TimeoutSec ([Math]::Max(5, [Math]::Min($TimeoutSec, 10)))
 
-            $telnetProxyValue = ConvertFrom-CabsIgmpProxyOutput $proxyCommand.Output
-            if ($null -ne $telnetProxyValue) {
-                $igmpProxyValue = $telnetProxyValue
-                $igmpProxyTransport = 'Telnet'
+                $telnetProxyValue = ConvertFrom-CabsIgmpProxyOutput $proxyCommand.Output
+                if ($null -ne $telnetProxyValue) {
+                    $igmpProxyValue = $telnetProxyValue
+                    $igmpProxyTransport = "Telnet:$consolePort"
+                    $consoleRead = $true
+                    break
+                }
             }
-            elseif ($igmpProxyProperty) {
-                $igmpProxyTransport = 'WebApi'
+            catch {
+                # Try the next console port before falling back to web API state.
             }
         }
-        catch {
+
+        if (-not $consoleRead) {
             if ($igmpProxyProperty) {
                 $igmpProxyTransport = 'WebApi'
             }
