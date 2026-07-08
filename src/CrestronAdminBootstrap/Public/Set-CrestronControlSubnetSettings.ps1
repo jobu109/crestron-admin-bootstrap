@@ -176,6 +176,36 @@ function Set-CrestronControlSubnetSettings {
         return $last
     }
 
+    function Get-CabsIgmpProxyCommandCandidates {
+        param([bool]$Enabled)
+
+        if ($Enabled) {
+            return @('IGMPPROXY ON', 'IGMPPROXY ENABLE', 'IGMPPROXY ENABLED', 'IGMPPROXY 1')
+        }
+
+        return @('IGMPPROXY OFF', 'IGMPPROXY DISABLE', 'IGMPPROXY DISABLED', 'IGMPPROXY 0')
+    }
+
+    function Test-CabsIgmpProxyReadback {
+        param([bool]$Expected)
+
+        if (-not $Credential) { return $null }
+
+        try {
+            $verifyTimeout = [Math]::Max(5, [Math]::Min($TimeoutSec, 10))
+            $verified = Get-CrestronControlSubnetSettings -Session $Session -Credential $Credential -TimeoutSec $verifyTimeout
+
+            if ($null -eq $verified -or $null -eq $verified.IgmpProxyEnabled) {
+                return $null
+            }
+
+            return ([bool]$verified.IgmpProxyEnabled -eq $Expected)
+        }
+        catch {
+            return $null
+        }
+    }
+
     $hasEnabled = $PSBoundParameters.ContainsKey('Enabled') -and $null -ne $Enabled
     $hasIpMode = $PSBoundParameters.ContainsKey('IPMode') -and -not [string]::IsNullOrWhiteSpace($IPMode)
     $hasIgmpVersion = $PSBoundParameters.ContainsKey('IgmpVersion') -and -not [string]::IsNullOrWhiteSpace($IgmpVersion)
@@ -184,6 +214,7 @@ function Set-CrestronControlSubnetSettings {
     $hasRouterOnlineDelay = $PSBoundParameters.ContainsKey('RouterOnlineDelay') -and $null -ne $RouterOnlineDelay
     $hasRouterIsolationMode = $PSBoundParameters.ContainsKey('RouterIsolationMode') -and $null -ne $RouterIsolationMode
     $hasIgmpProxy = $PSBoundParameters.ContainsKey('IgmpProxyEnabled') -and $null -ne $IgmpProxyEnabled
+    $hasNonIgmpRouterSetting = $hasRouterAutomaticMode -or $hasRouterPrefix -or $hasRouterOnlineDelay -or $hasRouterIsolationMode
 
     if (-not ($hasEnabled -or $hasIpMode -or $hasIgmpVersion -or
               $hasRouterAutomaticMode -or $hasRouterPrefix -or $hasRouterOnlineDelay -or
@@ -404,7 +435,7 @@ function Set-CrestronControlSubnetSettings {
         }
 
         if ($Credential) {
-            $telnetCommand = if ([bool]$IgmpProxyEnabled) { 'IGMPPROXY ON' } else { 'IGMPPROXY OFF' }
+            $telnetCommand = @(Get-CabsIgmpProxyCommandCandidates -Enabled ([bool]$IgmpProxyEnabled))[0]
         }
 
         if ($proxyProperty) {
@@ -545,6 +576,71 @@ function Set-CrestronControlSubnetSettings {
                 StatusId   = -1
                 StatusInfo = "$($_.Exception.Message)"
                 Ok         = $false
+            }
+        }
+    }
+
+    if ($hasIgmpProxy -and $Credential) {
+        $expectedProxy = [bool]$IgmpProxyEnabled
+        $expectedProxyText = if ($expectedProxy) { 'Enabled' } else { 'Disabled' }
+        $verifiedProxy = Test-CabsIgmpProxyReadback -Expected $expectedProxy
+
+        if ($verifiedProxy -eq $false) {
+            foreach ($candidate in @(Get-CabsIgmpProxyCommandCandidates -Enabled $expectedProxy)) {
+                if (-not [string]::IsNullOrWhiteSpace($telnetCommand) -and $candidate -eq $telnetCommand) {
+                    continue
+                }
+
+                try {
+                    $telnetResult = Invoke-CrestronTelnetCommand `
+                        -IP $Session.IP `
+                        -Credential $Credential `
+                        -Command $candidate `
+                        -TimeoutSec $TimeoutSec
+
+                    $appliedSections += 'IGMPPROXY (Telnet)'
+                    $sectionResults += [pscustomobject]@{
+                        Path       = 'IGMPPROXY'
+                        StatusId   = 0
+                        StatusInfo = "Command sent through telnet: $candidate"
+                        Ok         = $true
+                    }
+
+                    $verifiedProxy = Test-CabsIgmpProxyReadback -Expected $expectedProxy
+                    if ($verifiedProxy -eq $true) {
+                        break
+                    }
+                }
+                catch {
+                    $sectionResults += [pscustomobject]@{
+                        Path       = 'IGMPPROXY'
+                        StatusId   = -1
+                        StatusInfo = "$($_.Exception.Message)"
+                        Ok         = $false
+                    }
+                }
+            }
+        }
+
+        if ($verifiedProxy -eq $false) {
+            $overallSuccess = $false
+            $sectionResults += [pscustomobject]@{
+                Path       = 'IGMPPROXY.Verify'
+                StatusId   = -2
+                StatusInfo = "IGMP proxy did not read back as $expectedProxyText after apply."
+                Ok         = $false
+            }
+        }
+        elseif ($verifiedProxy -eq $true) {
+            if (-not $hasNonIgmpRouterSetting) {
+                $routerSuccess = $true
+            }
+            $overallSuccess = [bool]($networkSuccess -and $routerSuccess)
+            $sectionResults += [pscustomobject]@{
+                Path       = 'IGMPPROXY.Verify'
+                StatusId   = 0
+                StatusInfo = "Verified IGMP proxy is $expectedProxyText."
+                Ok         = $true
             }
         }
     }

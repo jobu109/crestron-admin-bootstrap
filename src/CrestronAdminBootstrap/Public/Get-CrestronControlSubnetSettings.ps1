@@ -365,24 +365,33 @@ function Get-CrestronControlSubnetSettings {
         }
     }
 
-    if (-not $igmpProxyProperty -and $Credential) {
-        $igmpProxyTransport = 'Telnet'
+    if ($Credential) {
+        $igmpProxyTransport = if ($igmpProxyProperty) { 'WebApi+Telnet' } else { 'Telnet' }
 
         try {
             $proxyCommand = Invoke-CrestronTelnetCommand `
                 -IP $Session.IP `
                 -Credential $Credential `
                 -Command 'IGMPPROXY' `
-                -TimeoutSec $TimeoutSec
+                -TimeoutSec ([Math]::Max(5, [Math]::Min($TimeoutSec, 10)))
 
             $telnetProxyValue = ConvertFrom-CabsIgmpProxyOutput $proxyCommand.Output
             if ($null -ne $telnetProxyValue) {
                 $igmpProxyValue = $telnetProxyValue
+                $igmpProxyTransport = 'Telnet'
+            }
+            elseif ($igmpProxyProperty) {
+                $igmpProxyTransport = 'WebApi'
             }
         }
         catch {
-            # Command fallback may be unavailable if telnet is disabled. Keep the
-            # GUI editable so apply can still attempt IGMPPROXY ON/OFF when asked.
+            if ($igmpProxyProperty) {
+                $igmpProxyTransport = 'WebApi'
+            }
+            else {
+                # Command fallback may be unavailable if telnet is disabled. Keep
+                # the GUI editable so apply can still attempt IGMPPROXY when asked.
+            }
         }
     }
     elseif ($igmpProxyProperty) {
