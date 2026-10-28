@@ -61,93 +61,9 @@ public sealed class PowerShellBackend
         var script = $$"""
             $ErrorActionPreference = 'Stop'
 
-            function Expand-CabsCidr {
-                param([Parameter(Mandatory)][string]$Cidr)
-
-                $base, $bits = $Cidr -split '/'
-                $bits = [int]$bits
-                $bytes = ([IPAddress]$base).GetAddressBytes()
-                [Array]::Reverse($bytes)
-                $start = [BitConverter]::ToUInt32($bytes, 0)
-                $mask = if ($bits -eq 0) { [uint32]0 } else { ([uint32]::MaxValue -shl (32 - $bits)) -band [uint32]::MaxValue }
-                $network = $start -band $mask
-                $count = [uint64][math]::Pow(2, 32 - $bits)
-                $lo = if ($count -le 2) { [uint64]0 } else { [uint64]1 }
-                $hi = if ($count -le 2) { $count - 1 } else { $count - 2 }
-
-                for ([uint64]$i = $lo; $i -le $hi; $i++) {
-                    $b = [BitConverter]::GetBytes([uint32]($network + $i))
-                    [Array]::Reverse($b)
-                    ([IPAddress]$b).ToString()
-                }
-            }
-
+            Import-Module '{{EscapePowerShellString(_moduleManifest)}}' -Force
             $cidrs = @(Get-Content '{{EscapePowerShellString(cidrFile)}}' | Where-Object { $_ -and $_.Trim() })
-            $targets = @($cidrs | ForEach-Object { Expand-CabsCidr $_ } | Sort-Object -Unique)
-            Write-Output "Scanning $($targets.Count) candidate IP(s) for reachable Crestron/AirMedia devices..."
-
-            $rows = @($targets | ForEach-Object -ThrottleLimit 64 -Parallel {
-                $ip = $_
-                $signals = @()
-                $scannedAt = (Get-Date).ToString('s')
-                $probeTargets = @(
-                    "https://$ip/",
-                    "http://$ip/",
-                    "https://$ip/userlogin.html",
-                    "https://$ip/Device/DeviceInfo"
-                )
-
-                foreach ($url in $probeTargets) {
-                    $jar = Join-Path ([IO.Path]::GetTempPath()) "cabs-probe-$([Guid]::NewGuid()).txt"
-                    $headers = Join-Path ([IO.Path]::GetTempPath()) "cabs-probe-$([Guid]::NewGuid()).headers"
-
-                    try {
-                        $body = & curl.exe -k -s -L -D $headers -c $jar --connect-timeout 1 --max-time 3 $url 2>$null
-                        $headerText = if (Test-Path -LiteralPath $headers) {
-                            Get-Content -LiteralPath $headers -Raw -ErrorAction SilentlyContinue
-                        }
-                        else {
-                            ''
-                        }
-                        $bodyText = if ($body) { ($body -join "`n") } else { '' }
-                        $probeText = "$headerText`n$bodyText"
-
-                        if ((Test-Path -LiteralPath $jar) -and (Select-String -Path $jar -Pattern 'TRACKID' -Quiet)) {
-                            $signals += 'TRACKID'
-                        }
-
-                        if ($probeText -match '(?i)\bAirMedia\b|AM[-_ ]?3?200|AM[-_ ]?\d{3,4}') {
-                            $signals += 'AirMedia'
-                        }
-
-                        if ($probeText -match '(?i)\bCrestron\b|CresNext|CREST-XSRF-TOKEN|userlogin\.html|createUser\.html') {
-                            $signals += 'Crestron'
-                        }
-
-                        if ($probeText -match '(?i)"DeviceInfo"|DeviceInfo|Device\.DeviceInfo') {
-                            $signals += 'DeviceInfo'
-                        }
-
-                        if ($signals.Count -gt 0) {
-                            break
-                        }
-                    }
-                    catch { }
-                    finally {
-                        Remove-Item $jar -Force -ErrorAction SilentlyContinue
-                        Remove-Item $headers -Force -ErrorAction SilentlyContinue
-                    }
-                }
-
-                [pscustomobject]@{
-                    IP = $ip
-                    Reachable = ($signals.Count -gt 0)
-                    MatchedSig = (@($signals | Sort-Object -Unique) -join ', ')
-                    ScannedAt = $scannedAt
-                }
-            })
-
-            $reachable = @($rows | Where-Object Reachable | Sort-Object IP)
+            $reachable = @(Find-CrestronDevice -Cidr $cidrs)
             $reachable | Select-Object IP,MatchedSig,ScannedAt | Export-Csv -NoTypeInformation -Path '{{EscapePowerShellString(outputCsv)}}'
 
             $payload = [pscustomobject]@{
@@ -216,7 +132,7 @@ public sealed class PowerShellBackend
         var script = $$"""
             $ErrorActionPreference = 'Stop'
             Import-Module '{{EscapePowerShellString(_moduleManifest)}}' -Force
-            $rows = @(Find-CrestronBootup -CidrFile '{{EscapePowerShellString(cidrFile)}}' -OutputCsv '{{EscapePowerShellString(outputCsv)}}' -Throttle 64 6>$null)
+            $rows = @(Find-CrestronBootup -CidrFile '{{EscapePowerShellString(cidrFile)}}' -OutputCsv '{{EscapePowerShellString(outputCsv)}}' -Throttle 64)
             $payload = [pscustomobject]@{
                 Success = $true
                 Count = $rows.Count

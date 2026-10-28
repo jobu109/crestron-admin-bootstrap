@@ -581,7 +581,7 @@
                     <GroupBox Header="Subnets (CIDR)">
                         <DockPanel LastChildFill="True">
                             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                                <TextBlock Text="Select subnet(s) to scan. Defaults come from gui-settings.json or subnets.txt."
+                                <TextBlock Text="Fast UDP discovery (6 seconds), then first-boot checks. Select local LAN subnet(s); broadcasts do not cross routers/VLANs. UDP 41794 must be allowed."
                                            Foreground="{DynamicResource MutedTextBrush}"
                                            TextWrapping="Wrap"
                                            Margin="0,0,0,8" />

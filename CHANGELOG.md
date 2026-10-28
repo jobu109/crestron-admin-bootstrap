@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-10-28
+
+### Changed
+
+- Desktop scans now use Crestron UDP broadcast discovery with three attempts in a six-second response window, avoiding per-address HTTP sweeps on large local subnets.
+- First Boot scans retain create-admin page signature verification, probing only discovered candidates.
+- Added Find-CrestronDevice and an explicit Find-CrestronBootup -FullScan option for routed targets or devices with discovery disabled.
+- Documented local LAN/VLAN discovery scope and UDP 41794 requirements.
+
+### Fixed
+
+- Empty first-boot scans clear previous CSV results instead of leaving stale devices.
+
 ## [1.0.2] - 2026-07-08
 
 ### Fixed

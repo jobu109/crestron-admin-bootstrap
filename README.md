@@ -32,7 +32,8 @@ Disconnect-CrestronDevice -Session $session
 
 ---
 
-- **`Find-CrestronBootup`** — scans CIDRs in parallel, returns devices whose `/createUser.html` matches the 4-Series first-boot signatures. Read-only.
+- **`Find-CrestronDevice`** — uses Crestron UDP broadcast discovery on active IPv4 adapters, with three attempts in a six-second window. Filters replies to selected CIDRs without expanding them into individual addresses.
+- **`Find-CrestronBootup`** — discovers devices first, then checks only their `/createUser.html` pages in parallel for the 4-Series first-boot signatures. Read-only. Use `-FullScan` explicitly for the slower per-address sweep when discovery is disabled or targets are routed.
 - **`Set-CrestronAdmin`** — prompts for one admin username/password, asks for a YES confirmation, then `POST`s `/Device/Authentication` on every device in parallel.
 - **`Test-CrestronAdmin`** — rescans previously-provisioned IPs and confirms `/createUser.html` no longer matches the bootup signatures.
 - **`Connect-CrestronDevice`** / **`Disconnect-CrestronDevice`** — explicit login. Probes `/Device/DeviceInfo` to record `DeviceFamily`, `Model`, `Hostname`, and `Firmware` on the session. Tolerates older firmware that doesn't return `CREST-XSRF-TOKEN` in the login response.
@@ -62,6 +63,9 @@ Reboot buttons sit on Provision, Blanket Settings, and Per-Device tabs and alway
 - **PowerShell 7+** for manual and `.zip` installs (PS 5.1 will not work — TLS handshake to Crestron's web server fails). The Windows Setup installer bundles PowerShell 7 and installs it if missing.
 - **`curl.exe`** (bundled with Windows 10/11)
 - Network access to TCP 443 on target devices
+- UDP 41794 outbound broadcasts and inbound discovery replies. Discovery works on local LAN segments; entering a remote CIDR does not forward broadcasts through routers or VLANs. Close Toolbox if it already owns UDP 41794. Devices with AutoDiscovery disabled will require direct IP entry or `Find-CrestronBootup -FullScan`.
+
+Desktop Scan, Full Workflow, and both Scan & Load actions use UDP discovery. The discovery window is independent of subnet size; first-boot page checks and subsequent credential checks add time proportional to the number of devices found. No Toolbox installation or PSCrestron module is required. Protocol background: [Crestron's auto-discovery documentation](https://sdkcon78221.crestron.com/sdk/Crestron_EDK_SDK/Content/Topics/PSCrestron.htm). Live-device validation is still required for the device models and firmware deployed on your network.
 
 ## Install
 
