@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-10-28
+
+### Fixed
+
+- Corrected the UDP discovery request to match Toolbox's 266-byte packet with the sender name at offset 10. The previous request was accepted by RMC4 but did not elicit TSW-1070 replies.
+- Discovery now listens on all IPv4 destinations and includes limited broadcasts, and parses device fields without requiring one firmware-string format.
+- Added request-layout and UDP integration regression checks. Live scans confirmed both an RMC4 and a TSW-1070 on the same /24.
+
 ## [1.0.6] - 2026-10-28
 
 ### Changed
